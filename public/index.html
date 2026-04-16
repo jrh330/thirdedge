@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Third Edge — Rage · Chill · Spark</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes flipIn{from{opacity:0;transform:rotateY(90deg)}to{opacity:1;transform:rotateY(0)}}
+@keyframes attrReveal{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes winGlow{0%{box-shadow:0 0 20px rgba(16,185,129,.3)}50%{box-shadow:0 0 50px rgba(16,185,129,.6)}100%{box-shadow:0 0 20px rgba(16,185,129,.3)}}
+@keyframes loseGlow{0%{box-shadow:0 0 20px rgba(239,68,68,.3)}50%{box-shadow:0 0 50px rgba(239,68,68,.6)}100%{box-shadow:0 0 20px rgba(239,68,68,.3)}}
+@keyframes scorePopIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.btn{padding:12px 28px;border-radius:12px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase}
+.btn:hover{transform:translateY(-2px)}.btn:disabled{opacity:.4;cursor:default;transform:none!important}
+.btn-p{background:linear-gradient(135deg,#DC2626,#B91C1C);color:white}
+.btn-p:hover:not(:disabled){box-shadow:0 8px 24px rgba(220,38,38,.4)}
+.btn-s{background:rgba(255,255,255,.08);color:#E2E8F0;border:1px solid rgba(255,255,255,.15)}
+.btn-s:hover{background:rgba(255,255,255,.15)}
+input{font-family:'Outfit',sans-serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ═══ THEME ═══════════════════════════════════════════════ */
+const SYM = ["🔥","❄️","⚡"];
+const CLR = ["#DC2626","#0EA5E9","#EAB308"];
+const CLR_GLOW = ["rgba(220,38,38,.4)","rgba(14,165,233,.4)","rgba(234,179,8,.4)"];
+const ANAME = ["Rage","Chill","Spark"];
+const CAP = 27;
+
+/* ═══ CARD UNIVERSE ═══════════════════════════════════════ */
+const ALL_CARDS = [];
+const CARD_MAP = {};
+const seen = new Set();
+const BASE = [[21,3,3],[18,6,3],[18,3,6],[15,9,3],[15,3,9],[15,6,6],[12,12,3],[12,3,12],[12,9,6],[12,6,9],[9,9,9]];
+BASE.forEach(shape => {
+  [[shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
+   [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]]].forEach(p => {
+    const key=p.join("-");
+    if(!seen.has(key)&&p[0]+p[1]+p[2]===CAP&&p.every(v=>v>=3)){
+      seen.add(key);
+      const dom=p.indexOf(Math.max(...p));
+      const sorted=[...p].sort((a,b)=>b-a);
+      const risk=sorted[0]-sorted[2]<=6?"Low":sorted[0]-sorted[2]<=12?"Medium":"High";
+      let label="Balanced";
+      if(sorted[0]===sorted[1]&&sorted[1]===sorted[2])label="Balanced";
+      else if(sorted[1]===sorted[2])label=sorted[0]>=18?"Pure":"Strong";
+      else if(sorted[0]===sorted[1])label="Dual";
+      else if(sorted[0]>=18)label="Heavy";
+      else if(sorted[0]>=15&&sorted[2]<=3)label="Split";
+      else label="Mild";
+      const card={id:`c${ALL_CARDS.length}`,attrs:[...p],dom,label,risk};
+      ALL_CARDS.push(card);
+      CARD_MAP[card.id]=card;
+    }
+  });
+});
+
+/* ═══ API ═════════════════════════════════════════════════ */
+const API = "";  // same origin
+async function api(path, body) {
+  const opts = body ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) } : {};
+  const r = await fetch(API+"/api/"+path, opts);
+  return r.json();
+}
+
+/* ═══ HELPERS ═════════════════════════════════════════════ */
+const cardGrad=(attrs)=>{
+  const t=attrs[0]+attrs[1]+attrs[2];if(t===0)return"linear-gradient(180deg,#1e293b,#0f172a)";
+  const sorted=[0,1,2].sort((a,b)=>attrs[b]-attrs[a]);let pos=0;const stops=[];
+  for(const idx of sorted){const pct=Math.round((attrs[idx]/t)*100);stops.push(`${CLR[idx]} ${pos}%`);pos+=pct;stops.push(`${CLR[idx]} ${pos}%`);}
+  return`linear-gradient(180deg,${stops.join(",")})`;
+};
+
+/* ═══ CARD VIEW ═══════════════════════════════════════════ */
+function CardView({card,onClick,sel,dim,small,hl}){
+  const s=small?0.72:1;const w=125*s;const h=170*s;
+  return React.createElement("div",{onClick:dim?undefined:onClick,style:{
+    width:w,minHeight:h,borderRadius:12*s,background:cardGrad(card.attrs),
+    border:sel?"3px solid white":hl?`3px solid ${CLR[card.dom]}`:"2px solid rgba(255,255,255,0.12)",
+    cursor:dim?"default":onClick?"pointer":"default",opacity:dim?0.3:1,
+    transform:sel?"scale(1.08) translateY(-4px)":"scale(1)",transition:"all 0.2s cubic-bezier(.4,0,.2,1)",
+    display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:8*s,
+    boxShadow:sel?`0 8px 32px ${CLR_GLOW[card.dom]}`:"0 4px 16px rgba(0,0,0,0.4)",
+    position:"relative",overflow:"hidden"}},
+    // Stats
+    React.createElement("div",{style:{position:"absolute",top:6*s,right:6*s,display:"flex",flexDirection:"column",gap:2*s}},
+      [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",alignItems:"center",gap:3*s,
+        background:"rgba(0,0,0,0.55)",borderRadius:4*s,padding:`${1*s}px ${5*s}px`,backdropFilter:"blur(4px)"}},
+        React.createElement("span",{style:{fontSize:10*s}},SYM[a]),
+        React.createElement("span",{style:{fontSize:12*s,fontWeight:800,color:"white",textShadow:"0 1px 2px rgba(0,0,0,0.7)",minWidth:16*s,textAlign:"right"}},card.attrs[a])
+      ))
+    ),
+    // Risk dot
+    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s}},
+      React.createElement("div",{style:{width:8*s,height:8*s,borderRadius:"50%",
+        background:card.risk==="High"?"#EF4444":card.risk==="Medium"?"#F59E0B":"#10B981",
+        boxShadow:`0 0 4px ${card.risk==="High"?"rgba(239,68,68,.6)":card.risk==="Medium"?"rgba(245,158,11,.6)":"rgba(16,185,129,.6)"}`}})
+    ),
+    // Label
+    React.createElement("div",{style:{background:"rgba(0,0,0,0.6)",borderRadius:8*s,padding:`${4*s}px ${7*s}px`,backdropFilter:"blur(4px)",textAlign:"center"}},
+      React.createElement("div",{style:{fontSize:9*s,color:"rgba(255,255,255,0.7)",fontWeight:700}},card.label+" "+ANAME[card.dom]),
+      React.createElement("div",{style:{fontSize:8*s,color:"rgba(255,255,255,0.4)",fontWeight:600,marginTop:1*s}},card.attrs.join("-"))
+    )
+  );
+}
+
+/* ═══ ATTR COUNTDOWN ══════════════════════════════════════ */
+function AttrCount({history,carry}){
+  const left=[3,3,3];(history||[]).forEach(r=>left[r.attr]--);
+  return React.createElement("div",{style:{display:"flex",gap:14,justifyContent:"center",padding:"8px 0"}},
+    [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4,opacity:left[a]===0?0.2:1,transition:"opacity 0.3s"}},
+      React.createElement("span",{style:{fontSize:24}},SYM[a]),
+      React.createElement("div",{style:{display:"flex",gap:3}},
+        [0,1,2].map(i=>React.createElement("div",{key:i,style:{width:9,height:9,borderRadius:"50%",background:i<left[a]?CLR[a]:"rgba(255,255,255,0.1)",boxShadow:i<left[a]?`0 0 6px ${CLR_GLOW[a]}`:"none"}}))
+      ),
+      React.createElement("span",{style:{fontSize:8,fontWeight:700,color:left[a]>0?CLR[a]:"#334155"}},ANAME[a])
+    )),
+    carry>0&&React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4,animation:"pulse 1s infinite"}},
+      React.createElement("span",{style:{fontSize:16,fontWeight:900,color:"#F59E0B"}},"+"+carry),
+      React.createElement("span",{style:{fontSize:8,color:"#F59E0B",fontWeight:600}},"CARRY")
+    )
+  );
+}
+
+/* ═══ MAIN APP ════════════════════════════════════════════ */
+function App(){
+  // Connection state
+  const[screen,setScreen]=useState("menu"); // menu, waiting, game
+  const[roomCode,setRoomCode]=useState("");
+  const[joinInput,setJoinInput]=useState("");
+  const[playerId,setPlayerId]=useState("");
+  const[playerNum,setPlayerNum]=useState(0);
+  const[error,setError]=useState("");
+
+  // Game state from server
+  const[gs,setGs]=useState(null);
+  const pollRef=useRef(null);
+  const[loading,setLoading]=useState(false);
+
+  // Local UI state
+  const[rosterSel,setRosterSel]=useState(new Set());
+  const[handSel,setHandSel]=useState(new Set());
+  const[revealPhase,setRevealPhase]=useState(null); // null, "commit", "flip", "attr", "result"
+  const[lastRound,setLastRound]=useState(-1);
+  const prevHistLen=useRef(0);
+
+  // ── Polling ──
+  const poll=useCallback(async()=>{
+    if(!roomCode||!playerId)return;
+    try{
+      const data=await api(`poll?code=${roomCode}&playerId=${playerId}`);
+      if(data.error){console.error(data.error);return;}
+      setGs(data);
+    }catch(e){console.error("poll failed",e);}
+  },[roomCode,playerId]);
+
+  useEffect(()=>{
+    if(screen!=="waiting"&&screen!=="game")return;
+    poll();
+    pollRef.current=setInterval(poll,1200);
+    return()=>clearInterval(pollRef.current);
+  },[screen,poll]);
+
+  // Transition from waiting to game when opponent joins
+  useEffect(()=>{
+    if(gs&&gs.opponentJoined&&screen==="waiting")setScreen("game");
+  },[gs,screen]);
+
+  // Detect new round results for reveal animation
+  useEffect(()=>{
+    if(!gs||!gs.history)return;
+    if(gs.history.length>prevHistLen.current&&gs.history.length>0){
+      const latest=gs.history[gs.history.length-1];
+      setRevealPhase("flip");
+      setTimeout(()=>setRevealPhase("attr"),1200);
+      setTimeout(()=>setRevealPhase("result"),2700);
+      setTimeout(()=>setRevealPhase(null),4500);
+    }
+    prevHistLen.current=gs.history.length;
+  },[gs?.history?.length]);
+
+  // ── Actions ──
+  const createGame=async()=>{
+    setLoading(true);setError("");
+    const r=await api("create",{});
+    setLoading(false);
+    if(r.error){setError(r.error);return;}
+    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("waiting");
+  };
+
+  const joinGame=async()=>{
+    if(!joinInput.trim()){setError("Enter a room code");return;}
+    setLoading(true);setError("");
+    const r=await api("join",{code:joinInput.trim().toUpperCase()});
+    setLoading(false);
+    if(r.error){setError(r.error);return;}
+    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("game");
+  };
+
+  const submitRoster=async()=>{
+    if(rosterSel.size!==12)return;
+    await api("action",{code:roomCode,playerId,action:"roster",data:[...rosterSel]});
+    poll();
+  };
+
+  const submitHand=async()=>{
+    if(handSel.size!==9)return;
+    await api("action",{code:roomCode,playerId,action:"hand",data:[...handSel]});
+    poll();
+  };
+
+  const playCard=async(cardId)=>{
+    if(gs.myPlayReady)return;
+    await api("action",{code:roomCode,playerId,action:"play",data:cardId});
+    poll();
+  };
+
+  const nextMatch=async()=>{
+    await api("action",{code:roomCode,playerId,action:"next_match",data:null});
+    setHandSel(new Set());
+    prevHistLen.current=0;
+    setRevealPhase(null);
+    poll();
+  };
+
+  // ── Derived state ──
+  const myPlayedIds=gs?new Set((gs.history||[]).map(h=>playerNum===1?h.p1CardId:h.p2CardId)):new Set();
+  const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>CARD_MAP[id]).filter(Boolean):[];
+  const latestResult=gs&&gs.history&&gs.history.length>0?gs.history[gs.history.length-1]:null;
+
+  // ── Render helpers ──
+  const h=React.createElement;
+
+  const header=h("div",{style:{width:"100%",padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"rgba(11,15,26,.95)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
+    h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[0]}},"THIRD"),
+    h("span",{style:{fontSize:13}},"🔥❄️⚡"),
+    h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[1]}},"EDGE"),
+    roomCode&&h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},`Room: ${roomCode}`)
+  );
+
+  // ═══ MENU ═══
+  if(screen==="menu"){
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
+      header,
+      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,animation:"fadeIn .6s ease",padding:24}},
+        h("div",{style:{textAlign:"center"}},
+          h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:6,background:`linear-gradient(135deg,${CLR[0]},${CLR[1]},${CLR[2]})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"THIRD EDGE"),
+          h("div",{style:{fontSize:36,marginTop:4}},"🔥 ❄️ ⚡"),
+          h("div",{style:{display:"flex",gap:12,justifyContent:"center",marginTop:8}},
+            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[0],letterSpacing:2}},"RAGE"),
+            h("span",{style:{fontSize:14,color:"#334155"}},"·"),
+            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[1],letterSpacing:2}},"CHILL"),
+            h("span",{style:{fontSize:14,color:"#334155"}},"·"),
+            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[2],letterSpacing:2}},"SPARK"),
+          )
+        ),
+        h("div",{style:{maxWidth:400,textAlign:"center",color:"#94A3B8",lineHeight:1.7,fontSize:14}},
+          `${ALL_CARDS.length} cards. 7 archetypes. Every card sums to ${CAP}. Play against a friend in a best-of-3 series.`
+        ),
+        // Create
+        h("button",{className:"btn btn-p",onClick:createGame,disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),
+        // Join
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+          h("input",{type:"text",value:joinInput,onChange:e=>setJoinInput(e.target.value.toUpperCase()),placeholder:"ROOM CODE",maxLength:4,
+            style:{width:140,padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",color:"white",fontSize:18,fontWeight:800,textAlign:"center",letterSpacing:6,outline:"none"}}),
+          h("button",{className:"btn btn-s",onClick:joinGame,disabled:loading||!joinInput.trim()},"Join")
+        ),
+        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error)
+      )
+    );
+  }
+
+  // ═══ WAITING ═══
+  if(screen==="waiting"){
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
+      header,
+      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,animation:"fadeIn .6s ease",padding:24}},
+        h("div",{style:{fontSize:14,color:"#64748B",letterSpacing:2}},"WAITING FOR OPPONENT"),
+        h("div",{style:{fontSize:64,fontWeight:900,letterSpacing:12,color:"white"}},roomCode),
+        h("div",{style:{fontSize:13,color:"#94A3B8",textAlign:"center",maxWidth:300,lineHeight:1.6}},
+          "Share this code with your opponent. The game starts when they join."
+        ),
+        h("button",{className:"btn btn-s",onClick:()=>{navigator.clipboard&&navigator.clipboard.writeText(roomCode)}},
+          "📋 Copy Code"
+        ),
+        h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
+      )
+    );
+  }
+
+  // ═══ GAME ═══
+  if(!gs)return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
+    h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
+  );
+
+  const status=gs.status;
+
+  // ── ROSTER PHASE ──
+  if(status==="roster"){
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
+      header,
+      h("div",{style:{flex:1,width:"100%",maxWidth:960,padding:"10px 12px",animation:"fadeIn .4s ease"}},
+        h("div",{style:{textAlign:"center",marginBottom:10}},
+          h("div",{style:{fontSize:18,fontWeight:700}},"Build Your Roster"),
+          h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
+            `Pick 12 cards · `,h("span",{style:{color:CLR[0],fontWeight:700}},rosterSel.size+"/12"),
+            gs.opponentRosterReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."
+          )
+        ),
+        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
+          ALL_CARDS.map(c=>h(CardView,{key:c.id,card:c,sel:rosterSel.has(c.id),small:true,
+            onClick:()=>setRosterSel(p=>{const s=new Set(p);if(s.has(c.id))s.delete(c.id);else if(s.size<12)s.add(c.id);return s;})}))
+        ),
+        h("div",{style:{textAlign:"center",marginTop:14}},
+          gs.myRosterReady
+            ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Roster locked — waiting for opponent...")
+            :h("button",{className:"btn btn-p",disabled:rosterSel.size!==12,onClick:submitRoster},"Lock Roster →")
+        )
+      )
+    );
+  }
+
+  // ── HAND PHASE ──
+  if(status==="hand"){
+    const rosterCards=(gs.myRoster||[]).map(id=>CARD_MAP[id]).filter(Boolean);
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
+      header,
+      h("div",{style:{flex:1,width:"100%",maxWidth:920,padding:"10px 12px",animation:"fadeIn .4s ease"}},
+        h("div",{style:{display:"flex",justifyContent:"center",gap:10,marginBottom:6}},
+          [1,2,3].map(m=>h("div",{key:m,style:{padding:"3px 12px",borderRadius:6,fontSize:11,fontWeight:700,
+            background:m===gs.matchNum?`${CLR[0]}20`:"transparent",color:m===gs.matchNum?CLR[0]:"#475569",
+            border:m===gs.matchNum?`1px solid ${CLR[0]}40`:"1px solid transparent"}},"Match "+m))
+        ),
+        h("div",{style:{textAlign:"center",fontSize:12,color:"#94A3B8",marginBottom:6}},
+          "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
+          h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
+        ),
+        h("div",{style:{textAlign:"center",marginBottom:10}},
+          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 for Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
+            h("span",{style:{color:CLR[0],fontWeight:700}},handSel.size+"/9"),
+            gs.opponentHandReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."
+          )
+        ),
+        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
+          rosterCards.map(c=>h(CardView,{key:c.id,card:c,sel:handSel.has(c.id),small:true,
+            onClick:()=>setHandSel(p=>{const s=new Set(p);if(s.has(c.id))s.delete(c.id);else if(s.size<9)s.add(c.id);return s;})}))
+        ),
+        h("div",{style:{textAlign:"center",marginTop:12}},
+          gs.myHandReady
+            ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Hand locked — waiting for opponent...")
+            :h("button",{className:"btn btn-p",disabled:handSel.size!==9,onClick:submitHand},"Start Match "+gs.matchNum+" →")
+        )
+      )
+    );
+  }
+
+  // ── PLAYING PHASE ──
+  if(status==="playing"){
+    // Reveal animation in progress
+    if(revealPhase&&latestResult){
+      const lr=latestResult;
+      const myCard=CARD_MAP[playerNum===1?lr.p1CardId:lr.p2CardId];
+      const opCard=CARD_MAP[playerNum===1?lr.p2CardId:lr.p1CardId];
+      const myVal=playerNum===1?lr.p1v:lr.p2v;
+      const opVal=playerNum===1?lr.p2v:lr.p1v;
+      const iWon=(playerNum===1&&lr.winner==="p1")||(playerNum===2&&lr.winner==="p2");
+      const iLost=(playerNum===1&&lr.winner==="p2")||(playerNum===2&&lr.winner==="p1");
+
+      if(revealPhase==="flip"){
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:600,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}},
+            h("div",{style:{fontSize:13,color:"#94A3B8",letterSpacing:2}},"CARDS REVEALED"),
+            h("div",{style:{display:"flex",alignItems:"center",gap:24}},
+              h("div",{style:{textAlign:"center",animation:"flipIn .5s ease"}},
+                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,marginBottom:4,letterSpacing:1}},"YOU"),
+                h(CardView,{card:myCard})),
+              h("div",{style:{fontSize:18,fontWeight:900,color:"#334155"}},"VS"),
+              h("div",{style:{textAlign:"center",animation:"flipIn .5s ease .15s both"}},
+                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,marginBottom:4,letterSpacing:1}},"OPPONENT"),
+                h(CardView,{card:opCard}))
+            ),
+            h("div",{style:{fontSize:12,color:"#475569",animation:"pulse 1s infinite"}},"Testing attribute...")
+          )
+        );
+      }
+
+      if(revealPhase==="attr"){
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:600,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}},
+            h("div",{style:{animation:"attrReveal .6s cubic-bezier(.4,0,.2,1)",display:"flex",alignItems:"center",gap:10,padding:"12px 28px",borderRadius:14,
+              background:`${CLR[lr.attr]}18`,border:`2px solid ${CLR[lr.attr]}40`,boxShadow:`0 0 40px ${CLR_GLOW[lr.attr]}`}},
+              h("span",{style:{fontSize:40}},SYM[lr.attr]),
+              h("span",{style:{fontSize:22,fontWeight:900,color:CLR[lr.attr]}},ANAME[lr.attr])
+            ),
+            h("div",{style:{display:"flex",alignItems:"center",gap:24}},
+              h("div",{style:{textAlign:"center"}},h(CardView,{card:myCard,small:true}),
+                h("div",{style:{fontSize:28,fontWeight:900,color:"#10B981",marginTop:6}},myVal)),
+              h("div",{style:{fontSize:18,fontWeight:900,color:"#334155"}},"VS"),
+              h("div",{style:{textAlign:"center"}},h(CardView,{card:opCard,small:true}),
+                h("div",{style:{fontSize:28,fontWeight:900,color:"#EF4444",marginTop:6}},opVal))
+            )
+          )
+        );
+      }
+
+      if(revealPhase==="result"){
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:600,padding:16,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,animation:"slideUp .4s ease"}},
+            h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:20,marginBottom:4}},
+              h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:1}},"YOU"),
+                h("div",{style:{fontSize:36,fontWeight:900,color:"#10B981",animation:"scorePopIn .3s ease"}},gs.matchScore[playerNum===1?0:1])),
+              h("div",{style:{padding:"6px 20px",borderRadius:10,fontSize:15,fontWeight:800,letterSpacing:1,
+                background:iWon?"rgba(16,185,129,.12)":iLost?"rgba(239,68,68,.12)":"rgba(234,179,8,.12)",
+                color:iWon?"#10B981":iLost?"#EF4444":"#EAB308",
+                animation:lr.winner==="tie"?"shake .4s ease":"scorePopIn .3s ease"}},
+                iWon?`WIN${lr.pts>1?` +${lr.pts}`:""}`:iLost?`LOSS${lr.pts>1?` +${lr.pts}`:""}`: "TIE → CARRY"),
+              h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:1}},"OPP"),
+                h("div",{style:{fontSize:36,fontWeight:900,color:"#EF4444",animation:"scorePopIn .3s ease"}},gs.matchScore[playerNum===1?1:0]))
+            ),
+            h("div",{style:{display:"flex",alignItems:"center",gap:16}},
+              h("div",{style:{textAlign:"center",animation:iWon?"winGlow 1s ease infinite":"none",borderRadius:14}},
+                h(CardView,{card:myCard,hl:iWon,small:true}),
+                h("div",{style:{fontSize:9,marginTop:4,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)),
+              h("div",{style:{fontSize:16,fontWeight:900,color:"#334155"}},"vs"),
+              h("div",{style:{textAlign:"center",animation:iLost?"loseGlow 1s ease infinite":"none",borderRadius:14}},
+                h(CardView,{card:opCard,hl:iLost,small:true}),
+                h("div",{style:{fontSize:9,marginTop:4,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal))
+            ),
+            h(AttrCount,{history:gs.history,carry:gs.carry})
+          )
+        );
+      }
+    }
+
+    // Normal play state
+    const myScore=gs.matchScore[playerNum===1?0:1];
+    const opScore=gs.matchScore[playerNum===1?1:0];
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
+      header,
+      h("div",{style:{flex:1,width:"100%",maxWidth:800,padding:"0 14px",animation:"fadeIn .3s ease"}},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",fontSize:11,color:"#64748B"}},
+          h("span",null,`Series ${gs.seriesScore[0]}–${gs.seriesScore[1]} · Match ${gs.matchNum}`),
+          h("span",null,`Round ${(gs.history||[]).length+1}/9`)
+        ),
+        // Scoreboard
+        h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:28,marginBottom:2}},
+          h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
+            h("div",{style:{fontSize:38,fontWeight:900,color:"#10B981"}},myScore)),
+          h("div",{style:{width:50,height:50,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.02)"}},
+            gs.myPlayReady
+              ?h("div",{style:{width:20,height:20,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[1],borderRadius:"50%",animation:"spin 1s linear infinite"}})
+              :h("span",{style:{fontSize:14,fontWeight:900,color:"#64748B"}},"⚔️")),
+          h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPP"),
+            h("div",{style:{fontSize:38,fontWeight:900,color:"#EF4444"}},opScore))
+        ),
+        h(AttrCount,{history:gs.history,carry:gs.carry}),
+        // Opponent cards remaining
+        h("div",{style:{display:"flex",justifyContent:"center",gap:3,marginBottom:8}},
+          Array.from({length:9},(_,i)=>h("div",{key:i,style:{width:32,height:44,borderRadius:5,
+            background:i<gs.opponentCardsLeft?"linear-gradient(180deg,#1e293b,#0f172a)":"transparent",
+            border:i<gs.opponentCardsLeft?"1px solid rgba(255,255,255,.06)":"none",
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,color:"#334155",fontWeight:900}},
+            i<gs.opponentCardsLeft?"TE":""))
+        ),
+        h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
+        h("div",{style:{textAlign:"center",marginBottom:6}},
+          h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},
+            gs.myPlayReady?"WAITING FOR OPPONENT...":"TAP A CARD")),
+        // My hand
+        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
+          myHandCards.map(c=>h(CardView,{key:c.id,card:c,onClick:gs.myPlayReady?undefined:()=>playCard(c.id),dim:gs.myPlayReady,small:true}))
+        ),
+        // History
+        (gs.history||[]).length>0&&h("div",{style:{marginTop:12,padding:"6px 8px",background:"rgba(255,255,255,.02)",borderRadius:8,border:"1px solid rgba(255,255,255,.04)"}},
+          h("div",{style:{display:"flex",flexWrap:"wrap",gap:4}},
+            (gs.history||[]).map((hr,i)=>{
+              const iw=(playerNum===1&&hr.winner==="p1")||(playerNum===2&&hr.winner==="p2");
+              const il=(playerNum===1&&hr.winner==="p2")||(playerNum===2&&hr.winner==="p1");
+              return h("div",{key:i,style:{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:4,fontSize:10,fontWeight:700,
+                background:iw?"rgba(16,185,129,.1)":il?"rgba(239,68,68,.1)":"rgba(255,255,255,.03)",
+                color:iw?"#10B981":il?"#EF4444":"#475569"}},
+                h("span",null,SYM[hr.attr]),
+                h("span",null,(playerNum===1?hr.p1v:hr.p2v)+"–"+(playerNum===1?hr.p2v:hr.p1v)),
+                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts));
+            })
+          )
+        ),
+        gs.opponentPlayReady&&!gs.myPlayReady&&h("div",{style:{textAlign:"center",marginTop:8,fontSize:12,color:CLR[2],fontWeight:700,animation:"pulse 1s infinite"}},"⚡ Opponent is waiting on you!")
+      )
+    );
+  }
+
+  // ── MATCH END ──
+  if(status==="match_end"){
+    const myScore=gs.matchScore[playerNum===1?0:1];
+    const opScore=gs.matchScore[playerNum===1?1:0];
+    const won=myScore>opScore;
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .5s ease",padding:24}},
+        h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
+        h("div",{style:{fontSize:48,fontWeight:900,color:won?"#10B981":myScore===opScore?"#EAB308":"#EF4444"}},won?"VICTORY":myScore===opScore?"DRAW":"DEFEAT"),
+        h("div",{style:{fontSize:32,fontWeight:800}},
+          h("span",{style:{color:"#10B981"}},myScore),
+          h("span",{style:{color:"#334155",margin:"0 10px"}},"–"),
+          h("span",{style:{color:"#EF4444"}},opScore)),
+        h("button",{className:"btn btn-p",onClick:nextMatch},"Match "+(gs.matchNum+1)+" →")
+      )
+    );
+  }
+
+  // ── SERIES END ──
+  if(status==="series_end"){
+    const myS=gs.seriesScore[playerNum===1?0:1];
+    const opS=gs.seriesScore[playerNum===1?1:0];
+    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,animation:"slideUp .6s ease",padding:24}},
+        h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:3}},"SERIES COMPLETE"),
+        h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:3,background:myS>=2?"linear-gradient(135deg,#10B981,#34D399)":"linear-gradient(135deg,#EF4444,#F87171)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},myS>=2?"YOU WIN":"YOU LOSE"),
+        h("div",{style:{fontSize:36,fontWeight:800}},
+          h("span",{style:{color:"#10B981"}},myS),
+          h("span",{style:{color:"#334155",margin:"0 12px"}},"–"),
+          h("span",{style:{color:"#EF4444"}},opS)),
+        h("button",{className:"btn btn-s",onClick:()=>location.reload()},"New Game")
+      )
+    );
+  }
+
+  // Fallback
+  return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
+    h("div",{style:{color:"#64748B"}},"Loading... Status: "+(gs?.status||"unknown")));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
