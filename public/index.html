@@ -42,25 +42,26 @@ const CLR_GLOW = ["rgba(220,38,38,.4)","rgba(14,165,233,.4)","rgba(234,179,8,.4)
 const ANAME = ["Rage","Chill","Spark"];
 const CAP = 27;
 
-/* ═══ CARD UNIVERSE ═══════════════════════════════════════ */
+/* ═══ CARD UNIVERSE ═══════════════════════════════════════
+   Values restricted to {3,6,9,12,15}, always summing to 27.
+   18 unique permutations + 3 copies of the balanced 9-9-9.
+══════════════════════════════════════════════════════════ */
 const ALL_CARDS = [];
 const CARD_MAP = {};
 const seen = new Set();
-const BASE = [[21,3,3],[18,6,3],[18,3,6],[15,9,3],[15,3,9],[15,6,6],[12,12,3],[12,3,12],[12,9,6],[12,6,9],[9,9,9]];
+const BASE = [[15,9,3],[15,6,6],[12,12,3],[12,9,6]];
 BASE.forEach(shape => {
   [[shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
    [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]]].forEach(p => {
     const key=p.join("-");
-    if(!seen.has(key)&&p[0]+p[1]+p[2]===CAP&&p.every(v=>v>=3)){
+    if(!seen.has(key)){
       seen.add(key);
       const dom=p.indexOf(Math.max(...p));
       const sorted=[...p].sort((a,b)=>b-a);
-      const risk=sorted[0]-sorted[2]<=6?"Low":sorted[0]-sorted[2]<=12?"Medium":"High";
+      const risk=sorted[0]-sorted[2]<=6?"Low":"Medium";
       let label="Balanced";
-      if(sorted[0]===sorted[1]&&sorted[1]===sorted[2])label="Balanced";
-      else if(sorted[1]===sorted[2])label=sorted[0]>=18?"Pure":"Strong";
+      if(sorted[1]===sorted[2])label="Strong";
       else if(sorted[0]===sorted[1])label="Dual";
-      else if(sorted[0]>=18)label="Heavy";
       else if(sorted[0]>=15&&sorted[2]<=3)label="Split";
       else label="Mild";
       const card={id:`c${ALL_CARDS.length}`,attrs:[...p],dom,label,risk};
@@ -69,6 +70,12 @@ BASE.forEach(shape => {
     }
   });
 });
+// 3 copies of the balanced 9-9-9 card
+for(let i=0;i<3;i++){
+  const card={id:`c${ALL_CARDS.length}`,attrs:[9,9,9],dom:0,label:"Balanced",risk:"Low"};
+  ALL_CARDS.push(card);
+  CARD_MAP[card.id]=card;
+}
 
 /* ═══ API ═════════════════════════════════════════════════ */
 const API = "";  // same origin
@@ -157,6 +164,7 @@ function App(){
   const[revealPhase,setRevealPhase]=useState(null); // null, "commit", "flip", "attr", "result"
   const[lastRound,setLastRound]=useState(-1);
   const prevHistLen=useRef(0);
+  const prevMatchNum=useRef(1);
 
   // ── Polling ──
   const poll=useCallback(async()=>{
@@ -179,6 +187,17 @@ function App(){
   useEffect(()=>{
     if(gs&&gs.opponentJoined&&screen==="waiting")setScreen("game");
   },[gs,screen]);
+
+  // Clear hand selection when a new match starts (handles player who didn't click the button)
+  useEffect(()=>{
+    if(!gs)return;
+    if(gs.matchNum!==prevMatchNum.current){
+      setHandSel(new Set());
+      prevHistLen.current=0;
+      setRevealPhase(null);
+      prevMatchNum.current=gs.matchNum;
+    }
+  },[gs?.matchNum]);
 
   // Detect new round results for reveal animation
   useEffect(()=>{
@@ -263,7 +282,7 @@ function App(){
           )
         ),
         h("div",{style:{maxWidth:400,textAlign:"center",color:"#94A3B8",lineHeight:1.7,fontSize:14}},
-          `${ALL_CARDS.length} cards. 7 archetypes. Every card sums to ${CAP}. Play against a friend in a best-of-3 series.`
+          `${ALL_CARDS.length} cards. 4 archetypes. Every card sums to ${CAP}. Play against a friend in a best-of-3 series.`
         ),
         // Create
         h("button",{className:"btn btn-p",onClick:createGame,disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),

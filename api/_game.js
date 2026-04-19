@@ -1,10 +1,15 @@
-/* ═══ THE 28-CARD UNIVERSE ════════════════════════════════ */
+/* ═══ THE 21-CARD UNIVERSE ════════════════════════════════
+   Values restricted to {3,6,9,12,15}, always summing to 27.
+   18 unique permutations + 3 copies of the balanced 9-9-9.
+══════════════════════════════════════════════════════════ */
 const CAP = 27;
 const ALL_CARDS = [];
 const seen = new Set();
 const BASE = [
-  [21,3,3],[18,6,3],[18,3,6],[15,9,3],[15,3,9],[15,6,6],
-  [12,12,3],[12,3,12],[12,9,6],[12,6,9],[9,9,9]
+  [15,9,3],  // 6 permutations → specialist cards
+  [15,6,6],  // 3 permutations → strong cards
+  [12,12,3], // 3 permutations → dual cards
+  [12,9,6],  // 6 permutations → mild cards
 ];
 BASE.forEach(shape => {
   const perms = [
@@ -13,12 +18,16 @@ BASE.forEach(shape => {
   ];
   perms.forEach(p => {
     const key = p.join("-");
-    if (!seen.has(key) && p[0]+p[1]+p[2] === CAP && p.every(v => v >= 3)) {
+    if (!seen.has(key)) {
       seen.add(key);
       ALL_CARDS.push({ id: `c${ALL_CARDS.length}`, attrs: [...p] });
     }
   });
 });
+// 3 copies of the balanced 9-9-9 card
+for (let i = 0; i < 3; i++) {
+  ALL_CARDS.push({ id: `c${ALL_CARDS.length}`, attrs: [9, 9, 9] });
+}
 
 // Card ID set for validation
 const VALID_IDS = new Set(ALL_CARDS.map(c => c.id));
