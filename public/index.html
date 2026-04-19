@@ -338,10 +338,8 @@ function App(){
     );
   }
 
-  // ── PLAYING PHASE ──
-  if(status==="playing"){
-    // Reveal animation in progress
-    if(revealPhase&&latestResult){
+  // ── REVEAL ANIMATION (runs regardless of status, so final round shows before end screen) ──
+  if(revealPhase&&latestResult){
       const lr=latestResult;
       const myCard=CARD_MAP[playerNum===1?lr.p1CardId:lr.p2CardId];
       const opCard=CARD_MAP[playerNum===1?lr.p2CardId:lr.p1CardId];
@@ -414,8 +412,10 @@ function App(){
           )
         );
       }
-    }
+  }
 
+  // ── PLAYING PHASE ──
+  if(status==="playing"){
     // Normal play state
     const myScore=gs.matchScore[playerNum===1?0:1];
     const opScore=gs.matchScore[playerNum===1?1:0];
