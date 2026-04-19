@@ -1,5 +1,5 @@
 const { getDb } = require("./_db");
-const { genRoomCode, genSeq } = require("./_game");
+const { genRoomCode, genSeq, dealCards } = require("./_game");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -49,8 +49,8 @@ module.exports = async function handler(req, res) {
         carry: 0,
         history: [],
 
-        // Roster phase
-        p1Roster: null,
+        // Dealt hands (15 cards each, auto-dealt)
+        p1Roster: dealCards(15),
         p2Roster: null,
 
         // Hand phase

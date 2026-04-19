@@ -1,5 +1,5 @@
 const { getDb } = require("./_db");
-const { validateCardIds, genSeq, ALL_CARDS } = require("./_game");
+const { validateCardIds, genSeq, dealCards, ALL_CARDS } = require("./_game");
 
 const CARD_MAP = {};
 ALL_CARDS.forEach(c => { CARD_MAP[c.id] = c; });
@@ -25,24 +25,6 @@ module.exports = async function handler(req, res) {
 
     const m = game.match;
     const update = { updatedAt: new Date() };
-
-    // ── ROSTER ──
-    if (action === "roster") {
-      if (game.status !== "roster") return res.status(400).json({ error: "Not in roster phase" });
-      if (!validateCardIds(data, 12)) return res.status(400).json({ error: "Invalid roster: need 12 valid card IDs" });
-
-      const key = pNum === 1 ? "match.p1Roster" : "match.p2Roster";
-      update[key] = data;
-
-      // Check if both rosters are in
-      const otherRoster = pNum === 1 ? m.p2Roster : m.p1Roster;
-      if (otherRoster) {
-        update.status = "hand";
-      }
-
-      await games.updateOne({ _id: game._id }, { $set: update });
-      return res.status(200).json({ ok: true });
-    }
 
     // ── HAND ──
     if (action === "hand") {
@@ -178,7 +160,9 @@ module.exports = async function handler(req, res) {
       update["match.p2Hand"] = null;
       update["match.p1Play"] = null;
       update["match.p2Play"] = null;
-      // Keep rosters
+      // Re-deal 15 fresh cards to each player for the new match
+      update["match.p1Roster"] = dealCards(15);
+      update["match.p2Roster"] = dealCards(15);
 
       await games.updateOne({ _id: game._id }, { $set: update });
       return res.status(200).json({ ok: true });

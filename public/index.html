@@ -153,7 +153,6 @@ function App(){
   const[loading,setLoading]=useState(false);
 
   // Local UI state
-  const[rosterSel,setRosterSel]=useState(new Set());
   const[handSel,setHandSel]=useState(new Set());
   const[revealPhase,setRevealPhase]=useState(null); // null, "commit", "flip", "attr", "result"
   const[lastRound,setLastRound]=useState(-1);
@@ -210,12 +209,6 @@ function App(){
     setLoading(false);
     if(r.error){setError(r.error);return;}
     setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("game");
-  };
-
-  const submitRoster=async()=>{
-    if(rosterSel.size!==12)return;
-    await api("action",{code:roomCode,playerId,action:"roster",data:[...rosterSel]});
-    poll();
   };
 
   const submitHand=async()=>{
@@ -310,31 +303,6 @@ function App(){
 
   const status=gs.status;
 
-  // ── ROSTER PHASE ──
-  if(status==="roster"){
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
-      header,
-      h("div",{style:{flex:1,width:"100%",maxWidth:960,padding:"10px 12px",animation:"fadeIn .4s ease"}},
-        h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:18,fontWeight:700}},"Build Your Roster"),
-          h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
-            `Pick 12 cards · `,h("span",{style:{color:CLR[0],fontWeight:700}},rosterSel.size+"/12"),
-            gs.opponentRosterReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."
-          )
-        ),
-        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          ALL_CARDS.map(c=>h(CardView,{key:c.id,card:c,sel:rosterSel.has(c.id),small:true,
-            onClick:()=>setRosterSel(p=>{const s=new Set(p);if(s.has(c.id))s.delete(c.id);else if(s.size<12)s.add(c.id);return s;})}))
-        ),
-        h("div",{style:{textAlign:"center",marginTop:14}},
-          gs.myRosterReady
-            ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Roster locked — waiting for opponent...")
-            :h("button",{className:"btn btn-p",disabled:rosterSel.size!==12,onClick:submitRoster},"Lock Roster →")
-        )
-      )
-    );
-  }
-
   // ── HAND PHASE ──
   if(status==="hand"){
     const rosterCards=(gs.myRoster||[]).map(id=>CARD_MAP[id]).filter(Boolean);
@@ -351,7 +319,7 @@ function App(){
           h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
         ),
         h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 for Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 from your 15 cards — Match ${gs.matchNum}`),
           h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
             h("span",{style:{color:CLR[0],fontWeight:700}},handSel.size+"/9"),
             gs.opponentHandReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."

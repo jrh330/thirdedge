@@ -48,4 +48,8 @@ function genRoomCode() {
   return code;
 }
 
-module.exports = { ALL_CARDS, VALID_IDS, validateCardIds, shuffle, genSeq, genRoomCode, CAP };
+function dealCards(n) {
+  return shuffle(ALL_CARDS).slice(0, n).map(c => c.id);
+}
+
+module.exports = { ALL_CARDS, VALID_IDS, validateCardIds, shuffle, genSeq, genRoomCode, dealCards, CAP };
