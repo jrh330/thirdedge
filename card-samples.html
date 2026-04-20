@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Card Font Samples</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800&family=Special+Elite&family=Orbitron:wght@700;900&family=Dancing+Script:wght@700&family=Satisfy&family=Pacifico&family=Bebas+Neue&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0B0F1A;
+  font-family: 'Outfit', sans-serif;
+  color: #E2E8F0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 48px;
+}
+h1 { font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #94A3B8; text-transform: uppercase; }
+.row { display: flex; gap: 36px; flex-wrap: wrap; justify-content: center; }
+.sample { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #475569; text-transform: uppercase; text-align: center; }
+.font-name { font-size: 10px; color: #475569; letter-spacing: 1px; text-align: center; max-width: 188px; line-height: 1.5; }
+
+.card {
+  width: 188px; height: 255px;
+  border-radius: 14px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 2px #9CA3AF, 0 0 0 3px #6B7280, 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.card::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.04) 100%);
+  pointer-events: none; z-index: 10;
+}
+.card-image {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 75%;
+  background-size: cover; background-position: center;
+  background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400');
+}
+.card-strips {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 25%;
+  display: flex; flex-direction: column; overflow: hidden;
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+.card-strips::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+  pointer-events: none;
+}
+.strip-r { background: #DC2626; flex: 15; position: relative; }
+.strip-b { background: #0EA5E9; flex: 9;  position: relative; }
+.strip-y { background: #EAB308; flex: 3;  position: relative; }
+.strip-label {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  font-size: 9px; font-weight: 800; font-family: 'Outfit', sans-serif;
+  color: rgba(255,255,255,0.9); text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.name-bar {
+  position: absolute; bottom: 0; left: 0; width: 75%;
+  padding: 12px 10px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+  z-index: 5;
+}
+.card-name {
+  color: white;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+</style>
+</head>
+<body>
+
+<h1>Font Options — More Personality</h1>
+
+<div class="row">
+
+  <!-- Typewriter -->
+  <div class="sample">
+    <div class="label">Option A</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Special Elite',cursive; font-size:13px; letter-spacing:1px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Special Elite<br>Typewriter</div>
+  </div>
+
+  <!-- Tech / Computer -->
+  <div class="sample">
+    <div class="label">Option B</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:2px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Orbitron<br>Tech / Sci-Fi</div>
+  </div>
+
+  <!-- Script C1: Dancing Script -->
+  <div class="sample">
+    <div class="label">Option C1</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Dancing Script',cursive; font-size:18px; font-weight:700; letter-spacing:1px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Dancing Script<br>Casual Handwriting</div>
+  </div>
+
+  <!-- Script C2: Satisfy -->
+  <div class="sample">
+    <div class="label">Option C2</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Satisfy',cursive; font-size:16px; letter-spacing:1px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Satisfy<br>Refined Script</div>
+  </div>
+
+  <!-- Script C3: Pacifico -->
+  <div class="sample">
+    <div class="label">Option C3</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Pacifico',cursive; font-size:14px; letter-spacing:0.5px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Pacifico<br>Rounded Friendly</div>
+  </div>
+
+  <!-- Bold Condensed -->
+  <div class="sample">
+    <div class="label">Option D</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:4px; margin-bottom:-4px;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Bebas Neue<br>Bold Condensed</div>
+  </div>
+
+  <!-- Elegant Serif -->
+  <div class="sample">
+    <div class="label">Option E</div>
+    <div class="card">
+      <div class="card-image"></div>
+      <div class="name-bar">
+        <div class="card-name" style="font-family:'Playfair Display',serif; font-weight:700; font-size:14px; letter-spacing:1px; font-style:italic;">Iron Summit</div>
+      </div>
+      <div class="card-strips">
+        <div class="strip-r"><span class="strip-label">15</span></div>
+        <div class="strip-b"><span class="strip-label">9</span></div>
+        <div class="strip-y"><span class="strip-label">3</span></div>
+      </div>
+    </div>
+    <div class="font-name">Playfair Display Italic<br>Elegant Serif</div>
+  </div>
+
+</div>
+
+</body>
+</html>

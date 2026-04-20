@@ -1,4 +1,5 @@
 const { getDb } = require("./_db");
+const { dealCards } = require("./_game");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -8,7 +9,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { code } = req.body;
+    const { code, localPlayerId } = req.body;
     if (!code || typeof code !== "string") return res.status(400).json({ error: "Room code required" });
 
     const db = await getDb();
@@ -23,8 +24,9 @@ module.exports = async function handler(req, res) {
       { _id: game._id },
       {
         $set: {
-          p2: { id: playerId, name: "Player 2" },
-          status: "roster",
+          p2: { id: playerId, name: "Player 2", localId: localPlayerId || null },
+          "match.p2Roster": dealCards(15),
+          status: "hand",
           updatedAt: new Date(),
         },
       }

@@ -1,5 +1,5 @@
 const { getDb } = require("./_db");
-const { genRoomCode, genSeq } = require("./_game");
+const { genRoomCode, genSeq, dealCards } = require("./_game");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,15 +25,16 @@ module.exports = async function handler(req, res) {
     if (attempts >= 20) return res.status(500).json({ error: "Could not generate room code" });
 
     const playerId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const { localPlayerId } = req.body;
 
     const game = {
       code,
-      status: "waiting", // waiting → roster → hand → playing → match_end → series_end
+      status: "waiting",
       createdAt: new Date(),
       updatedAt: new Date(),
 
       // Players
-      p1: { id: playerId, name: "Player 1" },
+      p1: { id: playerId, name: "Player 1", localId: localPlayerId || null },
       p2: null,
 
       // Series
@@ -49,8 +50,8 @@ module.exports = async function handler(req, res) {
         carry: 0,
         history: [],
 
-        // Roster phase
-        p1Roster: null,
+        // Dealt hands (15 cards each, auto-dealt)
+        p1Roster: dealCards(15),
         p2Roster: null,
 
         // Hand phase
