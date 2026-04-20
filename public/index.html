@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Third Edge — Rage · Chill · Spark</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Special+Elite&family=Orbitron:wght@700&family=Pacifico&family=Bebas+Neue&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
@@ -24,7 +24,15 @@ body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height
 .btn-p:hover:not(:disabled){box-shadow:0 8px 24px rgba(220,38,38,.4)}
 .btn-s{background:rgba(255,255,255,.08);color:#E2E8F0;border:1px solid rgba(255,255,255,.15)}
 .btn-s:hover{background:rgba(255,255,255,.15)}
-input{font-family:'Outfit',sans-serif}
+.btn-danger{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+input,textarea{font-family:'Outfit',sans-serif}
+/* Custom card fonts */
+.cf-outfit{font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;}
+.cf-orbitron{font-family:'Orbitron',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;}
+.cf-pacifico{font-family:'Pacifico',cursive;font-size:14px;letter-spacing:0.5px;margin-bottom:-4px;}
+.cf-bebas{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;margin-bottom:-4px;}
+.cf-playfair{font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:14px;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -34,6 +42,22 @@ input{font-family:'Outfit',sans-serif}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
+
+/* ═══ PLAYER IDENTITY ═════════════════════════════════════ */
+const LOCAL_PLAYER_ID = (() => {
+  let id = localStorage.getItem("te_player_id");
+  if (!id) { id = `lp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; localStorage.setItem("te_player_id", id); }
+  return id;
+})();
+
+/* ═══ CUSTOM CARD FONTS ════════════════════════════════════ */
+const FONTS = [
+  { id:"outfit",   label:"Modern",    cls:"cf-outfit"   },
+  { id:"orbitron", label:"Tech",      cls:"cf-orbitron" },
+  { id:"pacifico", label:"Script",    cls:"cf-pacifico" },
+  { id:"bebas",    label:"Bold",      cls:"cf-bebas"    },
+  { id:"playfair", label:"Elegant",   cls:"cf-playfair" },
+];
 
 /* ═══ THEME ═══════════════════════════════════════════════ */
 const SYM = ["🔥","❄️","⚡"];
@@ -94,7 +118,42 @@ const cardGrad=(attrs)=>{
 };
 
 /* ═══ CARD VIEW ═══════════════════════════════════════════ */
+function CustomCardView({card,onClick,sel,dim,small}){
+  const s=small?0.72:1;const w=188*s;const h=255*s;
+  const font=FONTS.find(f=>f.id===card.font)||FONTS[0];
+  const total=card.attrs[0]+card.attrs[1]+card.attrs[2];
+  return React.createElement("div",{onClick:dim?undefined:onClick,style:{
+    width:w,height:h,borderRadius:14*s,position:"relative",overflow:"hidden",cursor:dim?"default":onClick?"pointer":"default",
+    opacity:dim?0.35:1,transform:sel?"scale(1.06) translateY(-4px)":"scale(1)",transition:"all 0.2s cubic-bezier(.4,0,.2,1)",
+    boxShadow:sel?"0 0 0 3px white, 0 12px 40px rgba(0,0,0,0.7)":"0 0 0 2px #9CA3AF, 0 0 0 3px #4B5563, 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)"}},
+    // Image area (flush left, 75%)
+    React.createElement("div",{style:{
+      position:"absolute",left:0,top:0,bottom:0,width:"75%",
+      background:card.imageUrl?`url(${card.imageUrl})`:`linear-gradient(160deg,${CLR[0]}44,${CLR[1]}44,${CLR[2]}44)`,
+      backgroundSize:card.imageUrl?`${(card.imgScale||1)*100}%`:"cover",
+      backgroundPosition:card.imageUrl?`center ${card.imgY||50}%`:"center",
+      backgroundRepeat:"no-repeat"}}),
+    // Color strips (right 25%)
+    React.createElement("div",{style:{position:"absolute",right:0,top:0,bottom:0,width:"25%",display:"flex",flexDirection:"column",borderLeft:"1px solid rgba(255,255,255,0.1)"}},
+      [0,1,2].map(a=>React.createElement("div",{key:a,style:{flex:card.attrs[a],background:CLR[a],position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}},
+        React.createElement("span",{style:{fontSize:9*s,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"rgba(255,255,255,0.9)",textShadow:"0 1px 2px rgba(0,0,0,0.6)"}},card.attrs[a])
+      ))
+    ),
+    // Metallic sheen overlay
+    React.createElement("div",{style:{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 40%,transparent 60%,rgba(255,255,255,0.03) 100%)",pointerEvents:"none"}}),
+    // Bottom name fade
+    React.createElement("div",{style:{position:"absolute",bottom:0,left:0,width:"75%",padding:`${10*s}px ${10*s}px ${9*s}px`,
+      background:"linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.6) 60%,transparent 100%)"}},
+      React.createElement("div",{className:font.cls,style:{color:"white",textShadow:"0 1px 6px rgba(0,0,0,0.9)",
+        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+        fontSize:`${parseFloat(font.cls==="cf-orbitron"?10:font.cls==="cf-bebas"?20:font.cls==="cf-pacifico"?14:font.cls==="cf-outfit"?13:14)*s}px`}},
+        card.name)
+    )
+  );
+}
+
 function CardView({card,onClick,sel,dim,small,hl}){
+  if(card.id&&card.id.startsWith("cc_"))return React.createElement(CustomCardView,{card,onClick,sel,dim,small});
   const s=small?0.72:1;const w=125*s;const h=170*s;
   return React.createElement("div",{onClick:dim?undefined:onClick,style:{
     width:w,minHeight:h,borderRadius:12*s,background:cardGrad(card.attrs),
@@ -104,7 +163,6 @@ function CardView({card,onClick,sel,dim,small,hl}){
     display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:8*s,
     boxShadow:sel?`0 8px 32px ${CLR_GLOW[card.dom]}`:"0 4px 16px rgba(0,0,0,0.4)",
     position:"relative",overflow:"hidden"}},
-    // Stats
     React.createElement("div",{style:{position:"absolute",top:6*s,right:6*s,display:"flex",flexDirection:"column",gap:2*s}},
       [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",alignItems:"center",gap:3*s,
         background:"rgba(0,0,0,0.55)",borderRadius:4*s,padding:`${1*s}px ${5*s}px`,backdropFilter:"blur(4px)"}},
@@ -112,13 +170,11 @@ function CardView({card,onClick,sel,dim,small,hl}){
         React.createElement("span",{style:{fontSize:12*s,fontWeight:800,color:"white",textShadow:"0 1px 2px rgba(0,0,0,0.7)",minWidth:16*s,textAlign:"right"}},card.attrs[a])
       ))
     ),
-    // Risk dot
     React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s}},
       React.createElement("div",{style:{width:8*s,height:8*s,borderRadius:"50%",
         background:card.risk==="High"?"#EF4444":card.risk==="Medium"?"#F59E0B":"#10B981",
         boxShadow:`0 0 4px ${card.risk==="High"?"rgba(239,68,68,.6)":card.risk==="Medium"?"rgba(245,158,11,.6)":"rgba(16,185,129,.6)"}`}})
     ),
-    // Label
     React.createElement("div",{style:{background:"rgba(0,0,0,0.6)",borderRadius:8*s,padding:`${4*s}px ${7*s}px`,backdropFilter:"blur(4px)",textAlign:"center"}},
       React.createElement("div",{style:{fontSize:9*s,color:"rgba(255,255,255,0.7)",fontWeight:700}},card.label+" "+ANAME[card.dom]),
       React.createElement("div",{style:{fontSize:8*s,color:"rgba(255,255,255,0.4)",fontWeight:600,marginTop:1*s}},card.attrs.join("-"))
@@ -144,10 +200,193 @@ function AttrCount({history,carry}){
   );
 }
 
+/* ═══ CARD CREATOR ════════════════════════════════════════ */
+function CardCreator({onBack}){
+  const h=React.createElement;
+  const[cards,setCards]=useState([]);
+  const[name,setName]=useState("");
+  const[font,setFont]=useState("outfit");
+  const[imageUrl,setImageUrl]=useState("");
+  const[imgPreview,setImgPreview]=useState("");
+  const[imgScale,setImgScale]=useState(1);
+  const[imgY,setImgY]=useState(50);
+  const[attrs,setAttrs]=useState([9,9,9]);
+  const[saving,setSaving]=useState(false);
+  const[err,setErr]=useState("");
+  const[tab,setTab]=useState("create"); // "create" | "library"
+
+  useEffect(()=>{ loadCards(); },[]);
+
+  async function loadCards(){
+    const r=await fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`);
+    const d=await r.json();
+    if(d.cards)setCards(d.cards);
+  }
+
+  function adjustAttr(i,delta){
+    const next=[...attrs];
+    const newVal=next[i]+delta;
+    if(newVal<3||newVal>21)return;
+    // Find another attr to balance
+    const others=[0,1,2].filter(x=>x!==i);
+    const o=others.find(x=>delta>0?next[x]-delta>=3:next[x]-delta<=21);
+    if(o===undefined)return;
+    next[i]=newVal;next[o]-=delta;
+    setAttrs(next);
+  }
+
+  async function saveCard(){
+    if(!name.trim()){setErr("Card needs a name");return;}
+    setSaving(true);setErr("");
+    const r=await fetch("/api/cards",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgY})});
+    const d=await r.json();
+    setSaving(false);
+    if(d.error){setErr(d.error);return;}
+    setCards(c=>[...c,d.card]);
+    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgY(50);setAttrs([9,9,9]);
+    setTab("library");
+  }
+
+  async function deleteCard(cardId){
+    await fetch(`/api/cards/${cardId}`,{method:"DELETE",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({playerId:LOCAL_PLAYER_ID})});
+    setCards(c=>c.filter(x=>x.id!==cardId));
+  }
+
+  const previewCard={id:"cc_preview",name:name||"Card Name",font,imageUrl:imgPreview||null,imgScale,imgY,attrs};
+
+  return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}},
+    // Header
+    h("div",{style:{width:"100%",padding:"12px 24px",display:"flex",alignItems:"center",gap:12,
+      background:"rgba(11,15,26,.95)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
+      h("button",{className:"btn btn-s",onClick:onBack,style:{padding:"6px 14px",fontSize:12}},"← Back"),
+      h("span",{style:{fontSize:16,fontWeight:800,letterSpacing:2,color:"#E2E8F0"}},"CARD CREATOR"),
+      h("span",{style:{fontSize:12,color:"#475569",marginLeft:"auto"}},`${cards.length}/7 cards`)
+    ),
+    // Tabs
+    h("div",{style:{display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.06)",width:"100%",maxWidth:800}},
+      ["create","library"].map(t=>h("button",{key:t,onClick:()=>setTab(t),style:{
+        flex:1,padding:"10px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,
+        letterSpacing:1,textTransform:"uppercase",fontFamily:"'Outfit',sans-serif",
+        color:tab===t?"#E2E8F0":"#475569",
+        borderBottom:tab===t?"2px solid #DC2626":"2px solid transparent",transition:"all .2s"}},
+        t==="create"?"+ Create Card":"My Cards ("+cards.length+")"))
+    ),
+
+    // ── CREATE TAB ──
+    tab==="create"&&h("div",{style:{width:"100%",maxWidth:800,padding:"20px 16px",display:"flex",gap:24,flexWrap:"wrap",justifyContent:"center",animation:"fadeIn .3s ease"}},
+
+      // Left: form
+      h("div",{style:{flex:"1",minWidth:280,display:"flex",flexDirection:"column",gap:16}},
+
+        // Name
+        h("div",null,
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"CARD NAME"),
+          h("div",{style:{position:"relative"}},
+            h("input",{value:name,onChange:e=>setName(e.target.value.slice(0,20)),maxLength:20,
+              placeholder:"Enter card name...",
+              style:{width:"100%",padding:"10px 12px",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",
+                borderRadius:8,color:"white",fontSize:14,outline:"none"}}),
+            h("span",{style:{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
+              fontSize:11,color:name.length>=18?"#EF4444":"#475569"}},name.length+"/20")
+          )
+        ),
+
+        // Font
+        h("div",null,
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"FONT"),
+          h("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
+            FONTS.map(f=>h("button",{key:f.id,onClick:()=>setFont(f.id),style:{
+              padding:"6px 12px",borderRadius:8,border:"none",cursor:"pointer",transition:"all .2s",
+              background:font===f.id?"rgba(220,38,38,.2)":"rgba(255,255,255,.06)",
+              color:font===f.id?"#FCA5A5":"#94A3B8",
+              outline:font===f.id?"1px solid rgba(220,38,38,.4)":"none"}},
+              h("span",{className:f.cls,style:{fontSize:12}},f.label)))
+          )
+        ),
+
+        // Image URL
+        h("div",null,
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"IMAGE URL (OPTIONAL)"),
+          h("div",{style:{display:"flex",gap:8}},
+            h("input",{value:imageUrl,onChange:e=>setImageUrl(e.target.value),
+              placeholder:"https://...",
+              style:{flex:1,padding:"10px 12px",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",
+                borderRadius:8,color:"white",fontSize:13,outline:"none"}}),
+            h("button",{className:"btn btn-s",onClick:()=>setImgPreview(imageUrl),style:{padding:"8px 14px",fontSize:12,whiteSpace:"nowrap"}},"Preview")
+          )
+        ),
+
+        // Image controls (only if image loaded)
+        imgPreview&&h("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+          h("div",null,
+            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"ZOOM  "+Math.round(imgScale*100)+"%"),
+            h("input",{type:"range",min:1,max:3,step:0.05,value:imgScale,
+              onChange:e=>setImgScale(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
+          ),
+          h("div",null,
+            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"VERTICAL POSITION"),
+            h("input",{type:"range",min:0,max:100,step:1,value:imgY,
+              onChange:e=>setImgY(parseInt(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
+          )
+        ),
+
+        // Attributes
+        h("div",null,
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},"ATTRIBUTES  (SUM: "+attrs.reduce((a,b)=>a+b,0)+"/27)"),
+          h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+            [0,1,2].map(i=>h("div",{key:i,style:{display:"flex",alignItems:"center",gap:10}},
+              h("span",{style:{fontSize:18,width:24}},SYM[i]),
+              h("span",{style:{fontSize:11,fontWeight:700,color:CLR[i],width:36,letterSpacing:1}},ANAME[i]),
+              h("button",{onClick:()=>adjustAttr(i,-3),style:{width:28,height:28,borderRadius:6,border:"none",
+                background:"rgba(255,255,255,.08)",color:"white",cursor:"pointer",fontSize:16,fontWeight:700}},"-"),
+              h("span",{style:{fontSize:18,fontWeight:800,color:"white",width:28,textAlign:"center"}},attrs[i]),
+              h("button",{onClick:()=>adjustAttr(i,3),style:{width:28,height:28,borderRadius:6,border:"none",
+                background:"rgba(255,255,255,.08)",color:"white",cursor:"pointer",fontSize:16,fontWeight:700}},"+"),
+              // Visual bar
+              h("div",{style:{flex:1,height:6,borderRadius:3,background:"rgba(255,255,255,.06)"}},
+                h("div",{style:{width:`${(attrs[i]/21)*100}%`,height:"100%",borderRadius:3,background:CLR[i],transition:"width .2s"}}))
+            ))
+          )
+        ),
+
+        err&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},err),
+
+        h("button",{className:"btn btn-p",onClick:saveCard,disabled:saving||cards.length>=7,
+          style:{marginTop:4}},saving?"Saving...":cards.length>=7?"Library Full (7/7)":"Save Card →")
+      ),
+
+      // Right: preview
+      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:12}},
+        h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B"}},"PREVIEW"),
+        h(CustomCardView,{card:previewCard})
+      )
+    ),
+
+    // ── LIBRARY TAB ──
+    tab==="library"&&h("div",{style:{width:"100%",maxWidth:800,padding:"20px 16px",animation:"fadeIn .3s ease"}},
+      cards.length===0
+        ?h("div",{style:{textAlign:"center",color:"#475569",padding:40}},
+            h("div",{style:{fontSize:32,marginBottom:12}},"🃏"),
+            h("div",{style:{fontSize:14}},"No custom cards yet."),
+            h("button",{className:"btn btn-s",onClick:()=>setTab("create"),style:{marginTop:16}},"Create Your First Card")
+          )
+        :h("div",{style:{display:"flex",flexWrap:"wrap",gap:20,justifyContent:"center"}},
+            cards.map(c=>h("div",{key:c.id,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8}},
+              h(CustomCardView,{card:c}),
+              h("button",{className:"btn btn-danger",onClick:()=>deleteCard(c.id),
+                style:{fontSize:11,padding:"4px 14px",letterSpacing:1}},"Delete")
+            ))
+          )
+    )
+  );
+}
+
 /* ═══ MAIN APP ════════════════════════════════════════════ */
 function App(){
   // Connection state
-  const[screen,setScreen]=useState("menu"); // menu, waiting, game
+  const[screen,setScreen]=useState("menu"); // menu, creator, waiting, game
   const[roomCode,setRoomCode]=useState("");
   const[joinInput,setJoinInput]=useState("");
   const[playerId,setPlayerId]=useState("");
@@ -265,6 +504,11 @@ function App(){
     roomCode&&h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},`Room: ${roomCode}`)
   );
 
+  // ═══ CARD CREATOR ═══
+  if(screen==="creator"){
+    return React.createElement(CardCreator,{onBack:()=>setScreen("menu")});
+  }
+
   // ═══ MENU ═══
   if(screen==="menu"){
     return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
@@ -292,7 +536,9 @@ function App(){
             style:{width:140,padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",color:"white",fontSize:18,fontWeight:800,textAlign:"center",letterSpacing:6,outline:"none"}}),
           h("button",{className:"btn btn-s",onClick:joinGame,disabled:loading||!joinInput.trim()},"Join")
         ),
-        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error)
+        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error),
+        h("button",{className:"btn btn-s",onClick:()=>setScreen("creator"),
+          style:{fontSize:12,padding:"8px 24px",letterSpacing:2,marginTop:8}},"🃏 Card Creator")
       )
     );
   }

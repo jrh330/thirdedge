@@ -11,6 +11,11 @@ app.post("/api/join",   require("./api/join"));
 app.get( "/api/poll",   require("./api/poll"));
 app.post("/api/action", require("./api/action"));
 
+const { getCards, createCard, deleteCard } = require("./api/cards");
+app.get(   "/api/cards",        getCards);
+app.post(  "/api/cards",        createCard);
+app.delete("/api/cards/:cardId", deleteCard);
+
 // OPTIONS preflight for all API routes
 app.options("/api/*", (req, res) => res.sendStatus(200));
 
