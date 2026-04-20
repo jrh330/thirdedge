@@ -14,7 +14,7 @@ async function getCards(req, res) {
 }
 
 async function createCard(req, res) {
-  const { playerId, name, font, imageUrl, attrs, imgScale, imgY } = req.body;
+  const { playerId, name, font, imageUrl, attrs, imgScale, imgX, imgY } = req.body;
 
   if (!playerId || !name || !font || !Array.isArray(attrs))
     return res.status(400).json({ error: "Missing required fields" });
@@ -43,6 +43,7 @@ async function createCard(req, res) {
     font,
     imageUrl: imageUrl || null,
     imgScale: imgScale || 1,
+    imgX: imgX || 50,
     imgY: imgY || 50,
     attrs,
     createdAt: new Date(),

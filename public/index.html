@@ -119,7 +119,7 @@ const cardGrad=(attrs)=>{
 
 /* ═══ CARD VIEW ═══════════════════════════════════════════ */
 function CustomCardView({card,onClick,sel,dim,small}){
-  const s=small?0.72:1;const w=188*s;const h=255*s;
+  const s=small?0.665:1;const w=188*s;const h=255*s;
   const font=FONTS.find(f=>f.id===card.font)||FONTS[0];
   const total=card.attrs[0]+card.attrs[1]+card.attrs[2];
   return React.createElement("div",{onClick:dim?undefined:onClick,style:{
@@ -130,13 +130,13 @@ function CustomCardView({card,onClick,sel,dim,small}){
     React.createElement("div",{style:{
       position:"absolute",left:0,top:0,bottom:0,width:"75%",
       background:card.imageUrl?`url(${card.imageUrl})`:`linear-gradient(160deg,${CLR[0]}44,${CLR[1]}44,${CLR[2]}44)`,
-      backgroundSize:card.imageUrl?`${(card.imgScale||1)*100}%`:"cover",
-      backgroundPosition:card.imageUrl?`center ${card.imgY||50}%`:"center",
+      backgroundSize:card.imageUrl?`${(card.imgScale||1)*100}% auto`:"cover",
+      backgroundPosition:card.imageUrl?`${card.imgX||50}% ${card.imgY||50}%`:"center",
       backgroundRepeat:"no-repeat"}}),
     // Color strips (right 25%)
     React.createElement("div",{style:{position:"absolute",right:0,top:0,bottom:0,width:"25%",display:"flex",flexDirection:"column",borderLeft:"1px solid rgba(255,255,255,0.1)"}},
       [0,1,2].map(a=>React.createElement("div",{key:a,style:{flex:card.attrs[a],background:CLR[a],position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}},
-        React.createElement("span",{style:{fontSize:9*s,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"rgba(255,255,255,0.9)",textShadow:"0 1px 2px rgba(0,0,0,0.6)"}},card.attrs[a])
+        React.createElement("span",{style:{fontSize:Math.max(11,13*s),fontWeight:900,fontFamily:"'Outfit',sans-serif",color:"white",textShadow:"0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)"}},card.attrs[a])
       ))
     ),
     // Metallic sheen overlay
@@ -154,7 +154,7 @@ function CustomCardView({card,onClick,sel,dim,small}){
 
 function CardView({card,onClick,sel,dim,small,hl}){
   if(card.id&&card.id.startsWith("cc_"))return React.createElement(CustomCardView,{card,onClick,sel,dim,small});
-  const s=small?0.72:1;const w=125*s;const h=170*s;
+  const s=small?1.0:1;const w=125*s;const h=170*s;
   return React.createElement("div",{onClick:dim?undefined:onClick,style:{
     width:w,minHeight:h,borderRadius:12*s,background:cardGrad(card.attrs),
     border:sel?"3px solid white":hl?`3px solid ${CLR[card.dom]}`:"2px solid rgba(255,255,255,0.12)",
@@ -201,7 +201,7 @@ function AttrCount({history,carry}){
 }
 
 /* ═══ CARD CREATOR ════════════════════════════════════════ */
-function CardCreator({onBack}){
+function CardCreator({onBack,onSaved,startTab}){
   const h=React.createElement;
   const[cards,setCards]=useState([]);
   const[name,setName]=useState("");
@@ -209,11 +209,13 @@ function CardCreator({onBack}){
   const[imageUrl,setImageUrl]=useState("");
   const[imgPreview,setImgPreview]=useState("");
   const[imgScale,setImgScale]=useState(1);
+  const[imgX,setImgX]=useState(50);
   const[imgY,setImgY]=useState(50);
   const[attrs,setAttrs]=useState([9,9,9]);
   const[saving,setSaving]=useState(false);
   const[err,setErr]=useState("");
-  const[tab,setTab]=useState("create"); // "create" | "library"
+  const[tab,setTab]=useState(startTab||"create");
+  const dragRef=useRef({active:false,lastX:0,lastY:0});
 
   useEffect(()=>{ loadCards(); },[]);
 
@@ -227,7 +229,6 @@ function CardCreator({onBack}){
     const next=[...attrs];
     const newVal=next[i]+delta;
     if(newVal<3||newVal>21)return;
-    // Find another attr to balance
     const others=[0,1,2].filter(x=>x!==i);
     const o=others.find(x=>delta>0?next[x]-delta>=3:next[x]-delta<=21);
     if(o===undefined)return;
@@ -235,16 +236,36 @@ function CardCreator({onBack}){
     setAttrs(next);
   }
 
+  function onDragStart(e){
+    e.preventDefault();
+    const cx=e.touches?e.touches[0].clientX:e.clientX;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    dragRef.current={active:true,lastX:cx,lastY:cy};
+  }
+  function onDragMove(e){
+    if(!dragRef.current.active)return;
+    const cx=e.touches?e.touches[0].clientX:e.clientX;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const dx=cx-dragRef.current.lastX;
+    const dy=cy-dragRef.current.lastY;
+    dragRef.current.lastX=cx;dragRef.current.lastY=cy;
+    setImgX(x=>Math.max(0,Math.min(100,x-dx*0.4)));
+    setImgY(y=>Math.max(0,Math.min(100,y-dy*0.4)));
+  }
+  function onDragEnd(){ dragRef.current.active=false; }
+
   async function saveCard(){
     if(!name.trim()){setErr("Card needs a name");return;}
     setSaving(true);setErr("");
     const r=await fetch("/api/cards",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgY})});
+      body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgX,imgY})});
     const d=await r.json();
     setSaving(false);
     if(d.error){setErr(d.error);return;}
-    setCards(c=>[...c,d.card]);
-    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgY(50);setAttrs([9,9,9]);
+    const newCards=[...cards,d.card];
+    setCards(newCards);
+    if(onSaved)onSaved(d.card);
+    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgX(50);setImgY(50);setAttrs([9,9,9]);
     setTab("library");
   }
 
@@ -254,24 +275,26 @@ function CardCreator({onBack}){
     setCards(c=>c.filter(x=>x.id!==cardId));
   }
 
-  const previewCard={id:"cc_preview",name:name||"Card Name",font,imageUrl:imgPreview||null,imgScale,imgY,attrs};
+  const previewCard={id:"cc_preview",name:name||"Card Name",font,imageUrl:imgPreview||null,imgScale,imgX,imgY,attrs};
 
   return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}},
     // Header
     h("div",{style:{width:"100%",padding:"12px 24px",display:"flex",alignItems:"center",gap:12,
       background:"rgba(11,15,26,.95)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
-      h("button",{className:"btn btn-s",onClick:onBack,style:{padding:"6px 14px",fontSize:12}},"← Back"),
+      h("button",{className:"btn btn-s",onClick:onBack,style:{padding:"6px 14px",fontSize:12}},
+        onSaved?"← Back to Hand":"← Back"),
       h("span",{style:{fontSize:16,fontWeight:800,letterSpacing:2,color:"#E2E8F0"}},"CARD CREATOR"),
-      h("span",{style:{fontSize:12,color:"#475569",marginLeft:"auto"}},`${cards.length}/7 cards`)
+      h("span",{style:{fontSize:12,color:"#64748B",marginLeft:"auto"}},cards.length+"/7 cards")
     ),
     // Tabs
-    h("div",{style:{display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.06)",width:"100%",maxWidth:800}},
-      ["create","library"].map(t=>h("button",{key:t,onClick:()=>setTab(t),style:{
-        flex:1,padding:"10px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,
-        letterSpacing:1,textTransform:"uppercase",fontFamily:"'Outfit',sans-serif",
-        color:tab===t?"#E2E8F0":"#475569",
-        borderBottom:tab===t?"2px solid #DC2626":"2px solid transparent",transition:"all .2s"}},
-        t==="create"?"+ Create Card":"My Cards ("+cards.length+")"))
+    h("div",{style:{display:"flex",borderBottom:"1px solid rgba(255,255,255,0.06)",width:"100%",maxWidth:800}},
+      [["create","+ Create"],["library","My Cards ("+cards.length+")"]].map(([t,label])=>
+        h("button",{key:t,onClick:()=>setTab(t),style:{
+          flex:1,padding:"12px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,
+          letterSpacing:1,textTransform:"uppercase",fontFamily:"'Outfit',sans-serif",
+          color:tab===t?"#F1F5F9":"#94A3B8",
+          borderBottom:tab===t?"2px solid #DC2626":"2px solid transparent",
+          transition:"color .2s"}},label))
     ),
 
     // ── CREATE TAB ──
@@ -299,9 +322,9 @@ function CardCreator({onBack}){
           h("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
             FONTS.map(f=>h("button",{key:f.id,onClick:()=>setFont(f.id),style:{
               padding:"6px 12px",borderRadius:8,border:"none",cursor:"pointer",transition:"all .2s",
-              background:font===f.id?"rgba(220,38,38,.2)":"rgba(255,255,255,.06)",
-              color:font===f.id?"#FCA5A5":"#94A3B8",
-              outline:font===f.id?"1px solid rgba(220,38,38,.4)":"none"}},
+              background:font===f.id?"rgba(220,38,38,.2)":"rgba(255,255,255,.08)",
+              color:font===f.id?"#FCA5A5":"#CBD5E1",
+              outline:font===f.id?"1px solid rgba(220,38,38,.4)":"1px solid rgba(255,255,255,.08)"}},
               h("span",{className:f.cls,style:{fontSize:12}},f.label)))
           )
         ),
@@ -314,22 +337,17 @@ function CardCreator({onBack}){
               placeholder:"https://...",
               style:{flex:1,padding:"10px 12px",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",
                 borderRadius:8,color:"white",fontSize:13,outline:"none"}}),
-            h("button",{className:"btn btn-s",onClick:()=>setImgPreview(imageUrl),style:{padding:"8px 14px",fontSize:12,whiteSpace:"nowrap"}},"Preview")
-          )
+            h("button",{className:"btn btn-s",onClick:()=>{setImgPreview(imageUrl);setImgX(50);setImgY(50);setImgScale(1);},
+              style:{padding:"8px 14px",fontSize:12,whiteSpace:"nowrap"}},"Load")
+          ),
+          imgPreview&&h("div",{style:{fontSize:11,color:"#64748B",marginTop:4}},"Drag image in preview to reposition")
         ),
 
-        // Image controls (only if image loaded)
-        imgPreview&&h("div",{style:{display:"flex",flexDirection:"column",gap:10}},
-          h("div",null,
-            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"ZOOM  "+Math.round(imgScale*100)+"%"),
-            h("input",{type:"range",min:1,max:3,step:0.05,value:imgScale,
-              onChange:e=>setImgScale(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
-          ),
-          h("div",null,
-            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"VERTICAL POSITION"),
-            h("input",{type:"range",min:0,max:100,step:1,value:imgY,
-              onChange:e=>setImgY(parseInt(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
-          )
+        // Zoom slider (only if image loaded)
+        imgPreview&&h("div",null,
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"ZOOM  "+Math.round(imgScale*100)+"%"),
+          h("input",{type:"range",min:1,max:3,step:0.05,value:imgScale,
+            onChange:e=>setImgScale(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
         ),
 
         // Attributes
@@ -344,7 +362,6 @@ function CardCreator({onBack}){
               h("span",{style:{fontSize:18,fontWeight:800,color:"white",width:28,textAlign:"center"}},attrs[i]),
               h("button",{onClick:()=>adjustAttr(i,3),style:{width:28,height:28,borderRadius:6,border:"none",
                 background:"rgba(255,255,255,.08)",color:"white",cursor:"pointer",fontSize:16,fontWeight:700}},"+"),
-              // Visual bar
               h("div",{style:{flex:1,height:6,borderRadius:3,background:"rgba(255,255,255,.06)"}},
                 h("div",{style:{width:`${(attrs[i]/21)*100}%`,height:"100%",borderRadius:3,background:CLR[i],transition:"width .2s"}}))
             ))
@@ -352,15 +369,31 @@ function CardCreator({onBack}){
         ),
 
         err&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},err),
-
-        h("button",{className:"btn btn-p",onClick:saveCard,disabled:saving||cards.length>=7,
-          style:{marginTop:4}},saving?"Saving...":cards.length>=7?"Library Full (7/7)":"Save Card →")
+        cards.length>=7
+          ?h("div",{style:{background:"rgba(234,179,8,.08)",border:"1px solid rgba(234,179,8,.25)",borderRadius:10,padding:"12px 16px",marginTop:4}},
+              h("div",{style:{fontSize:13,fontWeight:700,color:"#FCD34D",marginBottom:6}},"Library full — 7/7 cards"),
+              h("div",{style:{fontSize:12,color:"#94A3B8",marginBottom:10}},"Delete a card from My Cards to create a new one."),
+              h("button",{className:"btn btn-s",onClick:()=>setTab("library"),style:{fontSize:12,padding:"6px 18px"}},"Go to My Cards →")
+            )
+          :h("button",{className:"btn btn-p",onClick:saveCard,disabled:saving,style:{marginTop:4}},
+              saving?"Saving...":"Save Card →")
       ),
 
-      // Right: preview
-      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:12}},
+      // Right: preview with drag-to-pan
+      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8}},
         h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B"}},"PREVIEW"),
-        h(CustomCardView,{card:previewCard})
+        h("div",{
+          onMouseDown:imgPreview?onDragStart:undefined,
+          onMouseMove:imgPreview?onDragMove:undefined,
+          onMouseUp:imgPreview?onDragEnd:undefined,
+          onMouseLeave:imgPreview?onDragEnd:undefined,
+          onTouchStart:imgPreview?onDragStart:undefined,
+          onTouchMove:imgPreview?onDragMove:undefined,
+          onTouchEnd:imgPreview?onDragEnd:undefined,
+          style:{cursor:imgPreview?"grab":"default",userSelect:"none"}},
+          h(CustomCardView,{card:previewCard})
+        ),
+        imgPreview&&h("div",{style:{fontSize:10,color:"#334155",letterSpacing:1}},"DRAG TO REPOSITION")
       )
     ),
 
@@ -386,7 +419,8 @@ function CardCreator({onBack}){
 /* ═══ MAIN APP ════════════════════════════════════════════ */
 function App(){
   // Connection state
-  const[screen,setScreen]=useState("menu"); // menu, creator, waiting, game
+  const[screen,setScreen]=useState("menu"); // menu, waiting, game, creator
+  const[creatorFromGame,setCreatorFromGame]=useState(false);
   const[roomCode,setRoomCode]=useState("");
   const[joinInput,setJoinInput]=useState("");
   const[playerId,setPlayerId]=useState("");
@@ -400,10 +434,20 @@ function App(){
 
   // Local UI state
   const[handSel,setHandSel]=useState(new Set());
-  const[revealPhase,setRevealPhase]=useState(null); // null, "commit", "flip", "attr", "result"
+  const[revealPhase,setRevealPhase]=useState(null);
   const[lastRound,setLastRound]=useState(-1);
   const prevHistLen=useRef(0);
   const prevMatchNum=useRef(1);
+  const[customCards,setCustomCards]=useState([]);
+  const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
+
+  // Load custom cards on mount and whenever returning from creator
+  useEffect(()=>{
+    setCustomCardsLoaded(false);
+    fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`)
+      .then(r=>r.json()).then(d=>{ if(d.cards)setCustomCards(d.cards); setCustomCardsLoaded(true); })
+      .catch(()=>setCustomCardsLoaded(true));
+  },[screen]);
 
   // ── Polling ──
   const poll=useCallback(async()=>{
@@ -454,7 +498,7 @@ function App(){
   // ── Actions ──
   const createGame=async()=>{
     setLoading(true);setError("");
-    const r=await api("create",{});
+    const r=await api("create",{localPlayerId:LOCAL_PLAYER_ID});
     setLoading(false);
     if(r.error){setError(r.error);return;}
     setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("waiting");
@@ -463,7 +507,7 @@ function App(){
   const joinGame=async()=>{
     if(!joinInput.trim()){setError("Enter a room code");return;}
     setLoading(true);setError("");
-    const r=await api("join",{code:joinInput.trim().toUpperCase()});
+    const r=await api("join",{code:joinInput.trim().toUpperCase(),localPlayerId:LOCAL_PLAYER_ID});
     setLoading(false);
     if(r.error){setError(r.error);return;}
     setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("game");
@@ -490,8 +534,10 @@ function App(){
   };
 
   // ── Derived state ──
+  const ccMap=gs?.customCardMap||{};
+  const getCard=id=>CARD_MAP[id]||ccMap[id]||null;
   const myPlayedIds=gs?new Set((gs.history||[]).map(h=>playerNum===1?h.p1CardId:h.p2CardId)):new Set();
-  const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>CARD_MAP[id]).filter(Boolean):[];
+  const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>getCard(id)).filter(Boolean):[];
   const latestResult=gs&&gs.history&&gs.history.length>0?gs.history[gs.history.length-1]:null;
 
   // ── Render helpers ──
@@ -506,7 +552,14 @@ function App(){
 
   // ═══ CARD CREATOR ═══
   if(screen==="creator"){
-    return React.createElement(CardCreator,{onBack:()=>setScreen("menu")});
+    return React.createElement(CardCreator,{
+      startTab:customCards.length>=7?"library":"create",
+      onBack:()=>setScreen(creatorFromGame?"game":"menu"),
+      onSaved:creatorFromGame?(card)=>{
+        // Add card to customCards, remove a random dealt card from the roster
+        setCustomCards(prev=>[...prev,card]);
+      }:null
+    });
   }
 
   // ═══ MENU ═══
@@ -536,9 +589,7 @@ function App(){
             style:{width:140,padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",color:"white",fontSize:18,fontWeight:800,textAlign:"center",letterSpacing:6,outline:"none"}}),
           h("button",{className:"btn btn-s",onClick:joinGame,disabled:loading||!joinInput.trim()},"Join")
         ),
-        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error),
-        h("button",{className:"btn btn-s",onClick:()=>setScreen("creator"),
-          style:{fontSize:12,padding:"8px 24px",letterSpacing:2,marginTop:8}},"🃏 Card Creator")
+        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error)
       )
     );
   }
@@ -570,29 +621,72 @@ function App(){
 
   // ── HAND PHASE ──
   if(status==="hand"){
-    const rosterCards=(gs.myRoster||[]).map(id=>CARD_MAP[id]).filter(Boolean);
+    // Wait for custom cards to load so layout doesn't shift
+    if(!customCardsLoaded)return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
+      h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
+    );
+    // Show custom cards + enough dealt cards to total 15
+    const dealtCount=Math.max(0,15-customCards.length);
+    const rosterCards=(gs.myRoster||[]).slice(0,dealtCount).map(id=>CARD_MAP[id]).filter(Boolean);
+    const customCount=customCards.length;
+    function toggleCard(id){
+      setHandSel(p=>{
+        const s=new Set(p);
+        if(s.has(id))s.delete(id);
+        else if(s.size<9)s.add(id);
+        return s;
+      });
+    }
     return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
       header,
-      h("div",{style:{flex:1,width:"100%",maxWidth:920,padding:"10px 12px",animation:"fadeIn .4s ease"}},
-        h("div",{style:{display:"flex",justifyContent:"center",gap:10,marginBottom:6}},
-          [1,2,3].map(m=>h("div",{key:m,style:{padding:"3px 12px",borderRadius:6,fontSize:11,fontWeight:700,
-            background:m===gs.matchNum?`${CLR[0]}20`:"transparent",color:m===gs.matchNum?CLR[0]:"#475569",
-            border:m===gs.matchNum?`1px solid ${CLR[0]}40`:"1px solid transparent"}},"Match "+m))
+      h("div",{style:{flex:1,width:"100%",maxWidth:960,padding:"10px 12px",animation:"fadeIn .4s ease"}},
+        // Match indicator + series
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+          h("div",{style:{display:"flex",gap:8}},
+            [1,2,3].map(m=>h("div",{key:m,style:{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,
+              background:m===gs.matchNum?`${CLR[0]}20`:"transparent",color:m===gs.matchNum?CLR[0]:"#475569",
+              border:m===gs.matchNum?`1px solid ${CLR[0]}40`:"1px solid transparent"}},"Match "+m))
+          ),
+          h("div",{style:{fontSize:12,color:"#94A3B8"}},
+            "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
+            h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
+          )
         ),
-        h("div",{style:{textAlign:"center",fontSize:12,color:"#94A3B8",marginBottom:6}},
-          "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
-          h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
-        ),
+        // Pick counter + status
         h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 from your 15 cards — Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 — Match ${gs.matchNum}`),
           h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
             h("span",{style:{color:CLR[0],fontWeight:700}},handSel.size+"/9"),
             gs.opponentHandReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."
           )
         ),
+        // ── Custom cards section ──
+        h("div",{style:{marginBottom:14}},
+          h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:customCount>=7?4:8}},
+            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B"}},
+              customCount>0?"YOUR CUSTOM CARDS":"CUSTOM CARDS"),
+            h("button",{className:"btn btn-s",
+              onClick:()=>{setCreatorFromGame(true);setScreen("creator");},
+              style:{fontSize:11,padding:"5px 14px",letterSpacing:1}},
+              customCount>=7?"✦ My Cards (7/7 — delete to add)":"✦ Card Creator")
+          ),
+          customCount>=7&&h("div",{style:{fontSize:11,color:"#F59E0B",marginBottom:8,paddingLeft:2}},
+            "Library full — open My Cards to delete a card before creating new ones."
+          ),
+          customCount===0
+            ?h("div",{style:{fontSize:12,color:"#334155",fontStyle:"italic",padding:"8px 0"}},"No custom cards yet — create some in Card Creator")
+            :h("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
+                customCards.map(c=>h(CardView,{key:c.id,card:c,sel:handSel.has(c.id),small:true,
+                  onClick:()=>toggleCard(c.id)}))
+              )
+        ),
+        // Divider
+        h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)",margin:"0 0 12px"}}),
+        // ── Dealt cards ──
+        h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},"DEALT CARDS"),
         h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
           rosterCards.map(c=>h(CardView,{key:c.id,card:c,sel:handSel.has(c.id),small:true,
-            onClick:()=>setHandSel(p=>{const s=new Set(p);if(s.has(c.id))s.delete(c.id);else if(s.size<9)s.add(c.id);return s;})}))
+            onClick:()=>toggleCard(c.id)}))
         ),
         h("div",{style:{textAlign:"center",marginTop:12}},
           gs.myHandReady
@@ -606,8 +700,8 @@ function App(){
   // ── REVEAL ANIMATION (runs regardless of status, so final round shows before end screen) ──
   if(revealPhase&&latestResult){
       const lr=latestResult;
-      const myCard=CARD_MAP[playerNum===1?lr.p1CardId:lr.p2CardId];
-      const opCard=CARD_MAP[playerNum===1?lr.p2CardId:lr.p1CardId];
+      const myCard=getCard(playerNum===1?lr.p1CardId:lr.p2CardId);
+      const opCard=getCard(playerNum===1?lr.p2CardId:lr.p1CardId);
       const myVal=playerNum===1?lr.p1v:lr.p2v;
       const opVal=playerNum===1?lr.p2v:lr.p1v;
       const iWon=(playerNum===1&&lr.winner==="p1")||(playerNum===2&&lr.winner==="p2");
