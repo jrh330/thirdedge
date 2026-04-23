@@ -211,13 +211,36 @@ function CardCreator({onBack,onSaved,startTab}){
   const[imgScale,setImgScale]=useState(1);
   const[imgX,setImgX]=useState(50);
   const[imgY,setImgY]=useState(50);
-  const[attrs,setAttrs]=useState([9,9,9]);
+  const[attrs,setAttrs]=useState([12,9,6]);
   const[saving,setSaving]=useState(false);
+  const[generating,setGenerating]=useState(false);
   const[err,setErr]=useState("");
   const[tab,setTab]=useState(startTab||"create");
   const dragRef=useRef({active:false,lastX:0,lastY:0});
 
   useEffect(()=>{ loadCards(); },[]);
+
+  async function generateCard(){
+    setGenerating(true);setErr("");
+    for(let attempt=0;attempt<10;attempt++){
+      try{
+        const r=await fetch("https://en.wikipedia.org/w/api.php?action=query&generator=random&grnnamespace=0&prop=pageimages&piprop=thumbnail&pithumbsize=800&format=json&origin=*");
+        const d=await r.json();
+        const page=Object.values(d.query?.pages||{})[0];
+        const thumb=page?.thumbnail;
+        if(thumb?.source && thumb.height>thumb.width){
+          const title=page.title.replace(/\s*\(.*?\)/g,"").trim().slice(0,20);
+          setImgPreview(thumb.source);
+          setImageUrl(thumb.source);
+          setImgX(50);setImgY(50);setImgScale(1);
+          setName(title);
+          setGenerating(false);return;
+        }
+      }catch(e){}
+    }
+    setErr("No image found — try again");
+    setGenerating(false);
+  }
 
   async function loadCards(){
     const r=await fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`);
@@ -256,6 +279,7 @@ function CardCreator({onBack,onSaved,startTab}){
 
   async function saveCard(){
     if(!name.trim()){setErr("Card needs a name");return;}
+    if(attrs[0]===attrs[1]&&attrs[1]===attrs[2]){setErr("All three attributes can't be equal — add some variety!");return;}
     setSaving(true);setErr("");
     const r=await fetch("/api/cards",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgX,imgY})});
@@ -330,8 +354,24 @@ function CardCreator({onBack,onSaved,startTab}){
         ),
 
         // Image URL
+        // Generate from Wikipedia
         h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"IMAGE URL (OPTIONAL)"),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"IMAGE"),
+          h("button",{
+            onClick:generateCard,
+            disabled:generating,
+            style:{width:"100%",padding:"11px",borderRadius:10,border:"1px solid rgba(99,102,241,.35)",
+              background:generating?"rgba(99,102,241,.08)":"rgba(99,102,241,.12)",
+              color:generating?"#6366F1":"#A5B4FC",cursor:generating?"default":"pointer",
+              fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:13,letterSpacing:1,
+              transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}},
+            generating
+              ?h("span",{style:{display:"flex",alignItems:"center",gap:8}},
+                  h("span",{style:{width:14,height:14,border:"2px solid rgba(99,102,241,.3)",borderTopColor:"#6366F1",borderRadius:"50%",animation:"spin 1s linear infinite",display:"inline-block"}}),
+                  "Finding image...")
+              :imgPreview?"⚡ Generate Another":"⚡ Generate Random Card"
+          ),
+          h("div",{style:{textAlign:"center",fontSize:11,color:"#334155",margin:"6px 0"}},"— or paste a URL —"),
           h("div",{style:{display:"flex",gap:8}},
             h("input",{value:imageUrl,onChange:e=>setImageUrl(e.target.value),
               placeholder:"https://...",

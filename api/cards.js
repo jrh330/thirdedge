@@ -32,6 +32,9 @@ async function createCard(req, res) {
     !attrs.every(v => Number.isInteger(v) && v >= 3 && v <= 21 && v % 3 === 0)
   ) return res.status(400).json({ error: "Attributes must be multiples of 3 summing to 27" });
 
+  if (attrs[0] === attrs[1] && attrs[1] === attrs[2])
+    return res.status(400).json({ error: "All three attributes can't be equal — add some variety!" });
+
   const db = await getDb();
   const count = await db.collection("custom_cards").countDocuments({ playerId });
   if (count >= 7) return res.status(400).json({ error: "Maximum 7 custom cards reached" });
