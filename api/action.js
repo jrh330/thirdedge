@@ -1,8 +1,5 @@
 const { getDb } = require("./_db");
-const { genSeq, dealCards, ALL_CARDS } = require("./_game");
-
-const CARD_MAP = {};
-ALL_CARDS.forEach(c => { CARD_MAP[c.id] = c; });
+const { genSeq, dealRoster, CARD_MAP } = require("./_game");
 
 async function resolveCard(db, cardId, localId) {
   if (CARD_MAP[cardId]) return CARD_MAP[cardId];
@@ -54,14 +51,30 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: "Standard cards must be from your dealt hand" });
 
       // Validate custom cards belong to this player
+      let customCardDocs = [];
       if (customIds.length > 0) {
         if (!localId) return res.status(400).json({ error: "Player identity not linked" });
-        const found = await db.collection("custom_cards")
+        customCardDocs = await db.collection("custom_cards")
           .find({ id: { $in: customIds }, playerId: localId })
           .toArray();
-        if (found.length !== customIds.length)
+        if (customCardDocs.length !== customIds.length)
           return res.status(400).json({ error: "One or more custom cards not found" });
       }
+
+      // Validate tier composition: exactly 5×Standard(27) + 2×Focused(24) + 2×Specialist(21)
+      const tierCounts = { 27: 0, 24: 0, 21: 0 };
+      for (const id of standardIds) {
+        const card = CARD_MAP[id];
+        if (!card) return res.status(400).json({ error: "Unknown card: " + id });
+        const tier = card.attrs.reduce((a, b) => a + b, 0);
+        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+      }
+      for (const card of customCardDocs) {
+        const tier = card.attrs.reduce((a, b) => a + b, 0);
+        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+      }
+      if ((tierCounts[27]||0) !== 5 || (tierCounts[24]||0) !== 2 || (tierCounts[21]||0) !== 2)
+        return res.status(400).json({ error: "Hand must contain 5 Standard, 2 Focused, and 2 Specialist cards" });
 
       const key = pNum === 1 ? "match.p1Hand" : "match.p2Hand";
       update[key] = data;
@@ -175,8 +188,8 @@ module.exports = async function handler(req, res) {
       update["match.p2Hand"]  = null;
       update["match.p1Play"]  = null;
       update["match.p2Play"]  = null;
-      update["match.p1Roster"] = dealCards(15);
-      update["match.p2Roster"] = dealCards(15);
+      update["match.p1Roster"] = dealRoster();
+      update["match.p2Roster"] = dealRoster();
 
       await games.updateOne({ _id: game._id }, { $set: update });
       return res.status(200).json({ ok: true });

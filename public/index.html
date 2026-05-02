@@ -43,6 +43,16 @@ input,textarea{font-family:'Outfit',sans-serif}
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
+function useIsMobile(breakpoint=600){
+  const[mobile,setMobile]=useState(window.innerWidth<breakpoint);
+  useEffect(()=>{
+    const handler=()=>setMobile(window.innerWidth<breakpoint);
+    window.addEventListener("resize",handler);
+    return()=>window.removeEventListener("resize",handler);
+  },[breakpoint]);
+  return mobile;
+}
+
 /* ═══ PLAYER IDENTITY ═════════════════════════════════════ */
 const LOCAL_PLAYER_ID = (() => {
   let id = localStorage.getItem("te_player_id");
@@ -67,39 +77,41 @@ const ANAME = ["Rage","Chill","Spark"];
 const CAP = 27;
 
 /* ═══ CARD UNIVERSE ═══════════════════════════════════════
-   Values restricted to {3,6,9,12,15}, always summing to 27.
-   18 unique permutations + 3 copies of the balanced 9-9-9.
+   27-total: Standard  (c0–c20)
+   24-total: Focused   (c21–c38)
+   21-total: Specialist (c39–c53)
 ══════════════════════════════════════════════════════════ */
-const ALL_CARDS = [];
-const CARD_MAP = {};
-const seen = new Set();
-const BASE = [[15,9,3],[15,6,6],[12,12,3],[12,9,6]];
-BASE.forEach(shape => {
-  [[shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
-   [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]]].forEach(p => {
-    const key=p.join("-");
-    if(!seen.has(key)){
-      seen.add(key);
-      const dom=p.indexOf(Math.max(...p));
-      const sorted=[...p].sort((a,b)=>b-a);
-      const risk=sorted[0]-sorted[2]<=6?"Low":"Medium";
-      let label="Balanced";
-      if(sorted[1]===sorted[2])label="Strong";
-      else if(sorted[0]===sorted[1])label="Dual";
-      else if(sorted[0]>=15&&sorted[2]<=3)label="Split";
-      else label="Mild";
-      const card={id:`c${ALL_CARDS.length}`,attrs:[...p],dom,label,risk};
-      ALL_CARDS.push(card);
-      CARD_MAP[card.id]=card;
-    }
+const CARD_MAP={};
+const CARDS_27=[];const CARDS_24=[];const CARDS_21=[];
+
+function buildTier(shapes,pool){
+  const seen=new Set();
+  shapes.forEach(shape=>{
+    [[shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
+     [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]]].forEach(p=>{
+      const key=p.join("-");
+      if(!seen.has(key)){
+        seen.add(key);
+        const id=`c${Object.keys(CARD_MAP).length}`;
+        const dom=p.indexOf(Math.max(...p));
+        const sorted=[...p].sort((a,b)=>b-a);
+        const card={id,attrs:[...p],dom,tier:p.reduce((a,b)=>a+b,0)};
+        pool.push(card);CARD_MAP[id]=card;
+      }
+    });
   });
-});
-// 3 copies of the balanced 9-9-9 card
-for(let i=0;i<3;i++){
-  const card={id:`c${ALL_CARDS.length}`,attrs:[9,9,9],dom:0,label:"Balanced",risk:"Low"};
-  ALL_CARDS.push(card);
-  CARD_MAP[card.id]=card;
 }
+buildTier([[15,9,3],[15,6,6],[12,12,3],[12,9,6]],CARDS_27);
+buildTier([[15,6,3],[12,9,3],[12,6,6],[9,9,6]],CARDS_24);
+buildTier([[15,3,3],[12,6,3],[9,9,3],[9,6,6]],CARDS_21);
+const ALL_CARDS=[...CARDS_27,...CARDS_24,...CARDS_21];
+
+function cardTier(id){
+  if(id&&id.startsWith("cc_"))return null;
+  return CARD_MAP[id]?.tier||27;
+}
+const TIER_CLR={27:"#10B981",24:"#F59E0B",21:"#EF4444"};
+const TIER_LABEL={27:"Standard",24:"Focused",21:"Specialist"};
 
 /* ═══ API ═════════════════════════════════════════════════ */
 const API = "";  // same origin
@@ -121,7 +133,7 @@ const cardGrad=(attrs)=>{
 function CustomCardView({card,onClick,sel,dim,small}){
   const s=small?0.665:1;const w=188*s;const h=255*s;
   const font=FONTS.find(f=>f.id===card.font)||FONTS[0];
-  const total=card.attrs[0]+card.attrs[1]+card.attrs[2];
+  const tier=card.attrs.reduce((a,b)=>a+b,0);
   return React.createElement("div",{onClick:dim?undefined:onClick,style:{
     width:w,height:h,borderRadius:14*s,position:"relative",overflow:"hidden",cursor:dim?"default":onClick?"pointer":"default",
     opacity:dim?0.35:1,transform:sel?"scale(1.06) translateY(-4px)":"scale(1)",transition:"all 0.2s cubic-bezier(.4,0,.2,1)",
@@ -139,6 +151,12 @@ function CustomCardView({card,onClick,sel,dim,small}){
         React.createElement("span",{style:{fontSize:Math.max(11,13*s),fontWeight:900,fontFamily:"'Outfit',sans-serif",color:"white",textShadow:"0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)"}},card.attrs[a])
       ))
     ),
+    // Tier badge (top-left)
+    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s,
+      background:"rgba(0,0,0,0.75)",borderRadius:4*s,
+      padding:`${2*s}px ${5*s}px`,fontSize:Math.max(11,14*s),fontWeight:900,
+      fontFamily:"'Outfit',sans-serif",color:"white",lineHeight:1,letterSpacing:0}},
+      tier),
     // Metallic sheen overlay
     React.createElement("div",{style:{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 40%,transparent 60%,rgba(255,255,255,0.03) 100%)",pointerEvents:"none"}}),
     // Bottom name fade
@@ -163,20 +181,23 @@ function CardView({card,onClick,sel,dim,small,hl}){
     display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:8*s,
     boxShadow:sel?`0 8px 32px ${CLR_GLOW[card.dom]}`:"0 4px 16px rgba(0,0,0,0.4)",
     position:"relative",overflow:"hidden"}},
-    React.createElement("div",{style:{position:"absolute",top:6*s,right:6*s,display:"flex",flexDirection:"column",gap:2*s}},
+    // Attr values
+    React.createElement("div",{style:{position:"absolute",top:8*s,right:6*s,display:"flex",flexDirection:"column",gap:2*s}},
       [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",alignItems:"center",gap:3*s,
         background:"rgba(0,0,0,0.55)",borderRadius:4*s,padding:`${1*s}px ${5*s}px`,backdropFilter:"blur(4px)"}},
         React.createElement("span",{style:{fontSize:10*s}},SYM[a]),
         React.createElement("span",{style:{fontSize:12*s,fontWeight:800,color:"white",textShadow:"0 1px 2px rgba(0,0,0,0.7)",minWidth:16*s,textAlign:"right"}},card.attrs[a])
       ))
     ),
-    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s}},
-      React.createElement("div",{style:{width:8*s,height:8*s,borderRadius:"50%",
-        background:card.risk==="High"?"#EF4444":card.risk==="Medium"?"#F59E0B":"#10B981",
-        boxShadow:`0 0 4px ${card.risk==="High"?"rgba(239,68,68,.6)":card.risk==="Medium"?"rgba(245,158,11,.6)":"rgba(16,185,129,.6)"}`}})
-    ),
+    // Tier badge (top-left) - BLACK with white number
+    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s,
+      background:"rgba(0,0,0,0.75)",borderRadius:4*s,
+      padding:`${2*s}px ${5*s}px`,fontSize:Math.max(11,14*s),fontWeight:900,
+      fontFamily:"'Outfit',sans-serif",color:"white",lineHeight:1,letterSpacing:0}},
+      card.tier),
+    // Bottom label
     React.createElement("div",{style:{background:"rgba(0,0,0,0.6)",borderRadius:8*s,padding:`${4*s}px ${7*s}px`,backdropFilter:"blur(4px)",textAlign:"center"}},
-      React.createElement("div",{style:{fontSize:9*s,color:"rgba(255,255,255,0.7)",fontWeight:700}},card.label+" "+ANAME[card.dom]),
+      React.createElement("div",{style:{fontSize:9*s,color:"rgba(255,255,255,0.7)",fontWeight:700}},ANAME[card.dom]),
       React.createElement("div",{style:{fontSize:8*s,color:"rgba(255,255,255,0.4)",fontWeight:600,marginTop:1*s}},card.attrs.join("-"))
     )
   );
@@ -211,6 +232,7 @@ function CardCreator({onBack,onSaved,startTab}){
   const[imgScale,setImgScale]=useState(1);
   const[imgX,setImgX]=useState(50);
   const[imgY,setImgY]=useState(50);
+  const[cardTierSel,setCardTierSel]=useState(27);
   const[attrs,setAttrs]=useState([12,9,6]);
   const[saving,setSaving]=useState(false);
   const[generating,setGenerating]=useState(false);
@@ -248,6 +270,13 @@ function CardCreator({onBack,onSaved,startTab}){
     if(d.cards)setCards(d.cards);
   }
 
+  function selectTier(t){
+    setCardTierSel(t);
+    if(t===27)setAttrs([12,9,6]);
+    else if(t===24)setAttrs([12,9,3]);
+    else setAttrs([12,6,3]);
+  }
+
   function adjustAttr(i,delta){
     const next=[...attrs];
     const newVal=next[i]+delta;
@@ -280,6 +309,8 @@ function CardCreator({onBack,onSaved,startTab}){
   async function saveCard(){
     if(!name.trim()){setErr("Card needs a name");return;}
     if(attrs[0]===attrs[1]&&attrs[1]===attrs[2]){setErr("All three attributes can't be equal — add some variety!");return;}
+    const attrSum=attrs.reduce((a,b)=>a+b,0);
+    if(attrSum!==cardTierSel){setErr(`Attributes must sum to ${cardTierSel} for this tier`);return;}
     setSaving(true);setErr("");
     const r=await fetch("/api/cards",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgX,imgY})});
@@ -392,7 +423,20 @@ function CardCreator({onBack,onSaved,startTab}){
 
         // Attributes
         h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},"ATTRIBUTES  (SUM: "+attrs.reduce((a,b)=>a+b,0)+"/27)"),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"CARD TIER"),
+          h("div",{style:{display:"flex",gap:6,marginBottom:10}},
+            [{t:27,label:"Standard",sub:"27 pts"},{t:24,label:"Focused",sub:"24 pts"},{t:21,label:"Specialist",sub:"21 pts"}].map(({t,label,sub})=>
+              h("button",{key:t,onClick:()=>selectTier(t),style:{
+                flex:1,padding:"8px 4px",borderRadius:8,border:"none",cursor:"pointer",transition:"all .2s",
+                background:cardTierSel===t?"rgba(220,38,38,.2)":"rgba(255,255,255,.06)",
+                outline:cardTierSel===t?"1px solid rgba(220,38,38,.5)":"1px solid rgba(255,255,255,.08)",
+                color:cardTierSel===t?"#FCA5A5":"#94A3B8"}},
+                h("div",{style:{fontSize:11,fontWeight:700}},label),
+                h("div",{style:{fontSize:10,opacity:.7}},sub)
+              )
+            )
+          ),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},`ATTRIBUTES  (SUM: ${attrs.reduce((a,b)=>a+b,0)}/${cardTierSel})`),
           h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
             [0,1,2].map(i=>h("div",{key:i,style:{display:"flex",alignItems:"center",gap:10}},
               h("span",{style:{fontSize:18,width:24}},SYM[i]),
@@ -458,6 +502,7 @@ function CardCreator({onBack,onSaved,startTab}){
 
 /* ═══ MAIN APP ════════════════════════════════════════════ */
 function App(){
+  const isMobile=useIsMobile();
   // Connection state
   const[screen,setScreen]=useState("menu"); // menu, waiting, game, creator
   const[creatorFromGame,setCreatorFromGame]=useState(false);
@@ -528,9 +573,8 @@ function App(){
     if(gs.history.length>prevHistLen.current&&gs.history.length>0){
       const latest=gs.history[gs.history.length-1];
       setRevealPhase("flip");
-      setTimeout(()=>setRevealPhase("attr"),1200);
-      setTimeout(()=>setRevealPhase("result"),2700);
-      setTimeout(()=>setRevealPhase(null),4500);
+      setTimeout(()=>setRevealPhase("attr"),2000);
+      setTimeout(()=>setRevealPhase("result"),3500);
     }
     prevHistLen.current=gs.history.length;
   },[gs?.history?.length]);
@@ -619,7 +663,7 @@ function App(){
           )
         ),
         h("div",{style:{maxWidth:400,textAlign:"center",color:"#94A3B8",lineHeight:1.7,fontSize:14}},
-          `${ALL_CARDS.length} cards. 4 archetypes. Every card sums to ${CAP}. Play against a friend in a best-of-3 series.`
+          `${ALL_CARDS.length} cards across 3 tiers. Standard · Focused · Specialist. Best-of-3 series.`
         ),
         // Create
         h("button",{className:"btn btn-p",onClick:createGame,disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),
@@ -661,22 +705,60 @@ function App(){
 
   // ── HAND PHASE ──
   if(status==="hand"){
-    // Wait for custom cards to load so layout doesn't shift
     if(!customCardsLoaded)return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
       h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
     );
-    // Show custom cards + enough dealt cards to total 15
-    const dealtCount=Math.max(0,15-customCards.length);
-    const rosterCards=(gs.myRoster||[]).slice(0,dealtCount).map(id=>CARD_MAP[id]).filter(Boolean);
-    const customCount=customCards.length;
+
+    // Split roster by tier
+    const roster=gs.myRoster||[];
+    const rosterByTier={27:[],24:[],21:[]};
+    roster.forEach(id=>{const c=CARD_MAP[id];if(c)rosterByTier[c.tier].push(c);});
+
+    // Split custom cards by tier
+    const customByTier={27:[],24:[],21:[]};
+    customCards.forEach(c=>{
+      const t=c.attrs.reduce((a,b)=>a+b,0);
+      if(customByTier[t])customByTier[t].push(c);
+    });
+
+    // Each row = custom cards + enough generic to fill slot limit (7/4/4)
+    const LIMITS={27:7,24:4,21:4};
+    const PICKS={27:5,24:2,21:2};
+    const rows={};
+    [27,24,21].forEach(t=>{
+      const custom=customByTier[t];
+      const generic=rosterByTier[t].slice(0,Math.max(0,LIMITS[t]-custom.length));
+      rows[t]=[...custom,...generic];
+    });
+
+    // Per-tier selection counts
+    function getHandTier(id){
+      if(id.startsWith("cc_")){const c=customCards.find(x=>x.id===id);return c?c.attrs.reduce((a,b)=>a+b,0):27;}
+      return CARD_MAP[id]?.tier||27;
+    }
+    const tierSel={27:0,24:0,21:0};
+    [...handSel].forEach(id=>{const t=getHandTier(id);tierSel[t]=(tierSel[t]||0)+1;});
+    const handReady=tierSel[27]===5&&tierSel[24]===2&&tierSel[21]===2;
+
     function toggleCard(id){
       setHandSel(p=>{
         const s=new Set(p);
-        if(s.has(id))s.delete(id);
-        else if(s.size<9)s.add(id);
+        if(s.has(id)){s.delete(id);}
+        else{
+          const t=getHandTier(id);
+          if((tierSel[t]||0)<PICKS[t])s.add(id);
+        }
         return s;
       });
     }
+
+    const customCount=customCards.length;
+    const TIER_META={
+      27:{label:"STANDARD",color:"#10B981",desc:"Pick 5 of "+rows[27].length},
+      24:{label:"FOCUSED", color:"#F59E0B",desc:"Pick 2 of "+rows[24].length},
+      21:{label:"SPECIALIST",color:"#EF4444",desc:"Pick 2 of "+rows[21].length},
+    };
+
     return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
       header,
       h("div",{style:{flex:1,width:"100%",maxWidth:960,padding:"10px 12px",animation:"fadeIn .4s ease"}},
@@ -687,51 +769,50 @@ function App(){
               background:m===gs.matchNum?`${CLR[0]}20`:"transparent",color:m===gs.matchNum?CLR[0]:"#475569",
               border:m===gs.matchNum?`1px solid ${CLR[0]}40`:"1px solid transparent"}},"Match "+m))
           ),
-          h("div",{style:{fontSize:12,color:"#94A3B8"}},
-            "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
-            h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
+          h("div",{style:{display:"flex",alignItems:"center",gap:12}},
+            h("div",{style:{fontSize:12,color:"#94A3B8"}},
+              "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
+              h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
+            ),
+            h("button",{className:"btn btn-s",onClick:()=>{setCreatorFromGame(true);setScreen("creator");},
+              style:{fontSize:10,padding:"4px 10px",letterSpacing:1}},
+              customCount>=7?"✦ My Cards (7/7)":"✦ Card Creator")
           )
         ),
-        // Pick counter + status
+        // Pick summary
         h("div",{style:{textAlign:"center",marginBottom:10}},
           h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 — Match ${gs.matchNum}`),
-          h("div",{style:{fontSize:12,color:"#64748B",marginTop:2}},
-            h("span",{style:{color:CLR[0],fontWeight:700}},handSel.size+"/9"),
-            gs.opponentHandReady?" · ✓ Opponent ready":" · ⏳ Opponent picking..."
-          )
-        ),
-        // ── Custom cards section ──
-        h("div",{style:{marginBottom:14}},
-          h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:customCount>=7?4:8}},
-            h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B"}},
-              customCount>0?"YOUR CUSTOM CARDS":"CUSTOM CARDS"),
-            h("button",{className:"btn btn-s",
-              onClick:()=>{setCreatorFromGame(true);setScreen("creator");},
-              style:{fontSize:11,padding:"5px 14px",letterSpacing:1}},
-              customCount>=7?"✦ My Cards (7/7 — delete to add)":"✦ Card Creator")
+          h("div",{style:{display:"flex",justifyContent:"center",gap:16,marginTop:4}},
+            [27,24,21].map(t=>h("span",{key:t,style:{fontSize:11,fontWeight:700,
+              color:tierSel[t]===PICKS[t]?"#10B981":TIER_META[t].color}},
+              `${TIER_META[t].label} ${tierSel[t]}/${PICKS[t]}`))
           ),
-          customCount>=7&&h("div",{style:{fontSize:11,color:"#F59E0B",marginBottom:8,paddingLeft:2}},
-            "Library full — open My Cards to delete a card before creating new ones."
-          ),
-          customCount===0
-            ?h("div",{style:{fontSize:12,color:"#334155",fontStyle:"italic",padding:"8px 0"}},"No custom cards yet — create some in Card Creator")
-            :h("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
-                customCards.map(c=>h(CardView,{key:c.id,card:c,sel:handSel.has(c.id),small:true,
-                  onClick:()=>toggleCard(c.id)}))
-              )
+          h("div",{style:{fontSize:11,color:"#475569",marginTop:2}},
+            gs.opponentHandReady?"✓ Opponent ready":"⏳ Opponent picking...")
         ),
-        // Divider
-        h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)",margin:"0 0 12px"}}),
-        // ── Dealt cards ──
-        h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},"DEALT CARDS"),
-        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          rosterCards.map(c=>h(CardView,{key:c.id,card:c,sel:handSel.has(c.id),small:true,
-            onClick:()=>toggleCard(c.id)}))
-        ),
-        h("div",{style:{textAlign:"center",marginTop:12}},
+        // ── Three tier rows ──
+        [27,24,21].map(t=>{
+          const meta=TIER_META[t];
+          return h("div",{key:t,style:{marginBottom:14}},
+            h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
+              h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:meta.color}},meta.label),
+              h("div",{style:{fontSize:10,color:"#475569"}},meta.desc),
+              tierSel[t]===PICKS[t]&&h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,marginLeft:4}},"✓")
+            ),
+            rows[t].length===0
+              ?h("div",{style:{fontSize:11,color:"#334155",fontStyle:"italic",padding:"4px 0"}},"No cards — create some in Card Creator")
+              :h("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
+                  rows[t].map(c=>h(CardView,{key:c.id,card:c,
+                    sel:handSel.has(c.id),
+                    dim:!handSel.has(c.id)&&tierSel[t]>=PICKS[t],
+                    small:true,onClick:()=>toggleCard(c.id)}))
+                )
+          );
+        }),
+        h("div",{style:{textAlign:"center",marginTop:4}},
           gs.myHandReady
             ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Hand locked — waiting for opponent...")
-            :h("button",{className:"btn btn-p",disabled:handSel.size!==9,onClick:submitHand},"Start Match "+gs.matchNum+" →")
+            :h("button",{className:"btn btn-p",disabled:!handReady,onClick:submitHand},"Start Match "+gs.matchNum+" →")
         )
       )
     );
@@ -748,66 +829,88 @@ function App(){
       const iLost=(playerNum===1&&lr.winner==="p2")||(playerNum===2&&lr.winner==="p1");
 
       if(revealPhase==="flip"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:600,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}},
-            h("div",{style:{fontSize:13,color:"#94A3B8",letterSpacing:2}},"CARDS REVEALED"),
-            h("div",{style:{display:"flex",alignItems:"center",gap:24}},
-              h("div",{style:{textAlign:"center",animation:"flipIn .5s ease"}},
-                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,marginBottom:4,letterSpacing:1}},"YOU"),
-                h(CardView,{card:myCard})),
-              h("div",{style:{fontSize:18,fontWeight:900,color:"#334155"}},"VS"),
-              h("div",{style:{textAlign:"center",animation:"flipIn .5s ease .15s both"}},
-                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,marginBottom:4,letterSpacing:1}},"OPPONENT"),
-                h(CardView,{card:opCard}))
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
+            h("div",{style:{fontSize:11,color:"#475569",letterSpacing:3,fontWeight:700}},"CARDS REVEALED"),
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease",flex:1,maxWidth:200}},
+                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
+                h(CardView,{card:myCard,small:true})
+              ),
+              h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease .2s both",flex:1,maxWidth:200}},
+                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPPONENT"),
+                h(CardView,{card:opCard,small:true})
+              )
             ),
-            h("div",{style:{fontSize:12,color:"#475569",animation:"pulse 1s infinite"}},"Testing attribute...")
+            h("div",{style:{fontSize:11,color:"#334155",animation:"pulse 1s infinite",letterSpacing:1}},"Checking attribute...")
           )
         );
       }
 
       if(revealPhase==="attr"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:600,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}},
-            h("div",{style:{animation:"attrReveal .6s cubic-bezier(.4,0,.2,1)",display:"flex",alignItems:"center",gap:10,padding:"12px 28px",borderRadius:14,
-              background:`${CLR[lr.attr]}18`,border:`2px solid ${CLR[lr.attr]}40`,boxShadow:`0 0 40px ${CLR_GLOW[lr.attr]}`}},
-              h("span",{style:{fontSize:40}},SYM[lr.attr]),
-              h("span",{style:{fontSize:22,fontWeight:900,color:CLR[lr.attr]}},ANAME[lr.attr])
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
+            h("div",{style:{animation:"attrReveal .5s cubic-bezier(.4,0,.2,1)",display:"flex",alignItems:"center",gap:12,padding:"14px 32px",borderRadius:16,
+              background:`${CLR[lr.attr]}18`,border:`2px solid ${CLR[lr.attr]}60`,boxShadow:`0 0 60px ${CLR_GLOW[lr.attr]}`}},
+              h("span",{style:{fontSize:48}},SYM[lr.attr]),
+              h("span",{style:{fontSize:26,fontWeight:900,color:CLR[lr.attr],letterSpacing:2}},ANAME[lr.attr].toUpperCase())
             ),
-            h("div",{style:{display:"flex",alignItems:"center",gap:24}},
-              h("div",{style:{textAlign:"center"}},h(CardView,{card:myCard,small:true}),
-                h("div",{style:{fontSize:28,fontWeight:900,color:"#10B981",marginTop:6}},myVal)),
-              h("div",{style:{fontSize:18,fontWeight:900,color:"#334155"}},"VS"),
-              h("div",{style:{textAlign:"center"}},h(CardView,{card:opCard,small:true}),
-                h("div",{style:{fontSize:28,fontWeight:900,color:"#EF4444",marginTop:6}},opVal))
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200}},
+                h(CardView,{card:myCard,small:true}),
+                h("div",{style:{fontSize:24,fontWeight:900,color:"#10B981",animation:"scorePopIn .4s ease"}},myVal)
+              ),
+              h("div",{style:{fontSize:18,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200}},
+                h(CardView,{card:opCard,small:true}),
+                h("div",{style:{fontSize:24,fontWeight:900,color:"#EF4444",animation:"scorePopIn .4s ease"}},opVal)
+              )
             )
           )
         );
       }
 
       if(revealPhase==="result"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:600,padding:16,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,animation:"slideUp .4s ease"}},
-            h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:20,marginBottom:4}},
-              h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:1}},"YOU"),
-                h("div",{style:{fontSize:36,fontWeight:900,color:"#10B981",animation:"scorePopIn .3s ease"}},gs.matchScore[playerNum===1?0:1])),
-              h("div",{style:{padding:"6px 20px",borderRadius:10,fontSize:15,fontWeight:800,letterSpacing:1,
-                background:iWon?"rgba(16,185,129,.12)":iLost?"rgba(239,68,68,.12)":"rgba(234,179,8,.12)",
-                color:iWon?"#10B981":iLost?"#EF4444":"#EAB308",
-                animation:lr.winner==="tie"?"shake .4s ease":"scorePopIn .3s ease"}},
-                iWon?`WIN${lr.pts>1?` +${lr.pts}`:""}`:iLost?`LOSS${lr.pts>1?` +${lr.pts}`:""}`: "TIE → CARRY"),
-              h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:1}},"OPP"),
-                h("div",{style:{fontSize:36,fontWeight:900,color:"#EF4444",animation:"scorePopIn .3s ease"}},gs.matchScore[playerNum===1?1:0]))
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,padding:"16px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .4s ease"}},
+            // Result badge
+            h("div",{style:{padding:"8px 28px",borderRadius:12,fontSize:18,fontWeight:900,letterSpacing:2,
+              background:iWon?"rgba(16,185,129,.15)":iLost?"rgba(239,68,68,.15)":"rgba(234,179,8,.15)",
+              color:iWon?"#10B981":iLost?"#EF4444":"#EAB308",
+              border:`2px solid ${iWon?"#10B981":iLost?"#EF4444":"#EAB308"}40`,
+              boxShadow:iWon?"0 0 30px rgba(16,185,129,.2)":iLost?"0 0 30px rgba(239,68,68,.2)":"none",
+              animation:lr.winner==="tie"?"shake .4s ease":"scorePopIn .4s ease"}},
+              iWon?`YOU WIN${lr.pts>1?" +"+lr.pts+" pts":""}`:iLost?`OPPONENT WINS${lr.pts>1?" +"+lr.pts+" pts":""}`: "TIE — CARRY +"+(lr.pts)
             ),
-            h("div",{style:{display:"flex",alignItems:"center",gap:16}},
-              h("div",{style:{textAlign:"center",animation:iWon?"winGlow 1s ease infinite":"none",borderRadius:14}},
+            // Score
+            h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:24}},
+              h("div",{style:{textAlign:"center"}},
+                h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
+                h("div",{style:{fontSize:40,fontWeight:900,color:"#10B981"}},gs.matchScore[playerNum===1?0:1])),
+              h("div",{style:{fontSize:13,color:"#334155",fontWeight:700}},"—"),
+              h("div",{style:{textAlign:"center"}},
+                h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPP"),
+                h("div",{style:{fontSize:40,fontWeight:900,color:"#EF4444"}},gs.matchScore[playerNum===1?1:0]))
+            ),
+            // Cards — full size on desktop, small on mobile
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
+                animation:iWon?"winGlow 1.5s ease infinite":"none",borderRadius:14}},
                 h(CardView,{card:myCard,hl:iWon,small:true}),
-                h("div",{style:{fontSize:9,marginTop:4,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)),
-              h("div",{style:{fontSize:16,fontWeight:900,color:"#334155"}},"vs"),
-              h("div",{style:{textAlign:"center",animation:iLost?"loseGlow 1s ease infinite":"none",borderRadius:14}},
+                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
+              ),
+              h("div",{style:{fontSize:16,fontWeight:900,color:"#1e293b",paddingTop:60}},"vs"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
+                animation:iLost?"loseGlow 1.5s ease infinite":"none",borderRadius:14}},
                 h(CardView,{card:opCard,hl:iLost,small:true}),
-                h("div",{style:{fontSize:9,marginTop:4,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal))
+                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal)
+              )
             ),
-            h(AttrCount,{history:gs.history,carry:gs.carry})
+            // Continue button
+            h("button",{className:"btn btn-s",onClick:()=>setRevealPhase(null),
+              style:{marginTop:4,fontSize:13,padding:"10px 32px",letterSpacing:1}},
+              "Continue →")
           )
         );
       }

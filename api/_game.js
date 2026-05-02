@@ -1,41 +1,42 @@
-/* ═══ THE 21-CARD UNIVERSE ════════════════════════════════
-   Values restricted to {3,6,9,12,15}, always summing to 27.
-   18 unique permutations + 3 copies of the balanced 9-9-9.
+/* ═══ THREE-TIER CARD UNIVERSE ══════════════════════════════
+   27-total: Standard  — reliable across all attributes  (c0–c20)
+   24-total: Focused   — strong in one or two areas      (c21–c38)
+   21-total: Specialist — dominant in one, weak in others (c39–c53)
 ══════════════════════════════════════════════════════════ */
-const CAP = 27;
-const ALL_CARDS = [];
-const seen = new Set();
-const BASE = [
-  [15,9,3],  // 6 permutations → specialist cards
-  [15,6,6],  // 3 permutations → strong cards
-  [12,12,3], // 3 permutations → dual cards
-  [12,9,6],  // 6 permutations → mild cards
-];
-BASE.forEach(shape => {
-  const perms = [
-    [shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
-    [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]],
-  ];
-  perms.forEach(p => {
-    const key = p.join("-");
-    if (!seen.has(key)) {
-      seen.add(key);
-      ALL_CARDS.push({ id: `c${ALL_CARDS.length}`, attrs: [...p] });
-    }
+const CARD_MAP   = {};
+const CARDS_27   = [];
+const CARDS_24   = [];
+const CARDS_21   = [];
+
+function buildTier(shapes, pool) {
+  const seen = new Set();
+  shapes.forEach(shape => {
+    [
+      [shape[0],shape[1],shape[2]], [shape[1],shape[2],shape[0]], [shape[2],shape[0],shape[1]],
+      [shape[0],shape[2],shape[1]], [shape[1],shape[0],shape[2]], [shape[2],shape[1],shape[0]],
+    ].forEach(p => {
+      const key = p.join("-");
+      if (!seen.has(key)) {
+        seen.add(key);
+        const id = `c${Object.keys(CARD_MAP).length}`;
+        const card = { id, attrs: [...p] };
+        pool.push(card);
+        CARD_MAP[id] = card;
+      }
+    });
   });
-});
-// 3 copies of the balanced 9-9-9 card
-for (let i = 0; i < 3; i++) {
-  ALL_CARDS.push({ id: `c${ALL_CARDS.length}`, attrs: [9, 9, 9] });
 }
 
-// Card ID set for validation
-const VALID_IDS = new Set(ALL_CARDS.map(c => c.id));
+// 27-total (c0–c17: 18 unique shapes)
+buildTier([[15,9,3],[15,6,6],[12,12,3],[12,9,6]], CARDS_27);
 
-function validateCardIds(ids, count) {
-  if (!Array.isArray(ids) || ids.length !== count) return false;
-  return ids.every(id => VALID_IDS.has(id));
-}
+// 24-total (c21–c38: 18 unique shapes)
+buildTier([[15,6,3],[12,9,3],[12,6,6],[9,9,6]], CARDS_24);
+
+// 21-total (c39–c53: 15 unique shapes)
+buildTier([[15,3,3],[12,6,3],[9,9,3],[9,6,6]], CARDS_21);
+
+const ALL_CARDS = [...CARDS_27, ...CARDS_24, ...CARDS_21];
 
 function shuffle(a) {
   const b = [...a];
@@ -51,14 +52,19 @@ function genSeq() {
 }
 
 function genRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 }
 
-function dealCards(n) {
-  return shuffle(ALL_CARDS).slice(0, n).map(c => c.id);
+// Deal a tiered roster: 7 Standard + 4 Focused + 4 Specialist = 15 cards
+function dealRoster() {
+  return [
+    ...shuffle(CARDS_27).slice(0, 7).map(c => c.id),
+    ...shuffle(CARDS_24).slice(0, 4).map(c => c.id),
+    ...shuffle(CARDS_21).slice(0, 4).map(c => c.id),
+  ];
 }
 
-module.exports = { ALL_CARDS, VALID_IDS, validateCardIds, shuffle, genSeq, genRoomCode, dealCards, CAP };
+module.exports = { ALL_CARDS, CARDS_27, CARDS_24, CARDS_21, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster };

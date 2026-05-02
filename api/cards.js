@@ -26,11 +26,12 @@ async function createCard(req, res) {
   if (!VALID_FONTS.includes(font))
     return res.status(400).json({ error: "Invalid font" });
 
+  const total = attrs.reduce((a, b) => a + b, 0);
   if (
     attrs.length !== 3 ||
-    attrs.reduce((a, b) => a + b, 0) !== 27 ||
+    ![21, 24, 27].includes(total) ||
     !attrs.every(v => Number.isInteger(v) && v >= 3 && v <= 21 && v % 3 === 0)
-  ) return res.status(400).json({ error: "Attributes must be multiples of 3 summing to 27" });
+  ) return res.status(400).json({ error: "Attributes must be multiples of 3, each 3–21, summing to 21, 24, or 27" });
 
   if (attrs[0] === attrs[1] && attrs[1] === attrs[2])
     return res.status(400).json({ error: "All three attributes can't be equal — add some variety!" });

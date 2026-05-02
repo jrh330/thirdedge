@@ -1,5 +1,5 @@
 const { getDb } = require("./_db");
-const { dealCards } = require("./_game");
+const { dealRoster } = require("./_game");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
       {
         $set: {
           p2: { id: playerId, name: "Player 2", localId: localPlayerId || null },
-          "match.p2Roster": dealCards(15),
+          "match.p2Roster": dealRoster(),
           status: "hand",
           updatedAt: new Date(),
         },
