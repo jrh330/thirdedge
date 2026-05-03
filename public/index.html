@@ -586,9 +586,9 @@ function App(){
     const r=await api("create",{localPlayerId:LOCAL_PLAYER_ID,vsBot:isBot||undefined});
     setLoading(false);
     if(r.error){setError(r.error);return;}
-    setVsBot(!!r.vsBot);
+    setVsBot(isBot);
     setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);
-    setScreen(r.vsBot?"game":"waiting");
+    setScreen(isBot?"game":"waiting");
   };
 
   const joinGame=async()=>{
