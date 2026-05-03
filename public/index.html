@@ -145,9 +145,9 @@ function CustomCardView({card,onClick,sel,dim,small}){
       backgroundSize:card.imageUrl?`${(card.imgScale||1)*100}% auto`:"cover",
       backgroundPosition:card.imageUrl?`${card.imgX||50}% ${card.imgY||50}%`:"center",
       backgroundRepeat:"no-repeat"}}),
-    // Color strips (right 25%)
+    // Color strips (right 25%) - sorted largest first to match generic card gradient order
     React.createElement("div",{style:{position:"absolute",right:0,top:0,bottom:0,width:"25%",display:"flex",flexDirection:"column",borderLeft:"1px solid rgba(255,255,255,0.1)"}},
-      [0,1,2].map(a=>React.createElement("div",{key:a,style:{flex:card.attrs[a],background:CLR[a],position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}},
+      [0,1,2].sort((a,b)=>card.attrs[b]-card.attrs[a]).map(a=>React.createElement("div",{key:a,style:{flex:card.attrs[a],background:CLR[a],position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}},
         React.createElement("span",{style:{fontSize:Math.max(11,13*s),fontWeight:900,fontFamily:"'Outfit',sans-serif",color:"white",textShadow:"0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)"}},card.attrs[a])
       ))
     ),
