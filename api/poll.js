@@ -40,6 +40,7 @@ module.exports = async function handler(req, res) {
     const state = {
       status: game.status,
       playerNum,
+      isBot: !!(game.p2?.isBot),
       seriesScore: game.seriesScore,
       matchNum: game.matchNum,
       opponentJoined: !!game.p2,

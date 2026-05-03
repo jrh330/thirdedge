@@ -67,4 +67,16 @@ function dealRoster() {
   ];
 }
 
-module.exports = { ALL_CARDS, CARDS_27, CARDS_24, CARDS_21, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster };
+// Select a valid 5+2+2 hand for the bot from its roster
+function botSelectHand(roster) {
+  const by27 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 27);
+  const by24 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 24);
+  const by21 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 21);
+  return [
+    ...shuffle(by27).slice(0, 5),
+    ...shuffle(by24).slice(0, 2),
+    ...shuffle(by21).slice(0, 2),
+  ];
+}
+
+module.exports = { ALL_CARDS, CARDS_27, CARDS_24, CARDS_21, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster, botSelectHand };

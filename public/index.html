@@ -506,6 +506,7 @@ function App(){
   // Connection state
   const[screen,setScreen]=useState("menu"); // menu, waiting, game, creator
   const[creatorFromGame,setCreatorFromGame]=useState(false);
+  const[vsBot,setVsBot]=useState(false);
   const[roomCode,setRoomCode]=useState("");
   const[joinInput,setJoinInput]=useState("");
   const[playerId,setPlayerId]=useState("");
@@ -580,12 +581,14 @@ function App(){
   },[gs?.history?.length]);
 
   // ── Actions ──
-  const createGame=async()=>{
+  const createGame=async(isBot=false)=>{
     setLoading(true);setError("");
-    const r=await api("create",{localPlayerId:LOCAL_PLAYER_ID});
+    const r=await api("create",{localPlayerId:LOCAL_PLAYER_ID,vsBot:isBot||undefined});
     setLoading(false);
     if(r.error){setError(r.error);return;}
-    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("waiting");
+    setVsBot(!!r.vsBot);
+    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);
+    setScreen(r.vsBot?"game":"waiting");
   };
 
   const joinGame=async()=>{
@@ -631,7 +634,7 @@ function App(){
     h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[0]}},"THIRD"),
     h("span",{style:{fontSize:13}},"🔥❄️⚡"),
     h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[1]}},"EDGE"),
-    roomCode&&h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},`Room: ${roomCode}`)
+    vsBot?h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},"vs Bot"):roomCode&&h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},`Room: ${roomCode}`)
   );
 
   // ═══ CARD CREATOR ═══
@@ -666,7 +669,8 @@ function App(){
           `${ALL_CARDS.length} cards across 3 tiers. Standard · Focused · Specialist. Best-of-3 series.`
         ),
         // Create
-        h("button",{className:"btn btn-p",onClick:createGame,disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),
+        h("button",{className:"btn btn-p",onClick:()=>createGame(false),disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),
+        h("button",{className:"btn btn-s",onClick:()=>createGame(true),disabled:loading,style:{fontSize:14,padding:"10px 32px"}},loading?"Creating...":"Play vs Bot"),
         // Join
         h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           h("input",{type:"text",value:joinInput,onChange:e=>setJoinInput(e.target.value.toUpperCase()),placeholder:"ROOM CODE",maxLength:4,

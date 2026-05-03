@@ -1,5 +1,17 @@
 const { getDb } = require("./_db");
-const { genSeq, dealRoster, CARD_MAP } = require("./_game");
+const { genSeq, dealRoster, botSelectHand, CARD_MAP } = require("./_game");
+
+// Greedy bot: pick highest-value unplayed card for the current attribute
+function botPickCard(hand, history, attr, botPNum) {
+  const played = new Set(history.map(h => botPNum === 2 ? h.p2CardId : h.p1CardId));
+  const available = hand.filter(id => !played.has(id));
+  let best = null, bestVal = -1;
+  for (const id of available) {
+    const card = CARD_MAP[id];
+    if (card && card.attrs[attr] > bestVal) { bestVal = card.attrs[attr]; best = id; }
+  }
+  return best;
+}
 
 async function resolveCard(db, cardId, localId) {
   if (CARD_MAP[cardId]) return CARD_MAP[cardId];
@@ -116,7 +128,18 @@ module.exports = async function handler(req, res) {
       const playKey = pNum === 1 ? "match.p1Play" : "match.p2Play";
       update[playKey] = cardId;
 
-      const otherPlay = pNum === 1 ? m.p2Play : m.p1Play;
+      // If opponent is bot, auto-play now in the same update
+      const opponentIsBot = pNum === 1 ? game.p2?.isBot : game.p1?.isBot;
+      let otherPlay = pNum === 1 ? m.p2Play : m.p1Play;
+      if (!otherPlay && opponentIsBot) {
+        const botPNum = pNum === 1 ? 2 : 1;
+        const botHand = pNum === 1 ? m.p2Hand : m.p1Hand;
+        const botCardId = botPickCard(botHand, m.history, m.seq[m.round], botPNum);
+        const botPlayKey = pNum === 1 ? "match.p2Play" : "match.p1Play";
+        update[botPlayKey] = botCardId;
+        otherPlay = botCardId;
+      }
+
       if (otherPlay) {
         const p1CardId = pNum === 1 ? cardId : otherPlay;
         const p2CardId = pNum === 1 ? otherPlay : cardId;
@@ -189,7 +212,13 @@ module.exports = async function handler(req, res) {
       update["match.p1Play"]  = null;
       update["match.p2Play"]  = null;
       update["match.p1Roster"] = dealRoster();
-      update["match.p2Roster"] = dealRoster();
+      const newP2Roster = dealRoster();
+      update["match.p2Roster"] = newP2Roster;
+
+      // Bot auto-selects new hand immediately
+      if (game.p2?.isBot) {
+        update["match.p2Hand"] = botSelectHand(newP2Roster);
+      }
 
       await games.updateOne({ _id: game._id }, { $set: update });
       return res.status(200).json({ ok: true });

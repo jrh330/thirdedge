@@ -1,5 +1,5 @@
 const { getDb } = require("./_db");
-const { genRoomCode, genSeq, dealRoster } = require("./_game");
+const { genRoomCode, genSeq, dealRoster, botSelectHand } = require("./_game");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,17 +25,19 @@ module.exports = async function handler(req, res) {
     if (attempts >= 20) return res.status(500).json({ error: "Could not generate room code" });
 
     const playerId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const { localPlayerId } = req.body;
+    const { localPlayerId, vsBot } = req.body;
+
+    const p2Roster = vsBot ? dealRoster() : null;
 
     const game = {
       code,
-      status: "waiting",
+      status: vsBot ? "hand" : "waiting",
       createdAt: new Date(),
       updatedAt: new Date(),
 
       // Players
       p1: { id: playerId, name: "Player 1", localId: localPlayerId || null },
-      p2: null,
+      p2: vsBot ? { id: "bot", name: "Bot", isBot: true, localId: null } : null,
 
       // Series
       seriesScore: [0, 0],
@@ -43,22 +45,18 @@ module.exports = async function handler(req, res) {
 
       // Current match
       match: {
-        // Attribute sequence - generated when match starts (hand confirm)
         seq: null,
         round: 0,
         score: [0, 0],
         carry: 0,
         history: [],
 
-        // Dealt hands (15 cards each, auto-dealt)
         p1Roster: dealRoster(),
-        p2Roster: null,
+        p2Roster: p2Roster,
 
-        // Hand phase
         p1Hand: null,
-        p2Hand: null,
+        p2Hand: vsBot ? botSelectHand(p2Roster) : null,
 
-        // Current round plays
         p1Play: null,
         p2Play: null,
       },
@@ -70,6 +68,7 @@ module.exports = async function handler(req, res) {
       code,
       playerId,
       playerNum: 1,
+      vsBot: !!vsBot,
     });
   } catch (err) {
     console.error("create error:", err);
