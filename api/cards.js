@@ -62,6 +62,14 @@ async function deleteCard(req, res) {
   const { cardId } = req.params;
   if (!playerId || !cardId) return res.status(400).json({ error: "Missing fields" });
   const db = await getDb();
+
+  // Block deletion if the card is currently in an active game's hand
+  const activeGame = await db.collection("games").findOne({
+    status: { $in: ["playing", "hand"] },
+    $or: [{ "match.p1Hand": cardId }, { "match.p2Hand": cardId }]
+  });
+  if (activeGame) return res.status(400).json({ error: "Can't delete a card that's in an active game" });
+
   const result = await db.collection("custom_cards").deleteOne({ id: cardId, playerId });
   if (result.deletedCount === 0) return res.status(404).json({ error: "Card not found" });
   return res.json({ ok: true });
