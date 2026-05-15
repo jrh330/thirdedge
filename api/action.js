@@ -1,5 +1,6 @@
 const { getDb } = require("./_db");
 const { genSeq, dealRoster, botSelectHand, CARD_MAP } = require("./_game");
+const { TIERS, HAND_PICKS } = require("./_constants");
 
 // Greedy bot: pick highest-value unplayed card for the current attribute
 function botPickCard(hand, history, attr, botPNum) {
@@ -73,8 +74,9 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: "One or more custom cards not found" });
       }
 
-      // Validate tier composition: exactly 5×Standard(27) + 2×Focused(24) + 2×Specialist(21)
-      const tierCounts = { 27: 0, 24: 0, 21: 0 };
+      // Validate tier composition using HAND_PICKS
+      const tierCounts = {};
+      TIERS.forEach(t => { tierCounts[t] = 0; });
       for (const id of standardIds) {
         const card = CARD_MAP[id];
         if (!card) return res.status(400).json({ error: "Unknown card: " + id });
@@ -85,7 +87,7 @@ module.exports = async function handler(req, res) {
         const tier = card.attrs.reduce((a, b) => a + b, 0);
         tierCounts[tier] = (tierCounts[tier] || 0) + 1;
       }
-      if ((tierCounts[27]||0) !== 5 || (tierCounts[24]||0) !== 2 || (tierCounts[21]||0) !== 2)
+      if (TIERS.some(t => (tierCounts[t] || 0) !== HAND_PICKS[t]))
         return res.status(400).json({ error: "Hand must contain 5 Standard, 2 Focused, and 2 Specialist cards" });
 
       const key = pNum === 1 ? "match.p1Hand" : "match.p2Hand";

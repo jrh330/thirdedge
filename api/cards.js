@@ -1,4 +1,5 @@
 const { getDb } = require("./_db");
+const { TIERS, ATTR_MIN, ATTR_MAX, ATTR_STEP, CUSTOM_CARD_LIMIT } = require("./_constants");
 
 const VALID_FONTS = ["outfit", "orbitron", "pacifico", "bebas", "playfair"];
 
@@ -29,16 +30,16 @@ async function createCard(req, res) {
   const total = attrs.reduce((a, b) => a + b, 0);
   if (
     attrs.length !== 3 ||
-    ![21, 24, 27].includes(total) ||
-    !attrs.every(v => Number.isInteger(v) && v >= 3 && v <= 21 && v % 3 === 0)
-  ) return res.status(400).json({ error: "Attributes must be multiples of 3, each 3–21, summing to 21, 24, or 27" });
+    !TIERS.includes(total) ||
+    !attrs.every(v => Number.isInteger(v) && v >= ATTR_MIN && v <= ATTR_MAX && v % ATTR_STEP === 0)
+  ) return res.status(400).json({ error: `Attributes must be multiples of ${ATTR_STEP}, each ${ATTR_MIN}–${ATTR_MAX}, summing to ${TIERS.join(", ")}` });
 
   if (attrs[0] === attrs[1] && attrs[1] === attrs[2])
     return res.status(400).json({ error: "All three attributes can't be equal — add some variety!" });
 
   const db = await getDb();
   const count = await db.collection("custom_cards").countDocuments({ playerId });
-  if (count >= 7) return res.status(400).json({ error: "Maximum 7 custom cards reached" });
+  if (count >= CUSTOM_CARD_LIMIT) return res.status(400).json({ error: `Maximum ${CUSTOM_CARD_LIMIT} custom cards reached` });
 
   const card = {
     id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,

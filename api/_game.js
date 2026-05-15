@@ -1,12 +1,12 @@
+const { TIERS, ROSTER_DEAL, HAND_PICKS } = require("./_constants");
+
 /* ═══ THREE-TIER CARD UNIVERSE ══════════════════════════════
-   27-total: Standard  — reliable across all attributes  (c0–c20)
-   24-total: Focused   — strong in one or two areas      (c21–c38)
-   21-total: Specialist — dominant in one, weak in others (c39–c53)
+   27-total: Standard  — reliable across all attributes
+   24-total: Focused   — strong in one or two areas
+   21-total: Specialist — dominant in one, weak in others
 ══════════════════════════════════════════════════════════ */
-const CARD_MAP   = {};
-const CARDS_27   = [];
-const CARDS_24   = [];
-const CARDS_21   = [];
+const CARD_MAP  = {};
+const CARDS_BY_TIER = { 27: [], 24: [], 21: [] };
 
 function buildTier(shapes, pool) {
   const seen = new Set();
@@ -27,16 +27,11 @@ function buildTier(shapes, pool) {
   });
 }
 
-// 27-total (c0–c17: 18 unique shapes)
-buildTier([[15,9,3],[15,6,6],[12,12,3],[12,9,6]], CARDS_27);
+buildTier([[15,9,3],[15,6,6],[12,12,3],[12,9,6]], CARDS_BY_TIER[27]);
+buildTier([[15,6,3],[12,9,3],[12,6,6],[9,9,6]],  CARDS_BY_TIER[24]);
+buildTier([[15,3,3],[12,6,3],[9,9,3],[9,6,6]],   CARDS_BY_TIER[21]);
 
-// 24-total (c21–c38: 18 unique shapes)
-buildTier([[15,6,3],[12,9,3],[12,6,6],[9,9,6]], CARDS_24);
-
-// 21-total (c39–c53: 15 unique shapes)
-buildTier([[15,3,3],[12,6,3],[9,9,3],[9,6,6]], CARDS_21);
-
-const ALL_CARDS = [...CARDS_27, ...CARDS_24, ...CARDS_21];
+const ALL_CARDS = TIERS.flatMap(t => CARDS_BY_TIER[t]);
 
 function shuffle(a) {
   const b = [...a];
@@ -58,25 +53,20 @@ function genRoomCode() {
   return code;
 }
 
-// Deal a tiered roster: 7 Standard + 4 Focused + 4 Specialist = 15 cards
+// Deal a tiered roster using ROSTER_DEAL counts
 function dealRoster() {
-  return [
-    ...shuffle(CARDS_27).slice(0, 7).map(c => c.id),
-    ...shuffle(CARDS_24).slice(0, 4).map(c => c.id),
-    ...shuffle(CARDS_21).slice(0, 4).map(c => c.id),
-  ];
+  return TIERS.flatMap(t => shuffle(CARDS_BY_TIER[t]).slice(0, ROSTER_DEAL[t]).map(c => c.id));
 }
 
-// Select a valid 5+2+2 hand for the bot from its roster
+// Select a valid hand for the bot using HAND_PICKS counts
 function botSelectHand(roster) {
-  const by27 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 27);
-  const by24 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 24);
-  const by21 = roster.filter(id => CARD_MAP[id] && CARD_MAP[id].attrs.reduce((a,b)=>a+b,0) === 21);
-  return [
-    ...shuffle(by27).slice(0, 5),
-    ...shuffle(by24).slice(0, 2),
-    ...shuffle(by21).slice(0, 2),
-  ];
+  const byTier = {};
+  TIERS.forEach(t => { byTier[t] = []; });
+  roster.forEach(id => {
+    const card = CARD_MAP[id];
+    if (card) byTier[card.attrs.reduce((a,b)=>a+b,0)]?.push(id);
+  });
+  return TIERS.flatMap(t => shuffle(byTier[t] || []).slice(0, HAND_PICKS[t]));
 }
 
-module.exports = { ALL_CARDS, CARDS_27, CARDS_24, CARDS_21, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster, botSelectHand };
+module.exports = { ALL_CARDS, CARDS_BY_TIER, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster, botSelectHand };
