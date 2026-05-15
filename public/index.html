@@ -270,11 +270,12 @@ function CardCreator({onBack,onSaved,startTab}){
     if(d.cards)setCards(d.cards);
   }
 
+  function tierDefaults(t){ return t===27?[12,9,6]:t===24?[12,9,3]:[12,6,3]; }
+
   function selectTier(t){
     setCardTierSel(t);
-    if(t===27)setAttrs([12,9,6]);
-    else if(t===24)setAttrs([12,9,3]);
-    else setAttrs([12,6,3]);
+    setAttrs(tierDefaults(t));
+    setErr("");
   }
 
   function adjustAttr(i,delta){
@@ -320,7 +321,7 @@ function CardCreator({onBack,onSaved,startTab}){
     const newCards=[...cards,d.card];
     setCards(newCards);
     if(onSaved)onSaved(d.card);
-    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgX(50);setImgY(50);setAttrs([9,9,9]);
+    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgX(50);setImgY(50);setAttrs(tierDefaults(cardTierSel));
     setTab("library");
   }
 
