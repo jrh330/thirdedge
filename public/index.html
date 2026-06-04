@@ -18,6 +18,9 @@ body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height
 @keyframes scorePopIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes hijackSlam{0%{opacity:0;transform:scale(2) rotate(-8deg)}40%{opacity:1;transform:scale(1.15) rotate(2deg)}70%{transform:scale(.95) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes swapLeft{0%{transform:translateX(0)}50%{transform:translateX(120%) translateY(-20px)}100%{transform:translateX(0)}}
+@keyframes swapRight{0%{transform:translateX(0)}50%{transform:translateX(-120%) translateY(20px)}100%{transform:translateX(0)}}
 .btn{padding:12px 28px;border-radius:12px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase}
 .btn:hover{transform:translateY(-2px)}.btn:disabled{opacity:.4;cursor:default;transform:none!important}
 .btn-p{background:linear-gradient(135deg,#DC2626,#B91C1C);color:white}
@@ -533,6 +536,7 @@ function App(){
   const prevMatchNum=useRef(1);
   const[customCards,setCustomCards]=useState([]);
   const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
+  const[hijackMode,setHijackMode]=useState(false);
 
   // Load custom cards on mount and whenever returning from creator
   useEffect(()=>{
@@ -571,6 +575,7 @@ function App(){
       setHandSel(new Set());
       prevHistLen.current=0;
       setRevealPhase(null);
+      setHijackMode(false);
       prevMatchNum.current=gs.matchNum;
     }
   },[gs?.matchNum]);
@@ -580,9 +585,18 @@ function App(){
     if(!gs||!gs.history)return;
     if(gs.history.length>prevHistLen.current&&gs.history.length>0){
       const latest=gs.history[gs.history.length-1];
+      setHijackMode(false);
       setRevealPhase("flip");
-      setTimeout(()=>setRevealPhase("attr"),2000);
-      setTimeout(()=>setRevealPhase("result"),3500);
+      if(latest.hijack==="double"){
+        setTimeout(()=>setRevealPhase("double_hijack"),2000);
+        setTimeout(()=>setRevealPhase("result"),4500);
+      } else if(latest.hijack){
+        setTimeout(()=>setRevealPhase("hijack"),2000);
+        setTimeout(()=>setRevealPhase("result"),4500);
+      } else {
+        setTimeout(()=>setRevealPhase("attr"),2000);
+        setTimeout(()=>setRevealPhase("result"),3500);
+      }
     }
     prevHistLen.current=gs.history.length;
   },[gs?.history?.length]);
@@ -615,7 +629,9 @@ function App(){
 
   const playCard=async(cardId)=>{
     if(gs.myPlayReady)return;
-    await api("action",{code:roomCode,playerId,action:"play",data:cardId});
+    const isHijack=hijackMode;
+    setHijackMode(false);
+    await api("action",{code:roomCode,playerId,action:"play",data:cardId,hijack:isHijack||undefined});
     poll();
   };
 
@@ -663,7 +679,7 @@ function App(){
       h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,animation:"fadeIn .6s ease",padding:24}},
         h("div",{style:{textAlign:"center"}},
           h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:6,background:`linear-gradient(135deg,${CLR[0]},${CLR[1]},${CLR[2]})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"THIRD EDGE"),
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V4"),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V5 — HIJACK"),
           h("div",{style:{fontSize:36,marginTop:4}},"🔥 ❄️ ⚡"),
           h("div",{style:{display:"flex",gap:12,justifyContent:"center",marginTop:8}},
             h("span",{style:{fontSize:14,fontWeight:700,color:CLR[0],letterSpacing:2}},"RAGE"),
@@ -855,7 +871,66 @@ function App(){
                 h(CardView,{card:opCard,small:true})
               )
             ),
-            h("div",{style:{fontSize:11,color:"#334155",animation:"pulse 1s infinite",letterSpacing:1}},"Checking attribute...")
+            h("div",{style:{fontSize:11,color:"#334155",animation:"pulse 1s infinite",letterSpacing:1}},
+              lr.hijack?"Hijack incoming...":"Checking attribute...")
+          )
+        );
+      }
+
+      // ── HIJACK SWAP ──
+      if(revealPhase==="hijack"){
+        const iHijacked=(playerNum===1&&lr.hijack==="p1")||(playerNum===2&&lr.hijack==="p2");
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,padding:"0 16px"}},
+            h("div",{style:{animation:"hijackSlam .5s cubic-bezier(.4,0,.2,1)",
+              fontSize:52,fontWeight:900,letterSpacing:6,color:"#EF4444",
+              textShadow:"0 0 40px rgba(220,38,38,.8),0 0 80px rgba(220,38,38,.4)"}},
+              "HIJACK"),
+            h("div",{style:{fontSize:13,color:"#94A3B8",fontWeight:600,letterSpacing:1,textAlign:"center"}},
+              iHijacked?"You hijacked — you score with their card":"Opponent hijacked — they score with your card"),
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
+                animation:"swapLeft 1.2s ease .1s both"}},
+                h("div",{style:{fontSize:9,color:iHijacked?"#EF4444":"#10B981",fontWeight:700,letterSpacing:2}},
+                  iHijacked?"YOUR CARD → THEM":"THEIR CARD → YOU"),
+                h(CardView,{card:myCard,small:true})
+              ),
+              h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:60}},"⇄"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
+                animation:"swapRight 1.2s ease .1s both"}},
+                h("div",{style:{fontSize:9,color:iHijacked?"#10B981":"#EF4444",fontWeight:700,letterSpacing:2}},
+                  iHijacked?"THEIR CARD → YOU":"YOUR CARD → THEM"),
+                h(CardView,{card:opCard,small:true})
+              )
+            )
+          )
+        );
+      }
+
+      // ── DOUBLE HIJACK ──
+      if(revealPhase==="double_hijack"){
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,padding:"0 16px"}},
+            h("div",{style:{animation:"hijackSlam .5s cubic-bezier(.4,0,.2,1)",textAlign:"center"}},
+              h("div",{style:{fontSize:38,fontWeight:900,letterSpacing:4,color:"#EF4444",
+                textShadow:"0 0 40px rgba(220,38,38,.8)"}},
+                "DOUBLE HIJACK"),
+              h("div",{style:{fontSize:14,color:"#F59E0B",fontWeight:700,letterSpacing:2,marginTop:6}},
+                "CANCELLED OUT")
+            ),
+            h("div",{style:{fontSize:13,color:"#64748B",fontWeight:600,letterSpacing:1,textAlign:"center"}},
+              "Both players hijacked — cards stay put"),
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,flex:1,maxWidth:200}},
+                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
+                h(CardView,{card:myCard,small:true})
+              ),
+              h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,flex:1,maxWidth:200}},
+                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPPONENT"),
+                h(CardView,{card:opCard,small:true})
+              )
+            )
           )
         );
       }
@@ -884,8 +959,20 @@ function App(){
       }
 
       if(revealPhase==="result"){
+        // For a single hijack, the cards that scored are swapped from what was played
+        const singleHijack=lr.hijack==="p1"||lr.hijack==="p2";
+        const iHijacked=(playerNum===1&&lr.hijack==="p1")||(playerNum===2&&lr.hijack==="p2");
+        // The card that scored FOR ME (may be opponent's original card if I hijacked)
+        const myScoringCard = singleHijack ? (iHijacked?opCard:myCard) : myCard;
+        const opScoringCard = singleHijack ? (iHijacked?myCard:opCard) : opCard;
         return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
           h("div",{style:{flex:1,width:"100%",maxWidth:640,padding:"16px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .4s ease"}},
+            // Hijack badge
+            lr.hijack&&h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,padding:"3px 14px",borderRadius:6,
+              background:lr.hijack==="double"?"rgba(234,179,8,.12)":"rgba(220,38,38,.12)",
+              color:lr.hijack==="double"?"#EAB308":"#EF4444",
+              border:`1px solid ${lr.hijack==="double"?"rgba(234,179,8,.3)":"rgba(220,38,38,.3)"}`}},
+              lr.hijack==="double"?"⇄ DOUBLE HIJACK — CANCELLED":iHijacked?"🔄 YOU HIJACKED":"🔄 OPPONENT HIJACKED"),
             // Result badge
             h("div",{style:{padding:"8px 28px",borderRadius:12,fontSize:18,fontWeight:900,letterSpacing:2,
               background:iWon?"rgba(16,185,129,.15)":iLost?"rgba(239,68,68,.15)":"rgba(234,179,8,.15)",
@@ -905,17 +992,22 @@ function App(){
                 h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPP"),
                 h("div",{style:{fontSize:40,fontWeight:900,color:"#EF4444"}},gs.matchScore[playerNum===1?1:0]))
             ),
-            // Cards — full size on desktop, small on mobile
+            // Cards — show the scoring cards (swapped if hijacked)
             h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
               h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
                 animation:iWon?"winGlow 1.5s ease infinite":"none",borderRadius:14}},
-                h(CardView,{card:myCard,hl:iWon,small:true}),
-                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
+                singleHijack&&h("div",{style:{fontSize:8,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:2}},
+                  iHijacked?"HIJACKED CARD":"YOUR CARD"),
+                h(CardView,{card:myScoringCard,hl:iWon,small:true}),
+                !singleHijack&&h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal),
+                singleHijack&&h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
               ),
               h("div",{style:{fontSize:16,fontWeight:900,color:"#1e293b",paddingTop:60}},"vs"),
               h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
                 animation:iLost?"loseGlow 1.5s ease infinite":"none",borderRadius:14}},
-                h(CardView,{card:opCard,hl:iLost,small:true}),
+                singleHijack&&h("div",{style:{fontSize:8,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:2}},
+                  iHijacked?"THEIR CARD":"HIJACKED CARD"),
+                h(CardView,{card:opScoringCard,hl:iLost,small:true}),
                 h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal)
               )
             ),
@@ -961,12 +1053,38 @@ function App(){
             i<gs.opponentCardsLeft?"TE":""))
         ),
         h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
-        h("div",{style:{textAlign:"center",marginBottom:6}},
-          h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},
-            gs.myPlayReady?"WAITING FOR OPPONENT...":"TAP A CARD")),
+        // Opponent hijack warning
+        gs.opponentHijackDeclared&&!gs.myPlayReady&&h("div",{style:{
+          marginBottom:6,padding:"6px 14px",borderRadius:8,textAlign:"center",
+          background:"rgba(220,38,38,.08)",border:"1px solid rgba(220,38,38,.3)",
+          fontSize:11,fontWeight:700,color:"#EF4444",letterSpacing:1,animation:"pulse 1s infinite"}},
+          "⚠️ OPPONENT HAS DECLARED HIJACK — CHOOSE YOUR CARD CAREFULLY"
+        ),
+        // Hijack bar / status row
+        gs.myPlayReady
+          ?h("div",{style:{textAlign:"center",marginBottom:6}},
+              h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},"WAITING FOR OPPONENT..."))
+          :h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+              h("span",{style:{fontSize:11,color:hijackMode?"#EF4444":"#64748B",fontWeight:700,letterSpacing:1}},
+                hijackMode?"🔄 HIJACK ACTIVE — TAP YOUR CARD":"TAP A CARD"),
+              !gs.myHijackUsed
+                ?h("button",{onClick:()=>setHijackMode(m=>!m),style:{
+                    padding:"4px 12px",borderRadius:8,border:"1px solid rgba(220,38,38,.5)",
+                    background:hijackMode?"rgba(220,38,38,.25)":"rgba(220,38,38,.08)",
+                    color:"#EF4444",fontSize:11,fontWeight:700,cursor:"pointer",
+                    letterSpacing:1,fontFamily:"'Outfit',sans-serif",
+                    boxShadow:hijackMode?"0 0 12px rgba(220,38,38,.4)":"none",
+                    transition:"all .2s"}},
+                  hijackMode?"✕ Cancel Hijack":"🔄 HIJACK")
+                :h("span",{style:{fontSize:10,color:"#475569",fontWeight:600,letterSpacing:1}},"Hijack used")
+            ),
         // My hand
         h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          myHandCards.map(c=>h(CardView,{key:c.id,card:c,onClick:gs.myPlayReady?undefined:()=>playCard(c.id),dim:gs.myPlayReady,small:true}))
+          myHandCards.map(c=>h(CardView,{key:c.id,card:c,
+            onClick:gs.myPlayReady?undefined:()=>playCard(c.id),
+            dim:gs.myPlayReady,
+            hl:hijackMode,
+            small:true}))
         ),
         // History
         (gs.history||[]).length>0&&h("div",{style:{marginTop:12,padding:"6px 8px",background:"rgba(255,255,255,.02)",borderRadius:8,border:"1px solid rgba(255,255,255,.04)"}},
@@ -979,7 +1097,9 @@ function App(){
                 color:iw?"#10B981":il?"#EF4444":"#475569"}},
                 h("span",null,SYM[hr.attr]),
                 h("span",null,(playerNum===1?hr.p1v:hr.p2v)+"–"+(playerNum===1?hr.p2v:hr.p1v)),
-                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts));
+                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts),
+                hr.hijack==="double"&&h("span",{style:{color:"#F59E0B",fontSize:9}},"⇄⇄"),
+                (hr.hijack==="p1"||hr.hijack==="p2")&&h("span",{style:{color:"#EF4444",fontSize:9}},"🔄"));
             })
           )
         ),

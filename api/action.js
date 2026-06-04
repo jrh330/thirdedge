@@ -46,6 +46,9 @@ module.exports = async function handler(req, res) {
     const m = game.match;
     const update = { updatedAt: new Date() };
 
+    // hijack flag is sent alongside the play action
+    const wantsHijack = !!req.body.hijack;
+
     // ── HAND ──
     if (action === "hand") {
       if (game.status !== "hand") return res.status(400).json({ error: "Not in hand phase" });
@@ -96,13 +99,17 @@ module.exports = async function handler(req, res) {
       const otherHand = pNum === 1 ? m.p2Hand : m.p1Hand;
       if (otherHand) {
         update.status = "playing";
-        update["match.seq"]     = genSeq();
-        update["match.round"]   = 0;
-        update["match.score"]   = [0, 0];
-        update["match.carry"]   = 0;
-        update["match.history"] = [];
-        update["match.p1Play"]  = null;
-        update["match.p2Play"]  = null;
+        update["match.seq"]            = genSeq();
+        update["match.round"]          = 0;
+        update["match.score"]          = [0, 0];
+        update["match.carry"]          = 0;
+        update["match.history"]        = [];
+        update["match.p1Play"]         = null;
+        update["match.p2Play"]         = null;
+        update["match.p1HijackUsed"]   = false;
+        update["match.p2HijackUsed"]   = false;
+        update["match.p1HijackPending"] = false;
+        update["match.p2HijackPending"] = false;
       }
 
       await games.updateOne({ _id: game._id }, { $set: update });
@@ -127,12 +134,25 @@ module.exports = async function handler(req, res) {
       const myPlay = pNum === 1 ? m.p1Play : m.p2Play;
       if (myPlay) return res.status(400).json({ error: "Already played this round" });
 
-      const playKey = pNum === 1 ? "match.p1Play" : "match.p2Play";
-      update[playKey] = cardId;
+      // Validate hijack availability
+      if (wantsHijack) {
+        const alreadyUsed = pNum === 1 ? m.p1HijackUsed : m.p2HijackUsed;
+        if (alreadyUsed) return res.status(400).json({ error: "Hijack already used this match" });
+      }
 
-      // If opponent is bot, auto-play now in the same update
+      const playKey    = pNum === 1 ? "match.p1Play"         : "match.p2Play";
+      const hijackKey  = pNum === 1 ? "match.p1HijackPending" : "match.p2HijackPending";
+      const usedKey    = pNum === 1 ? "match.p1HijackUsed"    : "match.p2HijackUsed";
+      update[playKey] = cardId;
+      if (wantsHijack) {
+        update[hijackKey] = true;
+        update[usedKey]   = true;
+      }
+
+      // If opponent is bot, auto-play (bot never hijacks)
       const opponentIsBot = pNum === 1 ? game.p2?.isBot : game.p1?.isBot;
-      let otherPlay = pNum === 1 ? m.p2Play : m.p1Play;
+      let otherPlay           = pNum === 1 ? m.p2Play          : m.p1Play;
+      let otherHijackPending  = pNum === 1 ? m.p2HijackPending : m.p1HijackPending;
       if (!otherPlay && opponentIsBot) {
         const botPNum = pNum === 1 ? 2 : 1;
         const botHand = pNum === 1 ? m.p2Hand : m.p1Hand;
@@ -140,19 +160,36 @@ module.exports = async function handler(req, res) {
         const botPlayKey = pNum === 1 ? "match.p2Play" : "match.p1Play";
         update[botPlayKey] = botCardId;
         otherPlay = botCardId;
+        otherHijackPending = false;
       }
 
       if (otherPlay) {
-        const p1CardId = pNum === 1 ? cardId : otherPlay;
-        const p2CardId = pNum === 1 ? otherPlay : cardId;
+        const p1CardId   = pNum === 1 ? cardId    : otherPlay;
+        const p2CardId   = pNum === 1 ? otherPlay : cardId;
+        const p1Hijacked = pNum === 1 ? wantsHijack : otherHijackPending;
+        const p2Hijacked = pNum === 1 ? otherHijackPending : wantsHijack;
+
         const p1LocalId = game.p1?.localId;
         const p2LocalId = game.p2?.localId;
         const p1Card = await resolveCard(db, p1CardId, p1LocalId);
         const p2Card = await resolveCard(db, p2CardId, p2LocalId);
 
         const attr = m.seq[m.round];
-        const p1v = p1Card.attrs[attr];
-        const p2v = p2Card.attrs[attr];
+
+        // Determine hijack outcome:
+        //   both hijack → Double Hijack, cancels out, no swap
+        //   one hijack  → swap cards for scoring
+        //   neither     → normal
+        const doubleHijack = p1Hijacked && p2Hijacked;
+        const singleHijack = (p1Hijacked || p2Hijacked) && !doubleHijack;
+        const hijackBy = doubleHijack ? "double" : p1Hijacked ? "p1" : p2Hijacked ? "p2" : null;
+
+        // With a single hijack the cards swap sides for scoring
+        const scoreP1Card = singleHijack ? p2Card : p1Card;
+        const scoreP2Card = singleHijack ? p1Card : p2Card;
+
+        const p1v = scoreP1Card.attrs[attr];
+        const p2v = scoreP2Card.attrs[attr];
         const pts = 1 + m.carry;
 
         let winner = "tie";
@@ -168,17 +205,20 @@ module.exports = async function handler(req, res) {
           p1CardId, p2CardId,
           p1Attrs: p1Card.attrs, p2Attrs: p2Card.attrs,
           p1v, p2v, winner, pts,
+          hijack: hijackBy,   // null | "p1" | "p2" | "double"
         };
 
         const newHistory = [...m.history, roundResult];
         const newRound = m.round + 1;
 
-        update["match.history"] = newHistory;
-        update["match.score"]   = newScore;
-        update["match.carry"]   = newCarry;
-        update["match.round"]   = newRound;
-        update["match.p1Play"]  = null;
-        update["match.p2Play"]  = null;
+        update["match.history"]         = newHistory;
+        update["match.score"]           = newScore;
+        update["match.carry"]           = newCarry;
+        update["match.round"]           = newRound;
+        update["match.p1Play"]          = null;
+        update["match.p2Play"]          = null;
+        update["match.p1HijackPending"] = false;
+        update["match.p2HijackPending"] = false;
 
         const rem = 9 - newRound;
         const matchOver = newRound >= 9 ||
@@ -204,15 +244,19 @@ module.exports = async function handler(req, res) {
 
       update.status        = "hand";
       update.matchNum      = game.matchNum + 1;
-      update["match.seq"]     = null;
-      update["match.round"]   = 0;
-      update["match.score"]   = [0, 0];
-      update["match.carry"]   = 0;
-      update["match.history"] = [];
-      update["match.p1Hand"]  = null;
-      update["match.p2Hand"]  = null;
-      update["match.p1Play"]  = null;
-      update["match.p2Play"]  = null;
+      update["match.seq"]             = null;
+      update["match.round"]           = 0;
+      update["match.score"]           = [0, 0];
+      update["match.carry"]           = 0;
+      update["match.history"]         = [];
+      update["match.p1Hand"]          = null;
+      update["match.p2Hand"]          = null;
+      update["match.p1Play"]          = null;
+      update["match.p2Play"]          = null;
+      update["match.p1HijackUsed"]    = false;
+      update["match.p2HijackUsed"]    = false;
+      update["match.p1HijackPending"] = false;
+      update["match.p2HijackPending"] = false;
       update["match.p1Roster"] = dealRoster();
       const newP2Roster = dealRoster();
       update["match.p2Roster"] = newP2Roster;
