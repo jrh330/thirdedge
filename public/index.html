@@ -115,7 +115,7 @@ const TIER_LABEL={27:"Standard",24:"Focused",21:"Specialist"};
 /* ── Game constants (keep in sync with api/_constants.js) ── */
 const TIERS=[27,24,21];
 const ROSTER_DEAL={27:7,24:4,21:4};  // cards dealt per tier (total: 15)
-const HAND_PICKS={27:5,24:2,21:2};   // cards picked per tier (total: 9)
+const HAND_PICKS={27:6,24:2,21:2};   // cards picked per tier (total: 10 — Double Up variant)
 const ATTR_MIN=3;const ATTR_MAX=21;const ATTR_STEP=3;
 const CUSTOM_CARD_LIMIT=7;
 
@@ -533,6 +533,8 @@ function App(){
   const prevMatchNum=useRef(1);
   const[customCards,setCustomCards]=useState([]);
   const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
+  const[doubleUpMode,setDoubleUpMode]=useState(false);
+  const[doubleUpSel,setDoubleUpSel]=useState([]);
 
   // Load custom cards on mount and whenever returning from creator
   useEffect(()=>{
@@ -571,6 +573,8 @@ function App(){
       setHandSel(new Set());
       prevHistLen.current=0;
       setRevealPhase(null);
+      setDoubleUpMode(false);
+      setDoubleUpSel([]);
       prevMatchNum.current=gs.matchNum;
     }
   },[gs?.matchNum]);
@@ -608,7 +612,7 @@ function App(){
   };
 
   const submitHand=async()=>{
-    if(handSel.size!==9)return;
+    if(handSel.size!==10)return;
     await api("action",{code:roomCode,playerId,action:"hand",data:[...handSel]});
     poll();
   };
@@ -617,6 +621,22 @@ function App(){
     if(gs.myPlayReady)return;
     await api("action",{code:roomCode,playerId,action:"play",data:cardId});
     poll();
+  };
+
+  const playDoubleUp=async()=>{
+    if(gs.myPlayReady||doubleUpSel.length!==2)return;
+    await api("action",{code:roomCode,playerId,action:"play",data:doubleUpSel});
+    setDoubleUpMode(false);
+    setDoubleUpSel([]);
+    poll();
+  };
+
+  const toggleDoubleUpCard=(cardId)=>{
+    setDoubleUpSel(prev=>{
+      if(prev.includes(cardId))return prev.filter(id=>id!==cardId);
+      if(prev.length>=2)return prev;
+      return [...prev,cardId];
+    });
   };
 
   const nextMatch=async()=>{
@@ -663,7 +683,7 @@ function App(){
       h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,animation:"fadeIn .6s ease",padding:24}},
         h("div",{style:{textAlign:"center"}},
           h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:6,background:`linear-gradient(135deg,${CLR[0]},${CLR[1]},${CLR[2]})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"THIRD EDGE"),
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V4"),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V5 — DOUBLE UP"),
           h("div",{style:{fontSize:36,marginTop:4}},"🔥 ❄️ ⚡"),
           h("div",{style:{display:"flex",gap:12,justifyContent:"center",marginTop:8}},
             h("span",{style:{fontSize:14,fontWeight:700,color:CLR[0],letterSpacing:2}},"RAGE"),
@@ -750,7 +770,7 @@ function App(){
     }
     const tierSel={27:0,24:0,21:0};
     [...handSel].forEach(id=>{const t=getHandTier(id);tierSel[t]=(tierSel[t]||0)+1;});
-    const handReady=tierSel[27]===5&&tierSel[24]===2&&tierSel[21]===2;
+    const handReady=tierSel[27]===6&&tierSel[24]===2&&tierSel[21]===2;
 
     function toggleCard(id){
       setHandSel(p=>{
@@ -793,7 +813,7 @@ function App(){
         ),
         // Pick summary
         h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 — Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 10 — Match ${gs.matchNum}`),
           h("div",{style:{display:"flex",justifyContent:"center",gap:16,marginTop:4}},
             [27,24,21].map(t=>h("span",{key:t,style:{fontSize:11,fontWeight:700,
               color:tierSel[t]===PICKS[t]?"#10B981":TIER_META[t].color}},
@@ -824,7 +844,7 @@ function App(){
         h("div",{style:{textAlign:"center",marginTop:4}},
           gs.myHandReady
             ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Hand locked — waiting for opponent...")
-            :h("button",{className:"btn btn-p",disabled:!handReady,onClick:submitHand},"Start Match "+gs.matchNum+" →")
+            :h("button",{className:"btn btn-p",disabled:!handReady,onClick:submitHand},"Start Match "+gs.matchNum+" → (10 cards · Double Up ready)")
         )
       )
     );
@@ -834,25 +854,34 @@ function App(){
   if(revealPhase&&latestResult){
       const lr=latestResult;
       const myCard=getCard(playerNum===1?lr.p1CardId:lr.p2CardId);
+      const myCard2=playerNum===1?(lr.p1CardId2?getCard(lr.p1CardId2):null):(lr.p2CardId2?getCard(lr.p2CardId2):null);
       const opCard=getCard(playerNum===1?lr.p2CardId:lr.p1CardId);
+      const opCard2=playerNum===1?(lr.p2CardId2?getCard(lr.p2CardId2):null):(lr.p1CardId2?getCard(lr.p1CardId2):null);
       const myVal=playerNum===1?lr.p1v:lr.p2v;
       const opVal=playerNum===1?lr.p2v:lr.p1v;
       const iWon=(playerNum===1&&lr.winner==="p1")||(playerNum===2&&lr.winner==="p2");
       const iLost=(playerNum===1&&lr.winner==="p2")||(playerNum===2&&lr.winner==="p1");
+      const myDoubleRound=!!myCard2;
+      const opDoubleRound=!!opCard2;
 
       if(revealPhase==="flip"){
         return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
           h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
-            h("div",{style:{fontSize:11,color:"#475569",letterSpacing:3,fontWeight:700}},"CARDS REVEALED"),
+            h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:4}},
+              h("div",{style:{fontSize:11,color:"#475569",letterSpacing:3,fontWeight:700}},"CARDS REVEALED"),
+              (myDoubleRound||opDoubleRound)&&h("div",{style:{fontSize:10,fontWeight:700,color:"#EAB308",padding:"2px 8px",borderRadius:6,background:"rgba(234,179,8,.12)",border:"1px solid rgba(234,179,8,.3)"}},"⚡ DOUBLE UP")
+            ),
             h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
               h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease",flex:1,maxWidth:200}},
-                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
-                h(CardView,{card:myCard,small:true})
+                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},myDoubleRound?"YOU ⚡×2":"YOU"),
+                h(CardView,{card:myCard,small:true}),
+                myCard2&&h(CardView,{card:myCard2,small:true})
               ),
               h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
               h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease .2s both",flex:1,maxWidth:200}},
-                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPPONENT"),
-                h(CardView,{card:opCard,small:true})
+                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},opDoubleRound?"OPP ⚡×2":"OPPONENT"),
+                h(CardView,{card:opCard,small:true}),
+                opCard2&&h(CardView,{card:opCard2,small:true})
               )
             ),
             h("div",{style:{fontSize:11,color:"#334155",animation:"pulse 1s infinite",letterSpacing:1}},"Checking attribute...")
@@ -961,12 +990,43 @@ function App(){
             i<gs.opponentCardsLeft?"TE":""))
         ),
         h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
-        h("div",{style:{textAlign:"center",marginBottom:6}},
-          h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},
-            gs.myPlayReady?"WAITING FOR OPPONENT...":"TAP A CARD")),
+        // Double Up bar
+        (()=>{
+          const myDoubleUsed=playerNum===1?gs.myDoubleUsed:gs.myDoubleUsed;
+          const canDouble=!gs.myPlayReady&&!gs.myDoubleUsed;
+          if(gs.myPlayReady)return h("div",{style:{textAlign:"center",marginBottom:6}},
+            h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},"WAITING FOR OPPONENT..."));
+          if(doubleUpMode)return h("div",{style:{marginBottom:8,padding:"10px 12px",borderRadius:10,
+            background:"rgba(234,179,8,.08)",border:"1px solid rgba(234,179,8,.3)",display:"flex",flexDirection:"column",gap:8}},
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+              h("span",{style:{fontSize:12,fontWeight:800,color:"#EAB308",letterSpacing:1}},"⚡ DOUBLE UP — Pick 2 cards ("+doubleUpSel.length+"/2)"),
+              h("button",{className:"btn btn-s",onClick:()=>{setDoubleUpMode(false);setDoubleUpSel([]);},style:{fontSize:10,padding:"3px 10px"}},"Cancel")
+            ),
+            h("button",{className:"btn btn-p",disabled:doubleUpSel.length!==2,onClick:playDoubleUp,
+              style:{fontSize:12,padding:"6px 20px",background:doubleUpSel.length===2?"linear-gradient(135deg,#D97706,#B45309)":""}},
+              doubleUpSel.length===2?"Play Both Cards →":"Select 2 cards...")
+          );
+          return h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+            h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},"TAP A CARD"),
+            canDouble&&h("button",{onClick:()=>{setDoubleUpMode(true);setDoubleUpSel([]);},
+              style:{padding:"4px 12px",borderRadius:8,border:"1px solid rgba(234,179,8,.4)",
+                background:"rgba(234,179,8,.08)",color:"#EAB308",fontSize:11,fontWeight:700,
+                cursor:"pointer",letterSpacing:1,fontFamily:"'Outfit',sans-serif"}},
+              "⚡ DOUBLE UP"),
+            gs.myDoubleUsed&&h("span",{style:{fontSize:10,color:"#475569",fontWeight:600,letterSpacing:1}},"Double Up used")
+          );
+        })(),
         // My hand
         h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          myHandCards.map(c=>h(CardView,{key:c.id,card:c,onClick:gs.myPlayReady?undefined:()=>playCard(c.id),dim:gs.myPlayReady,small:true}))
+          myHandCards.map(c=>{
+            const inDoubleUpSel=doubleUpSel.includes(c.id);
+            const dimForDouble=doubleUpMode&&!inDoubleUpSel&&doubleUpSel.length>=2;
+            return h(CardView,{key:c.id,card:c,
+              onClick:gs.myPlayReady?undefined:doubleUpMode?()=>toggleDoubleUpCard(c.id):()=>playCard(c.id),
+              sel:inDoubleUpSel,
+              dim:gs.myPlayReady||dimForDouble,
+              small:true});
+          })
         ),
         // History
         (gs.history||[]).length>0&&h("div",{style:{marginTop:12,padding:"6px 8px",background:"rgba(255,255,255,.02)",borderRadius:8,border:"1px solid rgba(255,255,255,.04)"}},
@@ -979,7 +1039,8 @@ function App(){
                 color:iw?"#10B981":il?"#EF4444":"#475569"}},
                 h("span",null,SYM[hr.attr]),
                 h("span",null,(playerNum===1?hr.p1v:hr.p2v)+"–"+(playerNum===1?hr.p2v:hr.p1v)),
-                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts));
+                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts),
+                ((playerNum===1&&hr.p1Double)||(playerNum===2&&hr.p2Double))&&h("span",{style:{color:"#EAB308"}},"⚡"));
             })
           )
         ),
