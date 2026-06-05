@@ -1053,13 +1053,6 @@ function App(){
             i<gs.opponentCardsLeft?"TE":""))
         ),
         h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
-        // Opponent hijack warning
-        gs.opponentHijackDeclared&&!gs.myPlayReady&&h("div",{style:{
-          marginBottom:6,padding:"6px 14px",borderRadius:8,textAlign:"center",
-          background:"rgba(220,38,38,.08)",border:"1px solid rgba(220,38,38,.3)",
-          fontSize:11,fontWeight:700,color:"#EF4444",letterSpacing:1,animation:"pulse 1s infinite"}},
-          "⚠️ OPPONENT HAS DECLARED HIJACK — CHOOSE YOUR CARD CAREFULLY"
-        ),
         // Hijack bar / status row
         gs.myPlayReady
           ?h("div",{style:{textAlign:"center",marginBottom:6}},

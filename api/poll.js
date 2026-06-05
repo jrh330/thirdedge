@@ -60,8 +60,7 @@ module.exports = async function handler(req, res) {
       myPlayReady:       playerNum === 1 ? !!m.p1Play : !!m.p2Play,
       opponentPlayReady: playerNum === 1 ? !!m.p2Play : !!m.p1Play,
 
-      myHijackUsed:          playerNum === 1 ? !!m.p1HijackUsed    : !!m.p2HijackUsed,
-      opponentHijackDeclared: playerNum === 1 ? !!m.p2HijackPending : !!m.p1HijackPending,
+      myHijackUsed: playerNum === 1 ? !!m.p1HijackUsed : !!m.p2HijackUsed,
 
       opponentCardsLeft: (() => {
         const hand = playerNum === 1 ? m.p2Hand : m.p1Hand;
