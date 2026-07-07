@@ -2,14 +2,17 @@ const { getDb } = require("./_db");
 const { genSeq, dealRoster, botSelectHand, CARD_MAP } = require("./_game");
 const { TIERS, HAND_PICKS } = require("./_constants");
 
-// Greedy bot: pick highest-value unplayed card for the current attribute
-function botPickCard(hand, history, attr, botPNum) {
+// Bot: pick highest total-value unplayed card (no knowledge of current attribute)
+function botPickCard(hand, history, botPNum) {
   const played = new Set(history.map(h => botPNum === 2 ? h.p2CardId : h.p1CardId));
   const available = hand.filter(id => !played.has(id));
   let best = null, bestVal = -1;
   for (const id of available) {
     const card = CARD_MAP[id];
-    if (card && card.attrs[attr] > bestVal) { bestVal = card.attrs[attr]; best = id; }
+    if (card) {
+      const total = card.attrs.reduce((a, b) => a + b, 0);
+      if (total > bestVal) { bestVal = total; best = id; }
+    }
   }
   return best;
 }
@@ -156,7 +159,7 @@ module.exports = async function handler(req, res) {
       if (!otherPlay && opponentIsBot) {
         const botPNum = pNum === 1 ? 2 : 1;
         const botHand = pNum === 1 ? m.p2Hand : m.p1Hand;
-        const botCardId = botPickCard(botHand, m.history, m.seq[m.round], botPNum);
+        const botCardId = botPickCard(botHand, m.history, botPNum);
         const botPlayKey = pNum === 1 ? "match.p2Play" : "match.p1Play";
         update[botPlayKey] = botCardId;
         otherPlay = botCardId;
