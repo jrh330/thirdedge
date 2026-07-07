@@ -594,10 +594,12 @@ function App(){
       setRevealPhase("flip");
       if(latest.hijack==="double"){
         setTimeout(()=>setRevealPhase("double_hijack"),2000);
-        setTimeout(()=>setRevealPhase("result"),4500);
+        setTimeout(()=>setRevealPhase("attr"),4500);
+        setTimeout(()=>setRevealPhase("result"),6000);
       } else if(latest.hijack){
         setTimeout(()=>setRevealPhase("hijack"),2000);
-        setTimeout(()=>setRevealPhase("result"),4500);
+        setTimeout(()=>setRevealPhase("attr"),4500);
+        setTimeout(()=>setRevealPhase("result"),6000);
       } else {
         setTimeout(()=>setRevealPhase("attr"),2000);
         setTimeout(()=>setRevealPhase("result"),3500);
