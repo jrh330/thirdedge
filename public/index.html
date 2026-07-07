@@ -786,9 +786,9 @@ function App(){
 
     const customCount=customCards.length;
     const TIER_META={
-      27:{label:"STANDARD",color:"#10B981",desc:"Pick 5 of "+rows[27].length},
-      24:{label:"FOCUSED", color:"#F59E0B",desc:"Pick 2 of "+rows[24].length},
-      21:{label:"SPECIALIST",color:"#EF4444",desc:"Pick 2 of "+rows[21].length},
+      27:{label:"STANDARD",color:"#10B981",desc:"Pick "+PICKS[27]+" of "+rows[27].length},
+      24:{label:"FOCUSED", color:"#F59E0B",desc:"Pick "+PICKS[24]+" of "+rows[24].length},
+      21:{label:"SPECIALIST",color:"#EF4444",desc:"Pick "+PICKS[21]+" of "+rows[21].length},
     };
 
     return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
