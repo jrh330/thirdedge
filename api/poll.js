@@ -25,6 +25,8 @@ module.exports = async function handler(req, res) {
     (m.p1Hand || []).forEach(addIfCustom);
     (m.p2Hand || []).forEach(addIfCustom);
     (m.history || []).forEach(h => { addIfCustom(h.p1CardId); addIfCustom(h.p2CardId); });
+    (m.defeatedCustomCards || []).forEach(addIfCustom);
+    if (m.claimedCardId) addIfCustom(m.claimedCardId);
     if (m.p1Play) addIfCustom(m.p1Play);
     if (m.p2Play) addIfCustom(m.p2Play);
 
@@ -61,6 +63,11 @@ module.exports = async function handler(req, res) {
       opponentPlayReady: playerNum === 1 ? !!m.p2Play : !!m.p1Play,
 
       myHijackUsed: playerNum === 1 ? !!m.p1HijackUsed : !!m.p2HijackUsed,
+
+      defeatedCustomCards: m.defeatedCustomCards || [],
+      cardClaimed: !!m.cardClaimed,
+      claimedCardId: m.claimedCardId || null,
+      claimedAttrs: m.claimedAttrs || null,
 
       opponentCardsLeft: (() => {
         const hand = playerNum === 1 ? m.p2Hand : m.p1Hand;

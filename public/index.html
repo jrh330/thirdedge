@@ -537,6 +537,7 @@ function App(){
   const[customCards,setCustomCards]=useState([]);
   const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
   const[hijackMode,setHijackMode]=useState(false);
+  const[claimSel,setClaimSel]=useState(null);
 
   // Load custom cards on mount and whenever returning from creator
   useEffect(()=>{
@@ -576,6 +577,7 @@ function App(){
       prevHistLen.current=0;
       setRevealPhase(null);
       setHijackMode(false);
+      setClaimSel(null);
       prevMatchNum.current=gs.matchNum;
     }
   },[gs?.matchNum]);
@@ -640,6 +642,13 @@ function App(){
     setHandSel(new Set());
     prevHistLen.current=0;
     setRevealPhase(null);
+    poll();
+  };
+
+  const claimCard=async()=>{
+    if(!claimSel)return;
+    await api("action",{code:roomCode,playerId,action:"claim_card",data:claimSel});
+    setClaimSel(null);
     poll();
   };
 
@@ -1106,6 +1115,56 @@ function App(){
     const myScore=gs.matchScore[playerNum===1?0:1];
     const opScore=gs.matchScore[playerNum===1?1:0];
     const won=myScore>opScore;
+    const defeated=gs.defeatedCustomCards||[];
+    const claimed=gs.cardClaimed;
+    const claimedCardId=gs.claimedCardId;
+    const claimedAttrs=gs.claimedAttrs;
+    const claimedCard=claimedCardId?ccMap[claimedCardId]:null;
+
+    // Winner: pick a card to claim
+    if(won&&defeated.length>0&&!claimed){
+      return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+        h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}},
+          h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
+          h("div",{style:{fontSize:36,fontWeight:900,color:"#10B981",letterSpacing:2}},"VICTORY"),
+          h("div",{style:{fontSize:12,color:"#94A3B8",letterSpacing:2,marginTop:4}},"CLAIM A DEFEATED CARD"),
+          h("div",{style:{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",marginTop:12}},
+            defeated.map(id=>{
+              const c=ccMap[id];
+              if(!c)return null;
+              const sel=claimSel===id;
+              return h("div",{key:id,onClick:()=>setClaimSel(sel?null:id),
+                style:{cursor:"pointer",border:sel?"2px solid #10B981":"2px solid rgba(255,255,255,0.1)",
+                  borderRadius:8,padding:8,background:sel?"rgba(16,185,129,0.08)":"transparent",
+                  transition:"all .2s",transform:sel?"scale(1.04)":"scale(1)"}},
+                h(CustomCardView,{card:c})
+              );
+            })
+          ),
+          claimSel&&h("div",{style:{fontSize:11,color:"#64748B",textAlign:"center",maxWidth:280}},
+            "+1 to a random stat on transfer · per-stat cap 24 · total cap 30"
+          ),
+          h("button",{className:"btn btn-p",disabled:!claimSel,onClick:claimCard,
+            style:{opacity:claimSel?1:0.35,marginTop:4}},
+            claimSel&&ccMap[claimSel]?"Claim "+ccMap[claimSel].name+" →":"Select a card to claim"
+          )
+        )
+      );
+    }
+
+    // Loser: wait for opponent to pick
+    if(!won&&myScore<opScore&&defeated.length>0&&!claimed){
+      return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
+        h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}},
+          h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
+          h("div",{style:{fontSize:36,fontWeight:900,color:"#EF4444",letterSpacing:2}},"DEFEAT"),
+          h("div",{style:{fontSize:13,color:"#94A3B8",letterSpacing:1,animation:"pulse 1s infinite",marginTop:8}},
+            "Opponent is selecting a card...")
+        )
+      );
+    }
+
+    // Both: result confirmed (claimed or no custom cards at stake)
     return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
       h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .5s ease",padding:24}},
         h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
@@ -1114,6 +1173,12 @@ function App(){
           h("span",{style:{color:"#10B981"}},myScore),
           h("span",{style:{color:"#334155",margin:"0 10px"}},"–"),
           h("span",{style:{color:"#EF4444"}},opScore)),
+        claimed&&claimedCard&&won&&h("div",{style:{fontSize:13,color:"#10B981",textAlign:"center",maxWidth:280,lineHeight:1.5}},
+          "You claimed "+claimedCard.name+"! New stats: ["+claimedAttrs.join(", ")+"]"
+        ),
+        claimed&&claimedCard&&!won&&h("div",{style:{fontSize:13,color:"#EF4444",textAlign:"center",maxWidth:280,lineHeight:1.5}},
+          claimedCard.name+" was taken. A replacement card has been added to your collection."
+        ),
         h("button",{className:"btn btn-p",onClick:nextMatch},"Match "+(gs.matchNum+1)+" →")
       )
     );
