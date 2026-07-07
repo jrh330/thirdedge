@@ -251,17 +251,25 @@ module.exports = async function handler(req, res) {
           update.seriesScore = newSeriesScore;
           update.status = (newSeriesScore[0] >= 2 || newSeriesScore[1] >= 2) ? "series_end" : "match_end";
 
-          // Track which of the loser's custom cards were defeated (human vs human only)
+          // Track which of the loser's custom cards were defeated (human vs human only,
+          // and only when the winner also has at least one custom card to trade away)
           const defeatedCustomCards = [];
           const isBot = !!(game.p2?.isBot);
           if (!isBot && newScore[0] !== newScore[1]) {
             const loserPNum = newScore[0] > newScore[1] ? 2 : 1;
+            const winnerPNum2 = loserPNum === 1 ? 2 : 1;
             const winnerLabel = loserPNum === 1 ? "p2" : "p1";
-            for (const hr of newHistory) {
-              if (hr.winner === winnerLabel) {
-                const cardId = loserPNum === 1 ? hr.p1CardId : hr.p2CardId;
-                if (cardId && cardId.startsWith("cc_") && !defeatedCustomCards.includes(cardId)) {
-                  defeatedCustomCards.push(cardId);
+            const winnerLocalId = game[winnerLabel]?.localId;
+            const winnerHasCustomCards = winnerLocalId
+              ? (await db.collection("custom_cards").countDocuments({ playerId: winnerLocalId })) > 0
+              : false;
+            if (winnerHasCustomCards) {
+              for (const hr of newHistory) {
+                if (hr.winner === winnerLabel) {
+                  const cardId = loserPNum === 1 ? hr.p1CardId : hr.p2CardId;
+                  if (cardId && cardId.startsWith("cc_") && !defeatedCustomCards.includes(cardId)) {
+                    defeatedCustomCards.push(cardId);
+                  }
                 }
               }
             }

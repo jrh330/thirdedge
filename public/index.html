@@ -1138,8 +1138,8 @@ function App(){
     const claimedCard=claimedCardId?ccMap[claimedCardId]:null;
 
     // Winner: pick a card to claim + a card to discard
-    if(won&&defeated.length>0&&!claimed){
-      const myCC=customCards.filter(c=>c.id&&c.id.startsWith("cc_"));
+    const myCC=customCards.filter(c=>c.id&&c.id.startsWith("cc_"));
+    if(won&&defeated.length>0&&!claimed&&myCC.length>0){
       const claimName=claimSel&&ccMap[claimSel]?ccMap[claimSel].name:null;
       const discardName=discardSel?((myCC.find(c=>c.id===discardSel)||{}).name||"?"):null;
       const ready=!!(claimSel&&discardSel);
