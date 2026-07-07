@@ -105,7 +105,8 @@ module.exports = async function handler(req, res) {
         tierCounts[tier] = (tierCounts[tier] || 0) + 1;
       }
       for (const card of customCardDocs) {
-        const tier = card.baseTier || card.attrs.reduce((a, b) => a + b, 0);
+        const total = card.attrs.reduce((a, b) => a + b, 0);
+        const tier = card.baseTier || (total >= 27 ? 27 : total >= 24 ? 24 : 21);
         tierCounts[tier] = (tierCounts[tier] || 0) + 1;
       }
       if (TIERS.some(t => (tierCounts[t] || 0) !== HAND_PICKS[t]))

@@ -760,7 +760,8 @@ function App(){
     // Split custom cards by tier
     const customByTier={27:[],24:[],21:[]};
     customCards.forEach(c=>{
-      const t=c.baseTier||c.attrs.reduce((a,b)=>a+b,0);
+      const total=c.attrs.reduce((a,b)=>a+b,0);
+      const t=c.baseTier||(total>=27?27:total>=24?24:21);
       if(customByTier[t])customByTier[t].push(c);
     });
 
@@ -776,7 +777,11 @@ function App(){
 
     // Per-tier selection counts
     function getHandTier(id){
-      if(id.startsWith("cc_")){const c=customCards.find(x=>x.id===id);return c?(c.baseTier||c.attrs.reduce((a,b)=>a+b,0)):27;}
+      if(id.startsWith("cc_")){
+        const c=customCards.find(x=>x.id===id);
+        if(c){const total=c.attrs.reduce((a,b)=>a+b,0);return c.baseTier||(total>=27?27:total>=24?24:21);}
+        return 27;
+      }
       return CARD_MAP[id]?.tier||27;
     }
     const tierSel={27:0,24:0,21:0};
