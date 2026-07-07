@@ -650,7 +650,7 @@ function App(){
   // ── Derived state ──
   const ccMap=gs?.customCardMap||{};
   const getCard=id=>CARD_MAP[id]||ccMap[id]||null;
-  const myPlayedIds=gs?new Set((gs.history||[]).map(h=>playerNum===1?h.p1CardId:h.p2CardId)):new Set();
+  const myPlayedIds=gs?new Set((gs.history||[]).flatMap(h=>playerNum===1?[h.p1CardId,...(h.p1CardId2?[h.p1CardId2]:[])]:[ h.p2CardId,...(h.p2CardId2?[h.p2CardId2]:[])])):new Set();
   const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>getCard(id)).filter(Boolean):[];
   const latestResult=gs&&gs.history&&gs.history.length>0?gs.history[gs.history.length-1]:null;
 
