@@ -282,7 +282,7 @@ module.exports = async function handler(req, res) {
       if (game.status !== "match_end") return res.status(400).json({ error: "Not in match_end phase" });
       if (game.match.cardClaimed) return res.status(400).json({ error: "Card already claimed" });
 
-      const cardId = data;
+      const { cardId, discardCardId } = typeof data === "object" && data !== null ? data : { cardId: data, discardCardId: null };
       const defeatedCustomCards = game.match.defeatedCustomCards || [];
       if (!defeatedCustomCards.includes(cardId)) return res.status(400).json({ error: "Card not available for claiming" });
 
@@ -293,6 +293,14 @@ module.exports = async function handler(req, res) {
       const winnerLocalId = pNum === 1 ? game.p1?.localId : game.p2?.localId;
       const loserLocalId  = pNum === 1 ? game.p2?.localId : game.p1?.localId;
       if (!winnerLocalId || !loserLocalId) return res.status(400).json({ error: "Player identity not linked" });
+
+      // Validate and delete the winner's chosen discard card
+      if (discardCardId) {
+        const discardCard = await db.collection("custom_cards").findOne({ id: discardCardId });
+        if (!discardCard) return res.status(404).json({ error: "Discard card not found" });
+        if (discardCard.playerId !== winnerLocalId) return res.status(403).json({ error: "Cannot discard a card you don't own" });
+        await db.collection("custom_cards").deleteOne({ id: discardCardId });
+      }
 
       const card = await db.collection("custom_cards").findOne({ id: cardId });
       if (!card) return res.status(404).json({ error: "Card not found" });

@@ -538,6 +538,7 @@ function App(){
   const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
   const[hijackMode,setHijackMode]=useState(false);
   const[claimSel,setClaimSel]=useState(null);
+  const[discardSel,setDiscardSel]=useState(null);
 
   // Load custom cards on mount and whenever returning from creator
   useEffect(()=>{
@@ -578,6 +579,7 @@ function App(){
       setRevealPhase(null);
       setHijackMode(false);
       setClaimSel(null);
+      setDiscardSel(null);
       prevMatchNum.current=gs.matchNum;
       fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`)
         .then(r=>r.json()).then(d=>{if(d.cards)setCustomCards(d.cards);})
@@ -651,9 +653,10 @@ function App(){
   };
 
   const claimCard=async()=>{
-    if(!claimSel)return;
-    await api("action",{code:roomCode,playerId,action:"claim_card",data:claimSel});
+    if(!claimSel||!discardSel)return;
+    await api("action",{code:roomCode,playerId,action:"claim_card",data:{cardId:claimSel,discardCardId:discardSel}});
     setClaimSel(null);
+    setDiscardSel(null);
     fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`)
       .then(r=>r.json()).then(d=>{if(d.cards)setCustomCards(d.cards);})
       .catch(()=>{});
@@ -1134,32 +1137,63 @@ function App(){
     const claimedAttrs=gs.claimedAttrs;
     const claimedCard=claimedCardId?ccMap[claimedCardId]:null;
 
-    // Winner: pick a card to claim
+    // Winner: pick a card to claim + a card to discard
     if(won&&defeated.length>0&&!claimed){
+      const myCC=customCards.filter(c=>c.id&&c.id.startsWith("cc_"));
+      const claimName=claimSel&&ccMap[claimSel]?ccMap[claimSel].name:null;
+      const discardName=discardSel?((myCC.find(c=>c.id===discardSel)||{}).name||"?"):null;
+      const ready=!!(claimSel&&discardSel);
       return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-        h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}},
-          h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
-          h("div",{style:{fontSize:36,fontWeight:900,color:"#10B981",letterSpacing:2}},"VICTORY"),
-          h("div",{style:{fontSize:12,color:"#94A3B8",letterSpacing:2,marginTop:4}},"CLAIM A DEFEATED CARD"),
-          h("div",{style:{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",marginTop:12}},
-            defeated.map(id=>{
-              const c=ccMap[id];
-              if(!c)return null;
-              const sel=claimSel===id;
-              return h("div",{key:id,onClick:()=>setClaimSel(sel?null:id),
-                style:{cursor:"pointer",border:sel?"2px solid #10B981":"2px solid rgba(255,255,255,0.1)",
-                  borderRadius:8,padding:8,background:sel?"rgba(16,185,129,0.08)":"transparent",
-                  transition:"all .2s",transform:sel?"scale(1.04)":"scale(1)"}},
-                h(CustomCardView,{card:c})
-              );
-            })
+        h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:20,padding:"24px 16px",overflowY:"auto"}},
+          h("div",{style:{textAlign:"center"}},
+            h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
+            h("div",{style:{fontSize:36,fontWeight:900,color:"#10B981",letterSpacing:2}},"VICTORY")
           ),
-          claimSel&&h("div",{style:{fontSize:11,color:"#64748B",textAlign:"center",maxWidth:280}},
-            "+1 to a random stat on transfer · per-stat cap 24 · total cap 30"
+          // Step 1 — pick opponent card
+          h("div",{style:{width:"100%",maxWidth:560}},
+            h("div",{style:{fontSize:11,fontWeight:700,color:claimSel?"#10B981":"#94A3B8",letterSpacing:2,marginBottom:10,textAlign:"center"}},
+              claimSel?"✓ CLAIMING: "+claimName.toUpperCase():"STEP 1 — PICK A CARD TO CLAIM"
+            ),
+            h("div",{style:{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"center"}},
+              defeated.map(id=>{
+                const c=ccMap[id];if(!c)return null;
+                const sel=claimSel===id;
+                return h("div",{key:id,onClick:()=>{setClaimSel(sel?null:id);},
+                  style:{cursor:"pointer",border:sel?"2px solid #10B981":"2px solid rgba(255,255,255,0.1)",
+                    borderRadius:8,padding:6,background:sel?"rgba(16,185,129,0.1)":"transparent",transition:"all .2s"}},
+                  h(CustomCardView,{card:c,sel})
+                );
+              })
+            )
           ),
-          h("button",{className:"btn btn-p",disabled:!claimSel,onClick:claimCard,
-            style:{opacity:claimSel?1:0.35,marginTop:4}},
-            claimSel&&ccMap[claimSel]?"Claim "+ccMap[claimSel].name+" →":"Select a card to claim"
+          // Step 2 — pick card to discard (only shown after step 1)
+          claimSel&&h("div",{style:{width:"100%",maxWidth:700}},
+            h("div",{style:{fontSize:11,fontWeight:700,color:discardSel?"#EF4444":"#94A3B8",letterSpacing:2,marginBottom:10,textAlign:"center"}},
+              discardSel?"✓ DISCARDING: "+discardName.toUpperCase():"STEP 2 — PICK A CARD FROM YOUR DECK TO GIVE UP"
+            ),
+            myCC.length===0
+              ?h("div",{style:{fontSize:13,color:"#64748B",textAlign:"center"}},"No custom cards in your deck.")
+              :h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
+                myCC.map(c=>{
+                  const sel=discardSel===c.id;
+                  return h("div",{key:c.id,onClick:()=>setDiscardSel(sel?null:c.id),
+                    style:{cursor:"pointer",border:sel?"2px solid #EF4444":"2px solid rgba(255,255,255,0.08)",
+                      borderRadius:6,padding:4,background:sel?"rgba(239,68,68,0.1)":"transparent",transition:"all .2s"}},
+                    h(CustomCardView,{card:c,sel,small:true})
+                  );
+                })
+              )
+          ),
+          // Confirm button
+          h("div",{style:{textAlign:"center",paddingBottom:24}},
+            ready&&h("div",{style:{fontSize:11,color:"#64748B",marginBottom:8}},
+              "+1 to a random stat on transfer · per-stat cap 24 · total cap 30"
+            ),
+            h("button",{className:"btn btn-p",disabled:!ready,onClick:claimCard,
+              style:{opacity:ready?1:0.35}},
+              ready?"Claim "+claimName+", Discard "+discardName+" →":
+              claimSel?"Select a card to give up":"Select a card to claim"
+            )
           )
         )
       );
