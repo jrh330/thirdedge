@@ -309,8 +309,8 @@ module.exports = async function handler(req, res) {
       await db.collection("custom_cards").insertOne({
         id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         playerId: loserLocalId,
-        name: card.name,
-        font: card.font || "outfit",
+        name: "Generic Card",
+        font: "outfit",
         imageUrl: null,
         imgScale: 1,
         imgX: 50,
