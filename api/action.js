@@ -105,7 +105,7 @@ module.exports = async function handler(req, res) {
         tierCounts[tier] = (tierCounts[tier] || 0) + 1;
       }
       for (const card of customCardDocs) {
-        const tier = card.attrs.reduce((a, b) => a + b, 0);
+        const tier = card.baseTier || card.attrs.reduce((a, b) => a + b, 0);
         tierCounts[tier] = (tierCounts[tier] || 0) + 1;
       }
       if (TIERS.some(t => (tierCounts[t] || 0) !== HAND_PICKS[t]))
@@ -297,14 +297,15 @@ module.exports = async function handler(req, res) {
       if (!card) return res.status(404).json({ error: "Card not found" });
 
       const newAttrs = applyStatUpgrade(card.attrs);
+      const baseTier = card.baseTier || card.attrs.reduce((a, b) => a + b, 0);
 
-      // Transfer card to winner with upgraded stats
+      // Transfer card to winner with upgraded stats, preserving original tier
       await db.collection("custom_cards").updateOne(
         { id: cardId },
-        { $set: { playerId: winnerLocalId, attrs: newAttrs } }
+        { $set: { playerId: winnerLocalId, attrs: newAttrs, baseTier } }
       );
 
-      // Give loser a generic 8-8-8 replacement
+      // Give loser a generic 8-8-8 replacement in the same tier slot
       await db.collection("custom_cards").insertOne({
         id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         playerId: loserLocalId,
@@ -315,6 +316,7 @@ module.exports = async function handler(req, res) {
         imgX: 50,
         imgY: 50,
         attrs: [8, 8, 8],
+        baseTier,
         createdAt: new Date(),
       });
 
