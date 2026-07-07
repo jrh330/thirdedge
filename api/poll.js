@@ -68,7 +68,7 @@ module.exports = async function handler(req, res) {
 
       opponentCardsLeft: (() => {
         const hand = playerNum === 1 ? m.p2Hand : m.p1Hand;
-        if (!hand) return 9;
+        if (!hand) return 10;
         const played = new Set((m.history || []).flatMap(h =>
           playerNum === 1
             ? [h.p2CardId, ...(h.p2CardId2 ? [h.p2CardId2] : [])]
