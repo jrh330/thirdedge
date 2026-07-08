@@ -118,7 +118,8 @@ const TIER_LABEL={27:"Standard",24:"Focused",21:"Specialist"};
 /* ── Game constants (keep in sync with api/_constants.js) ── */
 const TIERS=[27,24,21];
 const ROSTER_DEAL={27:7,24:4,21:4};  // cards dealt per tier (total: 15)
-const HAND_PICKS={27:5,24:2,21:2};   // cards picked per tier (total: 9)
+const HIJACK_PICKS={27:5,24:2,21:2}; // cards picked per tier for hijack matches (total: 9)
+const DOUBLE_PICKS={27:6,24:2,21:2}; // cards picked per tier for doubledown matches (total: 10)
 const ATTR_MIN=3;const ATTR_MAX=21;const ATTR_STEP=3;
 const CUSTOM_CARD_LIMIT=7;
 
@@ -537,6 +538,8 @@ function App(){
   const[customCards,setCustomCards]=useState([]);
   const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
   const[hijackMode,setHijackMode]=useState(false);
+  const[doubleMode,setDoubleMode]=useState(false);
+  const[doubleCard1,setDoubleCard1]=useState(null);
   const[claimSel,setClaimSel]=useState(null);
   const[discardSel,setDiscardSel]=useState(null);
 
@@ -578,6 +581,8 @@ function App(){
       prevHistLen.current=0;
       setRevealPhase(null);
       setHijackMode(false);
+      setDoubleMode(false);
+      setDoubleCard1(null);
       setClaimSel(null);
       setDiscardSel(null);
       prevMatchNum.current=gs.matchNum;
@@ -593,6 +598,8 @@ function App(){
     if(gs.history.length>prevHistLen.current&&gs.history.length>0){
       const latest=gs.history[gs.history.length-1];
       setHijackMode(false);
+      setDoubleMode(false);
+      setDoubleCard1(null);
       setRevealPhase("flip");
       if(latest.hijack==="double"){
         setTimeout(()=>setRevealPhase("double_hijack"),2000);
@@ -600,6 +607,10 @@ function App(){
         setTimeout(()=>setRevealPhase("result"),6000);
       } else if(latest.hijack){
         setTimeout(()=>setRevealPhase("hijack"),2000);
+        setTimeout(()=>setRevealPhase("attr"),4500);
+        setTimeout(()=>setRevealPhase("result"),6000);
+      } else if(latest.p1Double||latest.p2Double){
+        setTimeout(()=>setRevealPhase("double_reveal"),2000);
         setTimeout(()=>setRevealPhase("attr"),4500);
         setTimeout(()=>setRevealPhase("result"),6000);
       } else {
@@ -631,17 +642,41 @@ function App(){
   };
 
   const submitHand=async()=>{
-    if(handSel.size!==9)return;
+    const mm=gs?.matchMode||"hijack";
+    const hs=mm==="doubledown"?10:9;
+    if(handSel.size!==hs)return;
     await api("action",{code:roomCode,playerId,action:"hand",data:[...handSel]});
     poll();
   };
 
   const playCard=async(cardId)=>{
     if(gs.myPlayReady)return;
-    const isHijack=hijackMode;
-    setHijackMode(false);
-    await api("action",{code:roomCode,playerId,action:"play",data:cardId,hijack:isHijack||undefined});
-    poll();
+    const mm=gs?.matchMode||"hijack";
+    if(mm==="hijack"){
+      const isHijack=hijackMode;
+      setHijackMode(false);
+      await api("action",{code:roomCode,playerId,action:"play",data:cardId,hijack:isHijack||undefined});
+      poll();
+    } else {
+      // doubledown mode
+      if(doubleMode){
+        if(!doubleCard1){
+          // first card of double selected
+          setDoubleCard1(cardId);
+        } else {
+          // second card selected — submit double
+          const c1=doubleCard1;
+          setDoubleCard1(null);
+          setDoubleMode(false);
+          await api("action",{code:roomCode,playerId,action:"play",data:[c1,cardId]});
+          poll();
+        }
+      } else {
+        // single card play in doubledown mode
+        await api("action",{code:roomCode,playerId,action:"play",data:cardId});
+        poll();
+      }
+    }
   };
 
   const nextMatch=async()=>{
@@ -666,7 +701,14 @@ function App(){
   // ── Derived state ──
   const ccMap=gs?.customCardMap||{};
   const getCard=id=>CARD_MAP[id]||ccMap[id]||null;
-  const myPlayedIds=gs?new Set((gs.history||[]).map(h=>playerNum===1?h.p1CardId:h.p2CardId)):new Set();
+  const matchMode=gs?.matchMode||"hijack";
+  const PICKS=matchMode==="doubledown"?DOUBLE_PICKS:HIJACK_PICKS;
+  const HAND_SIZE=matchMode==="doubledown"?10:9;
+  const myPlayedIds=gs?new Set((gs.history||[]).flatMap(h=>
+    playerNum===1
+      ?[h.p1CardId,...(h.p1CardId2?[h.p1CardId2]:[])]
+      :[h.p2CardId,...(h.p2CardId2?[h.p2CardId2]:[])]
+  )):new Set();
   const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>getCard(id)).filter(Boolean):[];
   const latestResult=gs&&gs.history&&gs.history.length>0?gs.history[gs.history.length-1]:null;
 
@@ -699,7 +741,7 @@ function App(){
       h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,animation:"fadeIn .6s ease",padding:24}},
         h("div",{style:{textAlign:"center"}},
           h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:6,background:`linear-gradient(135deg,${CLR[0]},${CLR[1]},${CLR[2]})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"THIRD EDGE"),
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V5 — HIJACK"),
+          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V5 — COMBINED"),
           h("div",{style:{fontSize:36,marginTop:4}},"🔥 ❄️ ⚡"),
           h("div",{style:{display:"flex",gap:12,justifyContent:"center",marginTop:8}},
             h("span",{style:{fontSize:14,fontWeight:700,color:CLR[0],letterSpacing:2}},"RAGE"),
@@ -772,7 +814,7 @@ function App(){
 
     // Each row = custom cards + enough generic to fill slot limit (7/4/4)
     const LIMITS=ROSTER_DEAL;
-    const PICKS=HAND_PICKS;
+    // PICKS and HAND_SIZE are derived from matchMode in the outer derived state section
     const rows={};
     [27,24,21].forEach(t=>{
       const custom=customByTier[t];
@@ -791,7 +833,7 @@ function App(){
     }
     const tierSel={27:0,24:0,21:0};
     [...handSel].forEach(id=>{const t=getHandTier(id);tierSel[t]=(tierSel[t]||0)+1;});
-    const handReady=tierSel[27]===5&&tierSel[24]===2&&tierSel[21]===2;
+    const handReady=TIERS.every(t=>tierSel[t]===PICKS[t]);
 
     function toggleCard(id){
       setHandSel(p=>{
@@ -834,7 +876,9 @@ function App(){
         ),
         // Pick summary
         h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 — Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:17,fontWeight:700}},`Pick ${HAND_SIZE} — Match ${gs.matchNum}`),
+          h("div",{style:{fontSize:14,fontWeight:700,color:matchMode==="doubledown"?"#3B82F6":"#F59E0B",letterSpacing:2,marginTop:4}},
+            matchMode==="doubledown"?"DOUBLE DOWN MATCH":"HIJACK MATCH"),
           h("div",{style:{display:"flex",justifyContent:"center",gap:16,marginTop:4}},
             [27,24,21].map(t=>h("span",{key:t,style:{fontSize:11,fontWeight:700,
               color:tierSel[t]===PICKS[t]?"#10B981":TIER_META[t].color}},
@@ -960,6 +1004,44 @@ function App(){
         );
       }
 
+      // ── DOUBLE DOWN REVEAL ──
+      if(revealPhase==="double_reveal"){
+        const myCard2=lr.p1Double&&playerNum===1?getCard(lr.p1CardId2):lr.p2Double&&playerNum===2?getCard(lr.p2CardId2):null;
+        const opCard2=lr.p2Double&&playerNum===1?getCard(lr.p2CardId2):lr.p1Double&&playerNum===2?getCard(lr.p1CardId2):null;
+        const iDoubled=playerNum===1?lr.p1Double:lr.p2Double;
+        const opDoubled=playerNum===1?lr.p2Double:lr.p1Double;
+        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
+          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
+            h("div",{style:{animation:"hijackSlam .5s cubic-bezier(.4,0,.2,1)",textAlign:"center"}},
+              h("div",{style:{fontSize:38,fontWeight:900,letterSpacing:4,color:"#3B82F6",
+                textShadow:"0 0 40px rgba(59,130,246,.8)"}},
+                "DOUBLE DOWN"),
+              (iDoubled||opDoubled)&&h("div",{style:{fontSize:13,color:"#93C5FD",fontWeight:600,letterSpacing:1,marginTop:4}},
+                iDoubled&&opDoubled?"Both players doubled!":iDoubled?"You doubled!":"Opponent doubled!")
+            ),
+            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:16,width:"100%"}},
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:220}},
+                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
+                h(CardView,{card:myCard,small:true}),
+                iDoubled&&myCard2&&h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4}},
+                  h("div",{style:{fontSize:10,color:"#3B82F6",fontWeight:700,letterSpacing:1}},"+ DOUBLED"),
+                  h(CardView,{card:myCard2,small:true})
+                )
+              ),
+              h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:40}},"VS"),
+              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:220}},
+                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPPONENT"),
+                h(CardView,{card:opCard,small:true}),
+                opDoubled&&opCard2&&h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4}},
+                  h("div",{style:{fontSize:10,color:"#3B82F6",fontWeight:700,letterSpacing:1}},"+ DOUBLED"),
+                  h(CardView,{card:opCard2,small:true})
+                )
+              )
+            )
+          )
+        );
+      }
+
       if(revealPhase==="attr"){
         return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
           h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
@@ -990,6 +1072,13 @@ function App(){
         // The card that scored FOR ME (may be opponent's original card if I hijacked)
         const myScoringCard = singleHijack ? (iHijacked?opCard:myCard) : myCard;
         const opScoringCard = singleHijack ? (iHijacked?myCard:opCard) : opCard;
+        // Doubledown second cards
+        const myDoubled=playerNum===1?lr.p1Double:lr.p2Double;
+        const opDoubled=playerNum===1?lr.p2Double:lr.p1Double;
+        const myCard2Id=playerNum===1?lr.p1CardId2:lr.p2CardId2;
+        const opCard2Id=playerNum===1?lr.p2CardId2:lr.p1CardId2;
+        const myCard2=myCard2Id?getCard(myCard2Id):null;
+        const opCard2=opCard2Id?getCard(opCard2Id):null;
         return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
           h("div",{style:{flex:1,width:"100%",maxWidth:640,padding:"16px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .4s ease"}},
             // Hijack badge
@@ -998,6 +1087,11 @@ function App(){
               color:lr.hijack==="double"?"#EAB308":"#EF4444",
               border:`1px solid ${lr.hijack==="double"?"rgba(234,179,8,.3)":"rgba(220,38,38,.3)"}`}},
               lr.hijack==="double"?"⇄ DOUBLE HIJACK — CANCELLED":iHijacked?"🔄 YOU HIJACKED":"🔄 OPPONENT HIJACKED"),
+            // Doubledown badge
+            (myDoubled||opDoubled)&&h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,padding:"3px 14px",borderRadius:6,
+              background:"rgba(59,130,246,.12)",color:"#3B82F6",
+              border:"1px solid rgba(59,130,246,.3)"}},
+              myDoubled&&opDoubled?"⬆⬆ BOTH DOUBLED":myDoubled?"⬆⬆ YOU DOUBLED":"⬆⬆ OPPONENT DOUBLED"),
             // Result badge
             h("div",{style:{padding:"8px 28px",borderRadius:12,fontSize:18,fontWeight:900,letterSpacing:2,
               background:iWon?"rgba(16,185,129,.15)":iLost?"rgba(239,68,68,.15)":"rgba(234,179,8,.15)",
@@ -1024,8 +1118,8 @@ function App(){
                 singleHijack&&h("div",{style:{fontSize:8,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:2}},
                   iHijacked?"HIJACKED CARD":"YOUR CARD"),
                 h(CardView,{card:myScoringCard,hl:iWon,small:true}),
-                !singleHijack&&h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal),
-                singleHijack&&h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
+                myDoubled&&myCard2&&h(CardView,{card:myCard2,small:true}),
+                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
               ),
               h("div",{style:{fontSize:16,fontWeight:900,color:"#1e293b",paddingTop:60}},"vs"),
               h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
@@ -1033,6 +1127,7 @@ function App(){
                 singleHijack&&h("div",{style:{fontSize:8,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:2}},
                   iHijacked?"THEIR CARD":"HIJACKED CARD"),
                 h(CardView,{card:opScoringCard,hl:iLost,small:true}),
+                opDoubled&&opCard2&&h(CardView,{card:opCard2,small:true}),
                 h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal)
               )
             ),
@@ -1055,7 +1150,7 @@ function App(){
       h("div",{style:{flex:1,width:"100%",maxWidth:800,padding:"0 14px",animation:"fadeIn .3s ease"}},
         h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",fontSize:11,color:"#64748B"}},
           h("span",null,`Series ${gs.seriesScore[0]}–${gs.seriesScore[1]} · Match ${gs.matchNum}`),
-          h("span",null,`Round ${(gs.history||[]).length+1}/9`)
+          h("span",null,`Round ${(gs.history||[]).length+1}/9`)  // always 9 rounds
         ),
         // Scoreboard
         h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:28,marginBottom:2}},
@@ -1069,40 +1164,74 @@ function App(){
             h("div",{style:{fontSize:38,fontWeight:900,color:"#EF4444"}},opScore))
         ),
         h(AttrCount,{history:gs.history,carry:gs.carry}),
+        // Mode banner
+        h("div",{style:{textAlign:"center",marginBottom:4,fontSize:11,fontWeight:700,letterSpacing:2,
+          color:matchMode==="doubledown"?"#3B82F6":"#F59E0B"}},
+          matchMode==="doubledown"?"DOUBLE DOWN MATCH":"HIJACK MATCH"),
         // Opponent cards remaining
         h("div",{style:{display:"flex",justifyContent:"center",gap:3,marginBottom:8}},
-          Array.from({length:9},(_,i)=>h("div",{key:i,style:{width:32,height:44,borderRadius:5,
+          Array.from({length:HAND_SIZE},(_,i)=>h("div",{key:i,style:{width:32,height:44,borderRadius:5,
             background:i<gs.opponentCardsLeft?"linear-gradient(180deg,#1e293b,#0f172a)":"transparent",
             border:i<gs.opponentCardsLeft?"1px solid rgba(255,255,255,.06)":"none",
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,color:"#334155",fontWeight:900}},
             i<gs.opponentCardsLeft?"TE":""))
         ),
         h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
-        // Hijack bar / status row
+        // Mode-aware action bar / status row
         gs.myPlayReady
           ?h("div",{style:{textAlign:"center",marginBottom:6}},
               h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},"WAITING FOR OPPONENT..."))
-          :h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
-              h("span",{style:{fontSize:11,color:hijackMode?"#EF4444":"#64748B",fontWeight:700,letterSpacing:1}},
-                hijackMode?"🔄 HIJACK ACTIVE — TAP YOUR CARD":"TAP A CARD"),
-              !gs.myHijackUsed
-                ?h("button",{onClick:()=>setHijackMode(m=>!m),style:{
-                    padding:"4px 12px",borderRadius:8,border:"1px solid rgba(220,38,38,.5)",
-                    background:hijackMode?"rgba(220,38,38,.25)":"rgba(220,38,38,.08)",
-                    color:"#EF4444",fontSize:11,fontWeight:700,cursor:"pointer",
-                    letterSpacing:1,fontFamily:"'Outfit',sans-serif",
-                    boxShadow:hijackMode?"0 0 12px rgba(220,38,38,.4)":"none",
-                    transition:"all .2s"}},
-                  hijackMode?"✕ Cancel Hijack":"🔄 HIJACK")
-                :h("span",{style:{fontSize:10,color:"#475569",fontWeight:600,letterSpacing:1}},"Hijack used")
-            ),
+          :matchMode==="hijack"
+            ?h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+                h("span",{style:{fontSize:11,color:hijackMode?"#EF4444":"#64748B",fontWeight:700,letterSpacing:1}},
+                  hijackMode?"🔄 HIJACK ACTIVE — TAP YOUR CARD":"TAP A CARD"),
+                !gs.myHijackUsed
+                  ?h("button",{onClick:()=>setHijackMode(m=>!m),style:{
+                      padding:"4px 12px",borderRadius:8,border:"1px solid rgba(220,38,38,.5)",
+                      background:hijackMode?"rgba(220,38,38,.25)":"rgba(220,38,38,.08)",
+                      color:"#EF4444",fontSize:11,fontWeight:700,cursor:"pointer",
+                      letterSpacing:1,fontFamily:"'Outfit',sans-serif",
+                      boxShadow:hijackMode?"0 0 12px rgba(220,38,38,.4)":"none",
+                      transition:"all .2s"}},
+                    hijackMode?"✕ Cancel Hijack":"🔄 HIJACK")
+                  :h("span",{style:{fontSize:10,color:"#475569",fontWeight:600,letterSpacing:1}},"Hijack used")
+              )
+            :h("div",{style:{marginBottom:6}},
+                doubleCard1
+                  ?h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
+                      h("span",{style:{fontSize:11,color:"#3B82F6",fontWeight:700,letterSpacing:1}},"DOUBLED — TAP SECOND CARD"),
+                      h("button",{onClick:()=>{setDoubleCard1(null);setDoubleMode(false);},style:{
+                        padding:"4px 12px",borderRadius:8,border:"1px solid rgba(59,130,246,.4)",
+                        background:"rgba(59,130,246,.08)",color:"#93C5FD",fontSize:11,fontWeight:700,cursor:"pointer",
+                        letterSpacing:1,fontFamily:"'Outfit',sans-serif"}},
+                        "✕ Cancel")
+                    )
+                  :h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
+                      h("span",{style:{fontSize:11,color:"#64748B",fontWeight:700,letterSpacing:1}},"TAP A CARD"),
+                      !gs.myDoubleUsed
+                        ?h("button",{onClick:()=>setDoubleMode(m=>!m),style:{
+                            padding:"4px 12px",borderRadius:8,border:"1px solid rgba(59,130,246,.5)",
+                            background:doubleMode?"rgba(59,130,246,.25)":"rgba(59,130,246,.08)",
+                            color:"#3B82F6",fontSize:11,fontWeight:700,cursor:"pointer",
+                            letterSpacing:1,fontFamily:"'Outfit',sans-serif",
+                            boxShadow:doubleMode?"0 0 12px rgba(59,130,246,.4)":"none",
+                            transition:"all .2s"}},
+                          doubleMode?"✕ Cancel Double":"⬆⬆ DOUBLE DOWN")
+                        :h("span",{style:{fontSize:10,color:"#475569",fontWeight:600,letterSpacing:1}},"Double used")
+                    )
+              ),
         // My hand
         h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          myHandCards.map(c=>h(CardView,{key:c.id,card:c,
-            onClick:gs.myPlayReady?undefined:()=>playCard(c.id),
-            dim:gs.myPlayReady,
-            hl:hijackMode,
-            small:true}))
+          myHandCards.map(c=>{
+            const isSelected=doubleMode&&doubleCard1===c.id;
+            const isDimmed=gs.myPlayReady||(doubleCard1&&c.id===doubleCard1);
+            return h(CardView,{key:c.id,card:c,
+              onClick:gs.myPlayReady?undefined:()=>playCard(c.id),
+              dim:isDimmed,
+              hl:matchMode==="hijack"?hijackMode:doubleMode||!!doubleCard1,
+              sel:isSelected,
+              small:true});
+          })
         ),
         // History
         (gs.history||[]).length>0&&h("div",{style:{marginTop:12,padding:"6px 8px",background:"rgba(255,255,255,.02)",borderRadius:8,border:"1px solid rgba(255,255,255,.04)"}},
@@ -1117,7 +1246,8 @@ function App(){
                 h("span",null,(playerNum===1?hr.p1v:hr.p2v)+"–"+(playerNum===1?hr.p2v:hr.p1v)),
                 hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts),
                 hr.hijack==="double"&&h("span",{style:{color:"#F59E0B",fontSize:9}},"⇄⇄"),
-                (hr.hijack==="p1"||hr.hijack==="p2")&&h("span",{style:{color:"#EF4444",fontSize:9}},"🔄"));
+                (hr.hijack==="p1"||hr.hijack==="p2")&&h("span",{style:{color:"#EF4444",fontSize:9}},"🔄"),
+                (hr.p1Double||hr.p2Double)&&h("span",{style:{color:"#3B82F6",fontSize:9}},"⬆⬆"));
             })
           )
         ),

@@ -24,7 +24,10 @@ module.exports = async function handler(req, res) {
     const addIfCustom = id => { if (id && id.startsWith("cc_")) customIds.add(id); };
     (m.p1Hand || []).forEach(addIfCustom);
     (m.p2Hand || []).forEach(addIfCustom);
-    (m.history || []).forEach(h => { addIfCustom(h.p1CardId); addIfCustom(h.p2CardId); });
+    (m.history || []).forEach(h => {
+      addIfCustom(h.p1CardId); addIfCustom(h.p1CardId2);
+      addIfCustom(h.p2CardId); addIfCustom(h.p2CardId2);
+    });
     (m.defeatedCustomCards || []).forEach(addIfCustom);
     if (m.claimedCardId) addIfCustom(m.claimedCardId);
     if (m.p1Play) addIfCustom(m.p1Play);
@@ -62,7 +65,9 @@ module.exports = async function handler(req, res) {
       myPlayReady:       playerNum === 1 ? !!m.p1Play : !!m.p2Play,
       opponentPlayReady: playerNum === 1 ? !!m.p2Play : !!m.p1Play,
 
+      matchMode: game.matchMode || "hijack",
       myHijackUsed: playerNum === 1 ? !!m.p1HijackUsed : !!m.p2HijackUsed,
+      myDoubleUsed: playerNum === 1 ? !!m.p1DoubleUsed : !!m.p2DoubleUsed,
 
       defeatedCustomCards: m.defeatedCustomCards || [],
       cardClaimed: !!m.cardClaimed,
@@ -71,8 +76,13 @@ module.exports = async function handler(req, res) {
 
       opponentCardsLeft: (() => {
         const hand = playerNum === 1 ? m.p2Hand : m.p1Hand;
-        if (!hand) return 9;
-        const played = new Set((m.history || []).map(h => playerNum === 1 ? h.p2CardId : h.p1CardId));
+        const defaultSize = (game.matchMode || "hijack") === "doubledown" ? 10 : 9;
+        if (!hand) return defaultSize;
+        const played = new Set((m.history || []).flatMap(h =>
+          playerNum === 1
+            ? [h.p2CardId, ...(h.p2CardId2 ? [h.p2CardId2] : [])]
+            : [h.p1CardId, ...(h.p1CardId2 ? [h.p1CardId2] : [])]
+        ));
         return hand.length - played.size;
       })(),
 

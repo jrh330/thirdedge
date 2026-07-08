@@ -58,15 +58,16 @@ function dealRoster() {
   return TIERS.flatMap(t => shuffle(CARDS_BY_TIER[t]).slice(0, ROSTER_DEAL[t]).map(c => c.id));
 }
 
-// Select a valid hand for the bot using HAND_PICKS counts
-function botSelectHand(roster) {
+// Select a valid hand for the bot using HAND_PICKS counts (or a custom picks object)
+function botSelectHand(roster, picks) {
+  picks = picks || HAND_PICKS;
   const byTier = {};
   TIERS.forEach(t => { byTier[t] = []; });
   roster.forEach(id => {
     const card = CARD_MAP[id];
     if (card) byTier[card.attrs.reduce((a,b)=>a+b,0)]?.push(id);
   });
-  return TIERS.flatMap(t => shuffle(byTier[t] || []).slice(0, HAND_PICKS[t]));
+  return TIERS.flatMap(t => shuffle(byTier[t] || []).slice(0, picks[t]));
 }
 
 module.exports = { ALL_CARDS, CARDS_BY_TIER, CARD_MAP, shuffle, genSeq, genRoomCode, dealRoster, botSelectHand };

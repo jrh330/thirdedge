@@ -34,6 +34,7 @@ module.exports = async function handler(req, res) {
       status: vsBot ? "hand" : "waiting",
       createdAt: new Date(),
       updatedAt: new Date(),
+      matchMode: "hijack",   // Match 1 is always hijack
 
       // Players
       p1: { id: playerId, name: "Player 1", localId: localPlayerId || null },
@@ -59,6 +60,13 @@ module.exports = async function handler(req, res) {
 
         p1Play: null,
         p2Play: null,
+
+        p1HijackUsed: false,
+        p2HijackUsed: false,
+        p1HijackPending: false,
+        p2HijackPending: false,
+        p1DoubleUsed: false,
+        p2DoubleUsed: false,
       },
     };
 

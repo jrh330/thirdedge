@@ -13,8 +13,11 @@ const TIER_LABEL = { 27: "Standard", 24: "Focused", 21: "Specialist" };
 // Cards dealt per tier into each player's roster (total: 15)
 const ROSTER_DEAL = { 27: 7, 24: 4, 21: 4 };
 
-// Cards each player picks per tier for their hand (total: 9)
+// Cards each player picks per tier for hijack matches (total: 9)
 const HAND_PICKS = { 27: 5, 24: 2, 21: 2 };
+
+// Cards each player picks per tier for doubledown matches (total: 10)
+const HAND_PICKS_DOUBLE = { 27: 6, 24: 2, 21: 2 };
 
 // Per-attribute constraints for custom cards
 const ATTR_MIN = 3;
@@ -24,4 +27,4 @@ const ATTR_STEP = 3;
 // Maximum custom cards a player can own
 const CUSTOM_CARD_LIMIT = 7;
 
-module.exports = { TIERS, TIER_LABEL, ROSTER_DEAL, HAND_PICKS, ATTR_MIN, ATTR_MAX, ATTR_STEP, CUSTOM_CARD_LIMIT };
+module.exports = { TIERS, TIER_LABEL, ROSTER_DEAL, HAND_PICKS, HAND_PICKS_DOUBLE, ATTR_MIN, ATTR_MAX, ATTR_STEP, CUSTOM_CARD_LIMIT };
