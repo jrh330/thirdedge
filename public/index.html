@@ -3,36 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Third Edge — Rage · Chill · Spark</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Special+Elite&family=Orbitron:wght@700&family=Pacifico&family=Bebas+Neue&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<title>Clash of Creations</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height:100vh}
+:root{
+  --bg:#0B0F1A;--surface:#131929;--surface2:#1A2236;--border:rgba(255,255,255,.08);
+  --accent:#6366F1;--accent2:#8B5CF6;--green:#10B981;--red:#EF4444;--yellow:#F59E0B;
+  --text:#E2E8F0;--muted:#64748B;--dim:rgba(255,255,255,.04);
+}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@keyframes flipIn{from{opacity:0;transform:rotateY(90deg)}to{opacity:1;transform:rotateY(0)}}
-@keyframes attrReveal{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.3)}100%{transform:scale(1)}}
-@keyframes winGlow{0%{box-shadow:0 0 20px rgba(16,185,129,.3)}50%{box-shadow:0 0 50px rgba(16,185,129,.6)}100%{box-shadow:0 0 20px rgba(16,185,129,.3)}}
-@keyframes loseGlow{0%{box-shadow:0 0 20px rgba(239,68,68,.3)}50%{box-shadow:0 0 50px rgba(239,68,68,.6)}100%{box-shadow:0 0 20px rgba(239,68,68,.3)}}
-@keyframes scorePopIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-.btn{padding:12px 28px;border-radius:12px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase}
-.btn:hover{transform:translateY(-2px)}.btn:disabled{opacity:.4;cursor:default;transform:none!important}
-.btn-p{background:linear-gradient(135deg,#DC2626,#B91C1C);color:white}
-.btn-p:hover:not(:disabled){box-shadow:0 8px 24px rgba(220,38,38,.4)}
-.btn-s{background:rgba(255,255,255,.08);color:#E2E8F0;border:1px solid rgba(255,255,255,.15)}
-.btn-s:hover{background:rgba(255,255,255,.15)}
-.btn-danger{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.2)}
-.btn-danger:hover{background:rgba(239,68,68,.2)}
-input,textarea{font-family:'Outfit',sans-serif}
-/* Custom card fonts */
-.cf-outfit{font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;}
-.cf-orbitron{font-family:'Orbitron',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;}
-.cf-pacifico{font-family:'Pacifico',cursive;font-size:14px;letter-spacing:0.5px;margin-bottom:-4px;}
-.cf-bebas{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;margin-bottom:-4px;}
-.cf-playfair{font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:14px;letter-spacing:1px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes toast{0%{opacity:0;transform:translateY(-20px)}15%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(99,102,241,0)}50%{box-shadow:0 0 20px rgba(99,102,241,.5)}}
+.animate{animation:fadeIn .3s ease both}
+.btn{padding:10px 22px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .18s;letter-spacing:.5px;text-transform:uppercase}
+.btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.1)}
+.btn:disabled{opacity:.35;cursor:default;transform:none!important}
+.btn-primary{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff}
+.btn-primary:hover:not(:disabled){box-shadow:0 6px 20px rgba(99,102,241,.4)}
+.btn-danger{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.25)}
+.btn-danger:hover:not(:disabled){background:rgba(239,68,68,.25)}
+.btn-success{background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.25)}
+.btn-success:hover:not(:disabled){background:rgba(16,185,129,.25)}
+.btn-ghost{background:rgba(255,255,255,.06);color:#E2E8F0;border:1px solid rgba(255,255,255,.1)}
+.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.btn-sm{padding:6px 14px;font-size:11px;border-radius:7px}
+input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s}
+input:focus{border-color:var(--accent)}
+.screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.card-surface{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--border);border-radius:10px;padding:10px 20px;z-index:9999;font-size:13px;max-width:340px;text-align:center;animation:toast 3.5s ease forwards}
+.toast.error{border-color:rgba(239,68,68,.4);color:#EF4444}
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.overlay-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:480px;width:100%;animation:fadeIn .25s ease}
+/* Game Layout */
+.game-wrap{width:100%;max-width:820px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:100vh}
+.header-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:13px}
+.wins-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+.wins-num{padding:2px 10px;border-radius:6px;background:var(--surface2)}
+.wins-num.mine{color:var(--green)}
+.wins-num.opp{color:var(--red)}
+.phase-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+/* Score Bar */
+.score-bar-wrap{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.score-bar-label{font-size:12px;color:var(--muted);white-space:nowrap;min-width:80px}
+.score-bar-label.right{text-align:right}
+.score-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative}
+.score-bar-fill-left{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:5px;transition:width .4s ease}
+.score-bar-fill-right{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#EF4444,#DC2626);border-radius:5px;transition:width .4s ease}
+.score-bar-goal{position:absolute;right:0;top:-3px;bottom:-3px;width:2px;background:#F59E0B;opacity:.6}
+.score-num{font-weight:700;font-size:14px;min-width:30px;text-align:center}
+/* Team Section */
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;padding:0 2px}
+.team-grid{display:flex;flex-wrap:wrap;gap:8px}
+/* Card in Play */
+.cip{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;width:130px;min-height:160px;display:flex;flex-direction:column;gap:5px;cursor:default;transition:all .2s;position:relative;flex-shrink:0}
+.cip:hover{border-color:rgba(255,255,255,.2)}
+.cip.bonded{border-color:rgba(251,191,36,.5);box-shadow:0 0 12px rgba(251,191,36,.15)}
+.cip.selected{border-color:var(--accent);box-shadow:0 0 16px rgba(99,102,241,.3)}
+.cip.ko{opacity:.45;filter:grayscale(.7)}
+.cip.clickable{cursor:pointer}
+.cip.clickable:hover{border-color:var(--accent);transform:translateY(-2px)}
+.cip-name{font-weight:700;font-size:13px;line-height:1.2;margin-bottom:2px}
+.cip-trait{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+.cip-stats{display:flex;flex-direction:column;gap:3px}
+.cip-stat{display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.cip-stat-label{color:var(--muted);font-size:10px}
+.cip-stat-val{font-weight:700}
+.stat-p{color:#EF4444}
+.stat-s{color:#3B82F6}
+.stat-w{color:#8B5CF6}
+.cip-ability{font-size:10px;margin-top:4px;padding:2px 6px;border-radius:5px;background:var(--surface2);color:var(--muted);text-align:center;border:1px solid var(--border)}
+.cip-ability.revealed{color:var(--accent)}
+.cip-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.badge{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:600}
+.badge-bond{background:rgba(251,191,36,.15);color:#FBB724;border:1px solid rgba(251,191,36,.3)}
+.badge-rally{background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.3)}
+.badge-ko{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.3)}
+.cip.ko .cip-name{text-decoration:line-through;opacity:.6}
+/* Hand cards */
+.hand-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.hand-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.hand-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;cursor:pointer;transition:all .18s;min-width:110px}
+.hand-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.hand-card.selected{border-color:var(--accent);box-shadow:0 0 14px rgba(99,102,241,.3)}
+.hand-card-name{font-weight:700;font-size:12px}
+.hand-card-stats{display:flex;gap:6px;margin-top:4px;font-size:11px}
+.hand-card-trait{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.hand-card-ability{font-size:9px;color:var(--accent);margin-top:2px}
+/* Action bar */
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;align-items:center}
+/* Picking overlay */
+.pick-overlay{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center}
+.pick-title{font-size:18px;font-weight:800;margin-bottom:6px}
+.pick-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.stat-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.stat-btn{padding:14px 22px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;min-width:90px}
+.stat-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.12)}
+.stat-btn.power{border-color:rgba(239,68,68,.4)}
+.stat-btn.power:hover{background:rgba(239,68,68,.15)}
+.stat-btn.speed{border-color:rgba(59,130,246,.4)}
+.stat-btn.speed:hover{background:rgba(59,130,246,.15)}
+.stat-btn.wits{border-color:rgba(139,92,246,.4)}
+.stat-btn.wits:hover{background:rgba(139,92,246,.15)}
+/* Challenge view */
+.challenge-cards{display:flex;gap:16px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.challenge-vs{font-size:18px;font-weight:900;color:var(--muted);align-self:center}
+.reveal-stat{text-align:center;padding:12px;background:var(--surface2);border-radius:10px;margin:10px 0}
+.reveal-stat-name{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
+.reveal-stat-val{font-size:28px;font-weight:900;margin-top:2px}
+/* Post game */
+.deck-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.deck-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;transition:all .18s;font-size:12px;font-weight:600}
+.deck-card:hover{border-color:var(--accent)}
+.deck-card.selected{border-color:var(--accent);background:rgba(99,102,241,.12)}
+/* Menu */
+.menu-wrap{text-align:center;max-width:380px;width:100%}
+.menu-logo{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;background:linear-gradient(135deg,#6366F1,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.menu-tagline{font-size:13px;color:var(--muted);margin-bottom:32px}
+.menu-sep{font-size:11px;color:var(--muted);text-align:center;margin:14px 0;text-transform:uppercase;letter-spacing:1px}
+.waiting-code{font-size:48px;font-weight:900;letter-spacing:8px;color:var(--accent);margin:16px 0}
+/* Misc */
+.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.waiting-dot{animation:pulse 1.5s ease infinite}
 </style>
 </head>
 <body>
@@ -43,992 +141,1050 @@ input,textarea{font-family:'Outfit',sans-serif}
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-function useIsMobile(breakpoint=600){
-  const[mobile,setMobile]=useState(window.innerWidth<breakpoint);
-  useEffect(()=>{
-    const handler=()=>setMobile(window.innerWidth<breakpoint);
-    window.addEventListener("resize",handler);
-    return()=>window.removeEventListener("resize",handler);
-  },[breakpoint]);
-  return mobile;
+// ─── Constants ────────────────────────────────────────────────────────────────
+const GOAL = 30;
+const API = '';
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API + path, opts);
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error || 'Request failed');
+  return json;
 }
 
-/* ═══ PLAYER IDENTITY ═════════════════════════════════════ */
-const LOCAL_PLAYER_ID = (() => {
-  let id = localStorage.getItem("te_player_id");
-  if (!id) { id = `lp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; localStorage.setItem("te_player_id", id); }
-  return id;
-})();
-
-/* ═══ CUSTOM CARD FONTS ════════════════════════════════════ */
-const FONTS = [
-  { id:"outfit",   label:"Modern",    cls:"cf-outfit"   },
-  { id:"orbitron", label:"Tech",      cls:"cf-orbitron" },
-  { id:"pacifico", label:"Script",    cls:"cf-pacifico" },
-  { id:"bebas",    label:"Bold",      cls:"cf-bebas"    },
-  { id:"playfair", label:"Elegant",   cls:"cf-playfair" },
-];
-
-/* ═══ THEME ═══════════════════════════════════════════════ */
-const SYM = ["🔥","❄️","⚡"];
-const CLR = ["#DC2626","#0EA5E9","#EAB308"];
-const CLR_GLOW = ["rgba(220,38,38,.4)","rgba(14,165,233,.4)","rgba(234,179,8,.4)"];
-const ANAME = ["Rage","Chill","Spark"];
-const CAP = 27;
-
-/* ═══ CARD UNIVERSE ═══════════════════════════════════════
-   27-total: Standard  (c0–c20)
-   24-total: Focused   (c21–c38)
-   21-total: Specialist (c39–c53)
-══════════════════════════════════════════════════════════ */
-const CARD_MAP={};
-const CARDS_27=[];const CARDS_24=[];const CARDS_21=[];
-
-function buildTier(shapes,pool){
-  const seen=new Set();
-  shapes.forEach(shape=>{
-    [[shape[0],shape[1],shape[2]],[shape[1],shape[2],shape[0]],[shape[2],shape[0],shape[1]],
-     [shape[0],shape[2],shape[1]],[shape[1],shape[0],shape[2]],[shape[2],shape[1],shape[0]]].forEach(p=>{
-      const key=p.join("-");
-      if(!seen.has(key)){
-        seen.add(key);
-        const id=`c${Object.keys(CARD_MAP).length}`;
-        const dom=p.indexOf(Math.max(...p));
-        const sorted=[...p].sort((a,b)=>b-a);
-        const card={id,attrs:[...p],dom,tier:p.reduce((a,b)=>a+b,0)};
-        pool.push(card);CARD_MAP[id]=card;
-      }
-    });
+async function postAction(code, playerId, action, data = {}) {
+  return apiFetch('/api/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, playerId, action, data }),
   });
 }
-buildTier([[15,9,3],[15,6,6],[12,12,3],[12,9,6]],CARDS_27);
-buildTier([[15,6,3],[12,9,3],[12,6,6],[9,9,6]],CARDS_24);
-buildTier([[15,3,3],[12,6,3],[9,9,3],[9,6,6]],CARDS_21);
-const ALL_CARDS=[...CARDS_27,...CARDS_24,...CARDS_21];
 
-function cardTier(id){
-  if(id&&id.startsWith("cc_"))return null;
-  return CARD_MAP[id]?.tier||27;
-}
-const TIER_CLR={27:"#10B981",24:"#F59E0B",21:"#EF4444"};
-const TIER_LABEL={27:"Standard",24:"Focused",21:"Specialist"};
-/* ── Game constants (keep in sync with api/_constants.js) ── */
-const TIERS=[27,24,21];
-const ROSTER_DEAL={27:7,24:4,21:4};  // cards dealt per tier (total: 15)
-const HAND_PICKS={27:5,24:2,21:2};   // cards picked per tier (total: 9)
-const ATTR_MIN=3;const ATTR_MAX=21;const ATTR_STEP=3;
-const CUSTOM_CARD_LIMIT=7;
-
-/* ═══ API ═════════════════════════════════════════════════ */
-const API = "";  // same origin
-async function api(path, body) {
-  const opts = body ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) } : {};
-  const r = await fetch(API+"/api/"+path, opts);
-  return r.json();
+function getTeamTotal(team) {
+  if (!team) return 0;
+  return team.filter(c => !c.knockedOut).reduce((s, cip) => {
+    const b = cip.bondPartnerId ? 1 : 0;
+    const r = cip.rallyBonus || 0;
+    return s + (cip.card.power + b + r) + (cip.card.speed + b + r) + (cip.card.wits + b + r);
+  }, 0);
 }
 
-/* ═══ HELPERS ═════════════════════════════════════════════ */
-const cardGrad=(attrs)=>{
-  const t=attrs[0]+attrs[1]+attrs[2];if(t===0)return"linear-gradient(180deg,#1e293b,#0f172a)";
-  const sorted=[0,1,2].sort((a,b)=>attrs[b]-attrs[a]);let pos=0;const stops=[];
-  for(const idx of sorted){const pct=Math.round((attrs[idx]/t)*100);stops.push(`${CLR[idx]} ${pos}%`);pos+=pct;stops.push(`${CLR[idx]} ${pos}%`);}
-  return`linear-gradient(180deg,${stops.join(",")})`;
-};
-
-/* ═══ CARD VIEW ═══════════════════════════════════════════ */
-function CustomCardView({card,onClick,sel,dim,small}){
-  const s=small?0.665:1;const w=188*s;const h=255*s;
-  const font=FONTS.find(f=>f.id===card.font)||FONTS[0];
-  const tier=card.attrs.reduce((a,b)=>a+b,0);
-  return React.createElement("div",{onClick:dim?undefined:onClick,style:{
-    width:w,height:h,borderRadius:14*s,position:"relative",overflow:"hidden",cursor:dim?"default":onClick?"pointer":"default",
-    opacity:dim?0.35:1,transform:sel?"scale(1.06) translateY(-4px)":"scale(1)",transition:"all 0.2s cubic-bezier(.4,0,.2,1)",
-    boxShadow:sel?"0 0 0 3px white, 0 12px 40px rgba(0,0,0,0.7)":"0 0 0 2px #9CA3AF, 0 0 0 3px #4B5563, 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)"}},
-    // Image area (flush left, 75%)
-    React.createElement("div",{style:{
-      position:"absolute",left:0,top:0,bottom:0,width:"75%",
-      background:card.imageUrl?`url(${card.imageUrl})`:`linear-gradient(160deg,${CLR[0]}44,${CLR[1]}44,${CLR[2]}44)`,
-      backgroundSize:card.imageUrl?`${(card.imgScale||1)*100}% auto`:"cover",
-      backgroundPosition:card.imageUrl?`${card.imgX||50}% ${card.imgY||50}%`:"center",
-      backgroundRepeat:"no-repeat"}}),
-    // Color strips (right 25%) - sorted largest first to match generic card gradient order
-    React.createElement("div",{style:{position:"absolute",right:0,top:0,bottom:0,width:"25%",display:"flex",flexDirection:"column",borderLeft:"1px solid rgba(255,255,255,0.1)"}},
-      [0,1,2].sort((a,b)=>card.attrs[b]-card.attrs[a]).map(a=>React.createElement("div",{key:a,style:{flex:card.attrs[a],background:CLR[a],position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}},
-        React.createElement("span",{style:{fontSize:Math.max(11,13*s),fontWeight:900,fontFamily:"'Outfit',sans-serif",color:"white",textShadow:"0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)"}},card.attrs[a])
-      ))
-    ),
-    // Tier badge (top-left)
-    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s,
-      background:"rgba(0,0,0,0.75)",borderRadius:4*s,
-      padding:`${2*s}px ${5*s}px`,fontSize:Math.max(11,14*s),fontWeight:900,
-      fontFamily:"'Outfit',sans-serif",color:"white",lineHeight:1,letterSpacing:0}},
-      tier),
-    // Metallic sheen overlay
-    React.createElement("div",{style:{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 40%,transparent 60%,rgba(255,255,255,0.03) 100%)",pointerEvents:"none"}}),
-    // Bottom name fade
-    React.createElement("div",{style:{position:"absolute",bottom:0,left:0,width:"75%",padding:`${10*s}px ${10*s}px ${9*s}px`,
-      background:"linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.6) 60%,transparent 100%)"}},
-      React.createElement("div",{className:font.cls,style:{color:"white",textShadow:"0 1px 6px rgba(0,0,0,0.9)",
-        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
-        fontSize:`${parseFloat(font.cls==="cf-orbitron"?10:font.cls==="cf-bebas"?20:font.cls==="cf-pacifico"?14:font.cls==="cf-outfit"?13:14)*s}px`}},
-        card.name)
-    )
-  );
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ msg, type, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3500);
+    return () => clearTimeout(t);
+  }, []);
+  return <div className={`toast ${type === 'error' ? 'error' : ''}`}>{msg}</div>;
 }
 
-function CardView({card,onClick,sel,dim,small,hl}){
-  if(card.id&&card.id.startsWith("cc_"))return React.createElement(CustomCardView,{card,onClick,sel,dim,small});
-  const s=small?1.0:1;const w=125*s;const h=170*s;
-  return React.createElement("div",{onClick:dim?undefined:onClick,style:{
-    width:w,minHeight:h,borderRadius:12*s,background:cardGrad(card.attrs),
-    border:sel?"3px solid white":hl?`3px solid ${CLR[card.dom]}`:"2px solid rgba(255,255,255,0.12)",
-    cursor:dim?"default":onClick?"pointer":"default",opacity:dim?0.3:1,
-    transform:sel?"scale(1.08) translateY(-4px)":"scale(1)",transition:"all 0.2s cubic-bezier(.4,0,.2,1)",
-    display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:8*s,
-    boxShadow:sel?`0 8px 32px ${CLR_GLOW[card.dom]}`:"0 4px 16px rgba(0,0,0,0.4)",
-    position:"relative",overflow:"hidden"}},
-    // Attr values
-    React.createElement("div",{style:{position:"absolute",top:8*s,right:6*s,display:"flex",flexDirection:"column",gap:2*s}},
-      [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",alignItems:"center",gap:3*s,
-        background:"rgba(0,0,0,0.55)",borderRadius:4*s,padding:`${1*s}px ${5*s}px`,backdropFilter:"blur(4px)"}},
-        React.createElement("span",{style:{fontSize:10*s}},SYM[a]),
-        React.createElement("span",{style:{fontSize:12*s,fontWeight:800,color:"white",textShadow:"0 1px 2px rgba(0,0,0,0.7)",minWidth:16*s,textAlign:"right"}},card.attrs[a])
-      ))
-    ),
-    // Tier badge (top-left) - BLACK with white number
-    React.createElement("div",{style:{position:"absolute",top:6*s,left:6*s,
-      background:"rgba(0,0,0,0.75)",borderRadius:4*s,
-      padding:`${2*s}px ${5*s}px`,fontSize:Math.max(11,14*s),fontWeight:900,
-      fontFamily:"'Outfit',sans-serif",color:"white",lineHeight:1,letterSpacing:0}},
-      card.tier),
-    // Bottom label
-    React.createElement("div",{style:{background:"rgba(0,0,0,0.6)",borderRadius:8*s,padding:`${4*s}px ${7*s}px`,backdropFilter:"blur(4px)",textAlign:"center"}},
-      React.createElement("div",{style:{fontSize:9*s,color:"rgba(255,255,255,0.7)",fontWeight:700}},ANAME[card.dom]),
-      React.createElement("div",{style:{fontSize:8*s,color:"rgba(255,255,255,0.4)",fontWeight:600,marginTop:1*s}},card.attrs.join("-"))
-    )
-  );
-}
+// ─── Card in Play component ──────────────────────────────────────────────────
+function CardInPlay({ cip, selected, onClick, dimmed, showAbility = true }) {
+  const { card, bondPartnerId, rallyBonus, knockedOut, abilityRevealed, abilityUsed } = cip;
+  const maxStat = Math.max(card.power, card.speed, card.wits);
+  const cls = [
+    'cip',
+    bondPartnerId ? 'bonded' : '',
+    selected ? 'selected' : '',
+    knockedOut ? 'ko' : '',
+    onClick ? 'clickable' : '',
+    dimmed ? '' : '',
+  ].filter(Boolean).join(' ');
 
-/* ═══ ATTR COUNTDOWN ══════════════════════════════════════ */
-function AttrCount({history,carry}){
-  const left=[3,3,3];(history||[]).forEach(r=>left[r.attr]--);
-  return React.createElement("div",{style:{display:"flex",gap:14,justifyContent:"center",padding:"8px 0"}},
-    [0,1,2].map(a=>React.createElement("div",{key:a,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4,opacity:left[a]===0?0.2:1,transition:"opacity 0.3s"}},
-      React.createElement("span",{style:{fontSize:24}},SYM[a]),
-      React.createElement("div",{style:{display:"flex",gap:3}},
-        [0,1,2].map(i=>React.createElement("div",{key:i,style:{width:9,height:9,borderRadius:"50%",background:i<left[a]?CLR[a]:"rgba(255,255,255,0.1)",boxShadow:i<left[a]?`0 0 6px ${CLR_GLOW[a]}`:"none"}}))
-      ),
-      React.createElement("span",{style:{fontSize:8,fontWeight:700,color:left[a]>0?CLR[a]:"#334155"}},ANAME[a])
-    )),
-    carry>0&&React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4,animation:"pulse 1s infinite"}},
-      React.createElement("span",{style:{fontSize:16,fontWeight:900,color:"#F59E0B"}},"+"+carry),
-      React.createElement("span",{style:{fontSize:8,color:"#F59E0B",fontWeight:600}},"CARRY")
-    )
-  );
-}
-
-/* ═══ CARD CREATOR ════════════════════════════════════════ */
-function CardCreator({onBack,onSaved,startTab}){
-  const h=React.createElement;
-  const[cards,setCards]=useState([]);
-  const[name,setName]=useState("");
-  const[font,setFont]=useState("outfit");
-  const[imageUrl,setImageUrl]=useState("");
-  const[imgPreview,setImgPreview]=useState("");
-  const[imgScale,setImgScale]=useState(1);
-  const[imgX,setImgX]=useState(50);
-  const[imgY,setImgY]=useState(50);
-  const[cardTierSel,setCardTierSel]=useState(27);
-  const[attrs,setAttrs]=useState([12,9,6]);
-  const[saving,setSaving]=useState(false);
-  const[generating,setGenerating]=useState(false);
-  const[err,setErr]=useState("");
-  const[tab,setTab]=useState(startTab||"create");
-  const dragRef=useRef({active:false,lastX:0,lastY:0});
-
-  useEffect(()=>{ loadCards(); },[]);
-
-  async function generateCard(){
-    setGenerating(true);setErr("");
-    for(let attempt=0;attempt<10;attempt++){
-      try{
-        const r=await fetch("https://en.wikipedia.org/w/api.php?action=query&generator=random&grnnamespace=0&prop=pageimages&piprop=thumbnail&pithumbsize=800&format=json&origin=*");
-        const d=await r.json();
-        const page=Object.values(d.query?.pages||{})[0];
-        const thumb=page?.thumbnail;
-        if(thumb?.source && thumb.height>thumb.width){
-          const title=page.title.replace(/\s*\(.*?\)/g,"").trim().slice(0,20);
-          setImgPreview(thumb.source);
-          setImageUrl(thumb.source);
-          setImgX(50);setImgY(50);setImgScale(1);
-          setName(title);
-          setGenerating(false);return;
-        }
-      }catch(e){}
-    }
-    setErr("No image found — try again");
-    setGenerating(false);
-  }
-
-  async function loadCards(){
-    const r=await fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`);
-    const d=await r.json();
-    if(d.cards)setCards(d.cards);
-  }
-
-  function tierDefaults(t){ return t===27?[12,9,6]:t===24?[12,9,3]:[12,6,3]; }
-
-  function selectTier(t){
-    setCardTierSel(t);
-    setAttrs(tierDefaults(t));
-    setErr("");
-  }
-
-  function adjustAttr(i,delta){
-    const next=[...attrs];
-    const newVal=next[i]+delta;
-    if(newVal<ATTR_MIN||newVal>ATTR_MAX)return;
-    const others=[0,1,2].filter(x=>x!==i);
-    const o=others.find(x=>delta>0?next[x]-delta>=ATTR_MIN:next[x]-delta<=ATTR_MAX);
-    if(o===undefined)return;
-    next[i]=newVal;next[o]-=delta;
-    setAttrs(next);
-  }
-
-  function onDragStart(e){
-    e.preventDefault();
-    const cx=e.touches?e.touches[0].clientX:e.clientX;
-    const cy=e.touches?e.touches[0].clientY:e.clientY;
-    dragRef.current={active:true,lastX:cx,lastY:cy};
-  }
-  function onDragMove(e){
-    if(!dragRef.current.active)return;
-    const cx=e.touches?e.touches[0].clientX:e.clientX;
-    const cy=e.touches?e.touches[0].clientY:e.clientY;
-    const dx=cx-dragRef.current.lastX;
-    const dy=cy-dragRef.current.lastY;
-    dragRef.current.lastX=cx;dragRef.current.lastY=cy;
-    setImgX(x=>Math.max(0,Math.min(100,x-dx*0.4)));
-    setImgY(y=>Math.max(0,Math.min(100,y-dy*0.4)));
-  }
-  function onDragEnd(){ dragRef.current.active=false; }
-
-  async function saveCard(){
-    if(!name.trim()){setErr("Card needs a name");return;}
-    if(attrs[0]===attrs[1]&&attrs[1]===attrs[2]){setErr("All three attributes can't be equal — add some variety!");return;}
-    const attrSum=attrs.reduce((a,b)=>a+b,0);
-    if(attrSum!==cardTierSel){setErr(`Attributes must sum to ${cardTierSel} for this tier`);return;}
-    setSaving(true);setErr("");
-    const r=await fetch("/api/cards",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({playerId:LOCAL_PLAYER_ID,name,font,imageUrl:imgPreview||null,attrs,imgScale,imgX,imgY})});
-    const d=await r.json();
-    setSaving(false);
-    if(d.error){setErr(d.error);return;}
-    const newCards=[...cards,d.card];
-    setCards(newCards);
-    if(onSaved)onSaved(d.card);
-    setName("");setImageUrl("");setImgPreview("");setImgScale(1);setImgX(50);setImgY(50);setAttrs(tierDefaults(cardTierSel));
-    setTab("library");
-  }
-
-  async function deleteCard(cardId){
-    await fetch(`/api/cards/${cardId}`,{method:"DELETE",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({playerId:LOCAL_PLAYER_ID})});
-    setCards(c=>c.filter(x=>x.id!==cardId));
-  }
-
-  const previewCard={id:"cc_preview",name:name||"Card Name",font,imageUrl:imgPreview||null,imgScale,imgX,imgY,attrs};
-
-  return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}},
-    // Header
-    h("div",{style:{width:"100%",padding:"12px 24px",display:"flex",alignItems:"center",gap:12,
-      background:"rgba(11,15,26,.95)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
-      h("button",{className:"btn btn-s",onClick:onBack,style:{padding:"6px 14px",fontSize:12}},
-        onSaved?"← Back to Hand":"← Back"),
-      h("span",{style:{fontSize:16,fontWeight:800,letterSpacing:2,color:"#E2E8F0"}},"CARD CREATOR"),
-      h("span",{style:{fontSize:12,color:"#64748B",marginLeft:"auto"}},cards.length+"/"+CUSTOM_CARD_LIMIT+" cards")
-    ),
-    // Tabs
-    h("div",{style:{display:"flex",borderBottom:"1px solid rgba(255,255,255,0.06)",width:"100%",maxWidth:800}},
-      [["create","+ Create"],["library","My Cards ("+cards.length+")"]].map(([t,label])=>
-        h("button",{key:t,onClick:()=>setTab(t),style:{
-          flex:1,padding:"12px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,
-          letterSpacing:1,textTransform:"uppercase",fontFamily:"'Outfit',sans-serif",
-          color:tab===t?"#F1F5F9":"#94A3B8",
-          borderBottom:tab===t?"2px solid #DC2626":"2px solid transparent",
-          transition:"color .2s"}},label))
-    ),
-
-    // ── CREATE TAB ──
-    tab==="create"&&h("div",{style:{width:"100%",maxWidth:800,padding:"20px 16px",display:"flex",gap:24,flexWrap:"wrap",justifyContent:"center",animation:"fadeIn .3s ease"}},
-
-      // Left: form
-      h("div",{style:{flex:"1",minWidth:280,display:"flex",flexDirection:"column",gap:16}},
-
-        // Name
-        h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"CARD NAME"),
-          h("div",{style:{position:"relative"}},
-            h("input",{value:name,onChange:e=>setName(e.target.value.slice(0,20)),maxLength:20,
-              placeholder:"Enter card name...",
-              style:{width:"100%",padding:"10px 12px",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",
-                borderRadius:8,color:"white",fontSize:14,outline:"none"}}),
-            h("span",{style:{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
-              fontSize:11,color:name.length>=18?"#EF4444":"#475569"}},name.length+"/20")
-          )
-        ),
-
-        // Font
-        h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"FONT"),
-          h("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
-            FONTS.map(f=>h("button",{key:f.id,onClick:()=>setFont(f.id),style:{
-              padding:"6px 12px",borderRadius:8,border:"none",cursor:"pointer",transition:"all .2s",
-              background:font===f.id?"rgba(220,38,38,.2)":"rgba(255,255,255,.08)",
-              color:font===f.id?"#FCA5A5":"#CBD5E1",
-              outline:font===f.id?"1px solid rgba(220,38,38,.4)":"1px solid rgba(255,255,255,.08)"}},
-              h("span",{className:f.cls,style:{fontSize:12}},f.label)))
-          )
-        ),
-
-        // Image URL
-        // Generate from Wikipedia
-        h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"IMAGE"),
-          h("button",{
-            onClick:generateCard,
-            disabled:generating,
-            style:{width:"100%",padding:"11px",borderRadius:10,border:"1px solid rgba(99,102,241,.35)",
-              background:generating?"rgba(99,102,241,.08)":"rgba(99,102,241,.12)",
-              color:generating?"#6366F1":"#A5B4FC",cursor:generating?"default":"pointer",
-              fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:13,letterSpacing:1,
-              transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}},
-            generating
-              ?h("span",{style:{display:"flex",alignItems:"center",gap:8}},
-                  h("span",{style:{width:14,height:14,border:"2px solid rgba(99,102,241,.3)",borderTopColor:"#6366F1",borderRadius:"50%",animation:"spin 1s linear infinite",display:"inline-block"}}),
-                  "Finding image...")
-              :imgPreview?"⚡ Generate Another":"⚡ Generate Random Card"
-          ),
-          h("div",{style:{textAlign:"center",fontSize:11,color:"#334155",margin:"6px 0"}},"— or paste a URL —"),
-          h("div",{style:{display:"flex",gap:8}},
-            h("input",{value:imageUrl,onChange:e=>setImageUrl(e.target.value),
-              placeholder:"https://...",
-              style:{flex:1,padding:"10px 12px",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",
-                borderRadius:8,color:"white",fontSize:13,outline:"none"}}),
-            h("button",{className:"btn btn-s",onClick:()=>{setImgPreview(imageUrl);setImgX(50);setImgY(50);setImgScale(1);},
-              style:{padding:"8px 14px",fontSize:12,whiteSpace:"nowrap"}},"Load")
-          ),
-          imgPreview&&h("div",{style:{fontSize:11,color:"#64748B",marginTop:4}},"Drag image in preview to reposition")
-        ),
-
-        // Zoom slider (only if image loaded)
-        imgPreview&&h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:4}},"ZOOM  "+Math.round(imgScale*100)+"%"),
-          h("input",{type:"range",min:1,max:3,step:0.05,value:imgScale,
-            onChange:e=>setImgScale(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#DC2626"}})
-        ),
-
-        // Attributes
-        h("div",null,
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:6}},"CARD TIER"),
-          h("div",{style:{display:"flex",gap:6,marginBottom:10}},
-            [{t:27,label:"Standard",sub:"27 pts"},{t:24,label:"Focused",sub:"24 pts"},{t:21,label:"Specialist",sub:"21 pts"}].map(({t,label,sub})=>
-              h("button",{key:t,onClick:()=>selectTier(t),style:{
-                flex:1,padding:"8px 4px",borderRadius:8,border:"none",cursor:"pointer",transition:"all .2s",
-                background:cardTierSel===t?"rgba(220,38,38,.2)":"rgba(255,255,255,.06)",
-                outline:cardTierSel===t?"1px solid rgba(220,38,38,.5)":"1px solid rgba(255,255,255,.08)",
-                color:cardTierSel===t?"#FCA5A5":"#94A3B8"}},
-                h("div",{style:{fontSize:11,fontWeight:700}},label),
-                h("div",{style:{fontSize:10,opacity:.7}},sub)
-              )
-            )
-          ),
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B",marginBottom:8}},`ATTRIBUTES  (SUM: ${attrs.reduce((a,b)=>a+b,0)}/${cardTierSel})`),
-          h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
-            [0,1,2].map(i=>h("div",{key:i,style:{display:"flex",alignItems:"center",gap:10}},
-              h("span",{style:{fontSize:18,width:24}},SYM[i]),
-              h("span",{style:{fontSize:11,fontWeight:700,color:CLR[i],width:36,letterSpacing:1}},ANAME[i]),
-              h("button",{onClick:()=>adjustAttr(i,-3),style:{width:28,height:28,borderRadius:6,border:"none",
-                background:"rgba(255,255,255,.08)",color:"white",cursor:"pointer",fontSize:16,fontWeight:700}},"-"),
-              h("span",{style:{fontSize:18,fontWeight:800,color:"white",width:28,textAlign:"center"}},attrs[i]),
-              h("button",{onClick:()=>adjustAttr(i,3),style:{width:28,height:28,borderRadius:6,border:"none",
-                background:"rgba(255,255,255,.08)",color:"white",cursor:"pointer",fontSize:16,fontWeight:700}},"+"),
-              h("div",{style:{flex:1,height:6,borderRadius:3,background:"rgba(255,255,255,.06)"}},
-                h("div",{style:{width:`${(attrs[i]/21)*100}%`,height:"100%",borderRadius:3,background:CLR[i],transition:"width .2s"}}))
-            ))
-          )
-        ),
-
-        err&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},err),
-        cards.length>=CUSTOM_CARD_LIMIT
-          ?h("div",{style:{background:"rgba(234,179,8,.08)",border:"1px solid rgba(234,179,8,.25)",borderRadius:10,padding:"12px 16px",marginTop:4}},
-              h("div",{style:{fontSize:13,fontWeight:700,color:"#FCD34D",marginBottom:6}},"Library full — 7/7 cards"),
-              h("div",{style:{fontSize:12,color:"#94A3B8",marginBottom:10}},"Delete a card from My Cards to create a new one."),
-              h("button",{className:"btn btn-s",onClick:()=>setTab("library"),style:{fontSize:12,padding:"6px 18px"}},"Go to My Cards →")
-            )
-          :h("button",{className:"btn btn-p",onClick:saveCard,disabled:saving,style:{marginTop:4}},
-              saving?"Saving...":"Save Card →")
-      ),
-
-      // Right: preview with drag-to-pan
-      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8}},
-        h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:"#64748B"}},"PREVIEW"),
-        h("div",{
-          onMouseDown:imgPreview?onDragStart:undefined,
-          onMouseMove:imgPreview?onDragMove:undefined,
-          onMouseUp:imgPreview?onDragEnd:undefined,
-          onMouseLeave:imgPreview?onDragEnd:undefined,
-          onTouchStart:imgPreview?onDragStart:undefined,
-          onTouchMove:imgPreview?onDragMove:undefined,
-          onTouchEnd:imgPreview?onDragEnd:undefined,
-          style:{cursor:imgPreview?"grab":"default",userSelect:"none"}},
-          h(CustomCardView,{card:previewCard})
-        ),
-        imgPreview&&h("div",{style:{fontSize:10,color:"#334155",letterSpacing:1}},"DRAG TO REPOSITION")
-      )
-    ),
-
-    // ── LIBRARY TAB ──
-    tab==="library"&&h("div",{style:{width:"100%",maxWidth:800,padding:"20px 16px",animation:"fadeIn .3s ease"}},
-      cards.length===0
-        ?h("div",{style:{textAlign:"center",color:"#475569",padding:40}},
-            h("div",{style:{fontSize:32,marginBottom:12}},"🃏"),
-            h("div",{style:{fontSize:14}},"No custom cards yet."),
-            h("button",{className:"btn btn-s",onClick:()=>setTab("create"),style:{marginTop:16}},"Create Your First Card")
-          )
-        :h("div",{style:{display:"flex",flexWrap:"wrap",gap:20,justifyContent:"center"}},
-            cards.map(c=>h("div",{key:c.id,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8}},
-              h(CustomCardView,{card:c}),
-              h("button",{className:"btn btn-danger",onClick:()=>deleteCard(c.id),
-                style:{fontSize:11,padding:"4px 14px",letterSpacing:1}},"Delete")
-            ))
-          )
-    )
-  );
-}
-
-/* ═══ MAIN APP ════════════════════════════════════════════ */
-function App(){
-  const isMobile=useIsMobile();
-  // Connection state
-  const[screen,setScreen]=useState("menu"); // menu, waiting, game, creator
-  const[creatorFromGame,setCreatorFromGame]=useState(false);
-  const[vsBot,setVsBot]=useState(false);
-  const[roomCode,setRoomCode]=useState("");
-  const[joinInput,setJoinInput]=useState("");
-  const[playerId,setPlayerId]=useState("");
-  const[playerNum,setPlayerNum]=useState(0);
-  const[error,setError]=useState("");
-
-  // Game state from server
-  const[gs,setGs]=useState(null);
-  const pollRef=useRef(null);
-  const[loading,setLoading]=useState(false);
-
-  // Local UI state
-  const[handSel,setHandSel]=useState(new Set());
-  const[revealPhase,setRevealPhase]=useState(null);
-  const[lastRound,setLastRound]=useState(-1);
-  const prevHistLen=useRef(0);
-  const prevMatchNum=useRef(1);
-  const[customCards,setCustomCards]=useState([]);
-  const[customCardsLoaded,setCustomCardsLoaded]=useState(false);
-
-  // Load custom cards on mount and whenever returning from creator
-  useEffect(()=>{
-    setCustomCardsLoaded(false);
-    fetch(`/api/cards?playerId=${LOCAL_PLAYER_ID}`)
-      .then(r=>r.json()).then(d=>{ if(d.cards)setCustomCards(d.cards); setCustomCardsLoaded(true); })
-      .catch(()=>setCustomCardsLoaded(true));
-  },[screen]);
-
-  // ── Polling ──
-  const poll=useCallback(async()=>{
-    if(!roomCode||!playerId)return;
-    try{
-      const data=await api(`poll?code=${roomCode}&playerId=${playerId}`);
-      if(data.error){console.error(data.error);return;}
-      setGs(data);
-    }catch(e){console.error("poll failed",e);}
-  },[roomCode,playerId]);
-
-  useEffect(()=>{
-    if(screen!=="waiting"&&screen!=="game")return;
-    poll();
-    pollRef.current=setInterval(poll,1200);
-    return()=>clearInterval(pollRef.current);
-  },[screen,poll]);
-
-  // Transition from waiting to game when opponent joins
-  useEffect(()=>{
-    if(gs&&gs.opponentJoined&&screen==="waiting")setScreen("game");
-  },[gs,screen]);
-
-  // Clear hand selection when a new match starts (handles player who didn't click the button)
-  useEffect(()=>{
-    if(!gs)return;
-    if(gs.matchNum!==prevMatchNum.current){
-      setHandSel(new Set());
-      prevHistLen.current=0;
-      setRevealPhase(null);
-      prevMatchNum.current=gs.matchNum;
-    }
-  },[gs?.matchNum]);
-
-  // Detect new round results for reveal animation
-  useEffect(()=>{
-    if(!gs||!gs.history)return;
-    if(gs.history.length>prevHistLen.current&&gs.history.length>0){
-      const latest=gs.history[gs.history.length-1];
-      setRevealPhase("flip");
-      setTimeout(()=>setRevealPhase("attr"),2000);
-      setTimeout(()=>setRevealPhase("result"),3500);
-    }
-    prevHistLen.current=gs.history.length;
-  },[gs?.history?.length]);
-
-  // ── Actions ──
-  const createGame=async(isBot=false)=>{
-    setLoading(true);setError("");
-    const r=await api("create",{localPlayerId:LOCAL_PLAYER_ID,vsBot:isBot||undefined});
-    setLoading(false);
-    if(r.error){setError(r.error);return;}
-    setVsBot(isBot);
-    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);
-    setScreen(isBot?"game":"waiting");
+  const statColor = (val) => {
+    if (val === maxStat) return val === card.power ? 'stat-p' : val === card.speed ? 'stat-s' : 'stat-w';
+    return '';
   };
 
-  const joinGame=async()=>{
-    if(!joinInput.trim()){setError("Enter a room code");return;}
-    setLoading(true);setError("");
-    const r=await api("join",{code:joinInput.trim().toUpperCase(),localPlayerId:LOCAL_PLAYER_ID});
-    setLoading(false);
-    if(r.error){setError(r.error);return;}
-    setRoomCode(r.code);setPlayerId(r.playerId);setPlayerNum(r.playerNum);setScreen("game");
-  };
+  const effP = card.power + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
+  const effS = card.speed + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
+  const effW = card.wits + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
 
-  const submitHand=async()=>{
-    if(handSel.size!==9)return;
-    await api("action",{code:roomCode,playerId,action:"hand",data:[...handSel]});
-    poll();
-  };
+  const ability = showAbility ? card.ability : (abilityRevealed ? card.ability : null);
 
-  const playCard=async(cardId)=>{
-    if(gs.myPlayReady)return;
-    await api("action",{code:roomCode,playerId,action:"play",data:cardId});
-    poll();
-  };
-
-  const nextMatch=async()=>{
-    await api("action",{code:roomCode,playerId,action:"next_match",data:null});
-    setHandSel(new Set());
-    prevHistLen.current=0;
-    setRevealPhase(null);
-    poll();
-  };
-
-  // ── Derived state ──
-  const ccMap=gs?.customCardMap||{};
-  const getCard=id=>CARD_MAP[id]||ccMap[id]||null;
-  const myPlayedIds=gs?new Set((gs.history||[]).map(h=>playerNum===1?h.p1CardId:h.p2CardId)):new Set();
-  const myHandCards=gs&&gs.myHand?gs.myHand.filter(id=>!myPlayedIds.has(id)).map(id=>getCard(id)).filter(Boolean):[];
-  const latestResult=gs&&gs.history&&gs.history.length>0?gs.history[gs.history.length-1]:null;
-
-  // ── Render helpers ──
-  const h=React.createElement;
-
-  const header=h("div",{style:{width:"100%",padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"rgba(11,15,26,.95)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
-    h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[0]}},"THIRD"),
-    h("span",{style:{fontSize:13}},"🔥❄️⚡"),
-    h("span",{style:{fontSize:18,fontWeight:900,letterSpacing:3,color:CLR[1]}},"EDGE"),
-    vsBot?h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},"vs Bot"):roomCode&&h("span",{style:{fontSize:12,color:"#475569",marginLeft:12,fontWeight:600}},`Room: ${roomCode}`)
+  return (
+    <div className={cls} onClick={onClick} style={dimmed ? { opacity: 0.3 } : {}}>
+      <div className="cip-name">{card.name}</div>
+      <div className="cip-trait">{card.trait}</div>
+      <div className="cip-stats">
+        <div className="cip-stat">
+          <span className="cip-stat-label">💪</span>
+          <span className={`cip-stat-val ${card.power === maxStat ? 'stat-p' : ''}`}>
+            {effP}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.power})</span> : null}
+          </span>
+        </div>
+        <div className="cip-stat">
+          <span className="cip-stat-label">⚡</span>
+          <span className={`cip-stat-val ${card.speed === maxStat ? 'stat-s' : ''}`}>
+            {effS}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.speed})</span> : null}
+          </span>
+        </div>
+        <div className="cip-stat">
+          <span className="cip-stat-label">🧠</span>
+          <span className={`cip-stat-val ${card.wits === maxStat ? 'stat-w' : ''}`}>
+            {effW}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.wits})</span> : null}
+          </span>
+        </div>
+      </div>
+      {ability && (
+        <div className={`cip-ability ${abilityRevealed ? 'revealed' : ''}`}>
+          {ability}{abilityUsed ? ' ✓' : ''}
+        </div>
+      )}
+      {!ability && !showAbility && (
+        <div className="cip-ability">?</div>
+      )}
+      <div className="cip-badges">
+        {bondPartnerId && <span className="badge badge-bond">Bond</span>}
+        {(rallyBonus > 0) && <span className="badge badge-rally">+{rallyBonus} Rally</span>}
+        {knockedOut && <span className="badge badge-ko">KO</span>}
+      </div>
+    </div>
   );
+}
 
-  // ═══ CARD CREATOR ═══
-  if(screen==="creator"){
-    return React.createElement(CardCreator,{
-      startTab:customCards.length>=7?"library":"create",
-      onBack:()=>setScreen(creatorFromGame?"game":"menu"),
-      onSaved:creatorFromGame?(card)=>{
-        // Add card to customCards, remove a random dealt card from the roster
-        setCustomCards(prev=>[...prev,card]);
-      }:null
-    });
-  }
-
-  // ═══ MENU ═══
-  if(screen==="menu"){
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
-      header,
-      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,animation:"fadeIn .6s ease",padding:24}},
-        h("div",{style:{textAlign:"center"}},
-          h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:6,background:`linear-gradient(135deg,${CLR[0]},${CLR[1]},${CLR[2]})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"THIRD EDGE"),
-          h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:3,color:"#475569",marginTop:2,textAlign:"center"}},"V4"),
-          h("div",{style:{fontSize:36,marginTop:4}},"🔥 ❄️ ⚡"),
-          h("div",{style:{display:"flex",gap:12,justifyContent:"center",marginTop:8}},
-            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[0],letterSpacing:2}},"RAGE"),
-            h("span",{style:{fontSize:14,color:"#334155"}},"·"),
-            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[1],letterSpacing:2}},"CHILL"),
-            h("span",{style:{fontSize:14,color:"#334155"}},"·"),
-            h("span",{style:{fontSize:14,fontWeight:700,color:CLR[2],letterSpacing:2}},"SPARK"),
-          )
-        ),
-        h("div",{style:{maxWidth:400,textAlign:"center",color:"#94A3B8",lineHeight:1.7,fontSize:14}},
-          `${ALL_CARDS.length} cards across 3 tiers. Standard · Focused · Specialist. Best-of-3 series.`
-        ),
-        // Create
-        h("button",{className:"btn btn-p",onClick:()=>createGame(false),disabled:loading,style:{fontSize:16,padding:"14px 44px"}},loading?"Creating...":"Create Game"),
-        h("button",{className:"btn btn-s",onClick:()=>createGame(true),disabled:loading,style:{fontSize:14,padding:"10px 32px"}},loading?"Creating...":"Play vs Bot"),
-        // Join
-        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
-          h("input",{type:"text",value:joinInput,onChange:e=>setJoinInput(e.target.value.toUpperCase()),placeholder:"ROOM CODE",maxLength:4,
-            style:{width:140,padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",color:"white",fontSize:18,fontWeight:800,textAlign:"center",letterSpacing:6,outline:"none"}}),
-          h("button",{className:"btn btn-s",onClick:joinGame,disabled:loading||!joinInput.trim()},"Join")
-        ),
-        error&&h("div",{style:{color:"#EF4444",fontSize:13,fontWeight:600}},error)
-      )
-    );
-  }
-
-  // ═══ WAITING ═══
-  if(screen==="waiting"){
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
-      header,
-      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,animation:"fadeIn .6s ease",padding:24}},
-        h("div",{style:{fontSize:14,color:"#64748B",letterSpacing:2}},"WAITING FOR OPPONENT"),
-        h("div",{style:{fontSize:64,fontWeight:900,letterSpacing:12,color:"white"}},roomCode),
-        h("div",{style:{fontSize:13,color:"#94A3B8",textAlign:"center",maxWidth:300,lineHeight:1.6}},
-          "Share this code with your opponent. The game starts when they join."
-        ),
-        h("button",{className:"btn btn-s",onClick:()=>{navigator.clipboard&&navigator.clipboard.writeText(roomCode)}},
-          "📋 Copy Code"
-        ),
-        h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
-      )
-    );
-  }
-
-  // ═══ GAME ═══
-  if(!gs)return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
-    h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
+// ─── Hand Card ───────────────────────────────────────────────────────────────
+function HandCard({ card, selected, onClick }) {
+  return (
+    <div className={`hand-card ${selected ? 'selected' : ''}`} onClick={onClick}>
+      <div className="hand-card-name">{card.name}</div>
+      <div className="hand-card-stats">
+        <span className="stat-p">💪{card.power}</span>
+        <span className="stat-s">⚡{card.speed}</span>
+        <span className="stat-w">🧠{card.wits}</span>
+      </div>
+      <div className="hand-card-trait">{card.trait}</div>
+      <div className="hand-card-ability">{card.ability}</div>
+    </div>
   );
+}
 
-  const status=gs.status;
+// ─── Score Bar ───────────────────────────────────────────────────────────────
+function ScoreBar({ myTotal, oppTotal, myLabel, oppLabel }) {
+  const total = myTotal + oppTotal;
+  const leftPct = total > 0 ? Math.min(100, (myTotal / GOAL) * 100) : 0;
+  const rightPct = total > 0 ? Math.min(100, (oppTotal / GOAL) * 100) : 0;
+  return (
+    <div className="score-bar-wrap">
+      <div className="score-bar-label">{myLabel || 'You'}</div>
+      <div className="score-num" style={{color:'#6366F1'}}>{myTotal}</div>
+      <div className="score-bar-track">
+        <div className="score-bar-fill-left" style={{width: leftPct + '%'}} />
+        <div className="score-bar-fill-right" style={{width: rightPct + '%'}} />
+      </div>
+      <div className="score-num" style={{color:'#EF4444'}}>{oppTotal}</div>
+      <div className="score-bar-label right">{oppLabel || 'Opp'}</div>
+      <div style={{fontSize:'10px',color:'var(--muted)',whiteSpace:'nowrap'}}>Goal: {GOAL}</div>
+    </div>
+  );
+}
 
-  // ── HAND PHASE ──
-  if(status==="hand"){
-    if(!customCardsLoaded)return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
-      h("div",{style:{width:24,height:24,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[0],borderRadius:"50%",animation:"spin 1s linear infinite"}})
-    );
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [session, setSession] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('coc_session')) || null; } catch { return null; }
+  });
+  const [gs, setGs] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const pollRef = useRef(null);
 
-    // Split roster by tier
-    const roster=gs.myRoster||[];
-    const rosterByTier={27:[],24:[],21:[]};
-    roster.forEach(id=>{const c=CARD_MAP[id];if(c)rosterByTier[c.tier].push(c);});
+  const showToast = useCallback((msg, type = 'info') => {
+    setToast({ msg, type, key: Date.now() });
+  }, []);
 
-    // Split custom cards by tier
-    const customByTier={27:[],24:[],21:[]};
-    customCards.forEach(c=>{
-      const t=c.attrs.reduce((a,b)=>a+b,0);
-      if(customByTier[t])customByTier[t].push(c);
-    });
+  const saveSession = (s) => {
+    localStorage.setItem('coc_session', JSON.stringify(s));
+    setSession(s);
+  };
 
-    // Each row = custom cards + enough generic to fill slot limit (7/4/4)
-    const LIMITS=ROSTER_DEAL;
-    const PICKS=HAND_PICKS;
-    const rows={};
-    [27,24,21].forEach(t=>{
-      const custom=customByTier[t];
-      const generic=rosterByTier[t].slice(0,Math.max(0,LIMITS[t]-custom.length));
-      rows[t]=[...custom,...generic];
-    });
+  const clearSession = () => {
+    localStorage.removeItem('coc_session');
+    setSession(null);
+    setGs(null);
+  };
 
-    // Per-tier selection counts
-    function getHandTier(id){
-      if(id.startsWith("cc_")){const c=customCards.find(x=>x.id===id);return c?c.attrs.reduce((a,b)=>a+b,0):27;}
-      return CARD_MAP[id]?.tier||27;
-    }
-    const tierSel={27:0,24:0,21:0};
-    [...handSel].forEach(id=>{const t=getHandTier(id);tierSel[t]=(tierSel[t]||0)+1;});
-    const handReady=tierSel[27]===5&&tierSel[24]===2&&tierSel[21]===2;
-
-    function toggleCard(id){
-      setHandSel(p=>{
-        const s=new Set(p);
-        if(s.has(id)){s.delete(id);}
-        else{
-          const t=getHandTier(id);
-          if((tierSel[t]||0)<PICKS[t])s.add(id);
-        }
-        return s;
-      });
-    }
-
-    const customCount=customCards.length;
-    const TIER_META={
-      27:{label:"STANDARD",color:"#10B981",desc:"Pick 5 of "+rows[27].length},
-      24:{label:"FOCUSED", color:"#F59E0B",desc:"Pick 2 of "+rows[24].length},
-      21:{label:"SPECIALIST",color:"#EF4444",desc:"Pick 2 of "+rows[21].length},
+  // Polling
+  useEffect(() => {
+    if (!session) { clearInterval(pollRef.current); return; }
+    const poll = async () => {
+      try {
+        const data = await apiFetch(`/api/poll?code=${session.code}&playerId=${session.playerId}`);
+        setGs(data);
+      } catch (e) {
+        // silently ignore poll errors
+      }
     };
+    poll();
+    pollRef.current = setInterval(poll, 1500);
+    return () => clearInterval(pollRef.current);
+  }, [session]);
 
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
-      header,
-      h("div",{style:{flex:1,width:"100%",maxWidth:960,padding:"10px 12px",animation:"fadeIn .4s ease"}},
-        // Match indicator + series
-        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
-          h("div",{style:{display:"flex",gap:8}},
-            [1,2,3].map(m=>h("div",{key:m,style:{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,
-              background:m===gs.matchNum?`${CLR[0]}20`:"transparent",color:m===gs.matchNum?CLR[0]:"#475569",
-              border:m===gs.matchNum?`1px solid ${CLR[0]}40`:"1px solid transparent"}},"Match "+m))
-          ),
-          h("div",{style:{display:"flex",alignItems:"center",gap:12}},
-            h("div",{style:{fontSize:12,color:"#94A3B8"}},
-              "Series: ",h("span",{style:{color:"#10B981",fontWeight:700}},gs.seriesScore[0])," – ",
-              h("span",{style:{color:"#EF4444",fontWeight:700}},gs.seriesScore[1])
-            ),
-            h("button",{className:"btn btn-s",onClick:()=>{setCreatorFromGame(true);setScreen("creator");},
-              style:{fontSize:10,padding:"4px 10px",letterSpacing:1}},
-              customCount>=7?"✦ My Cards (7/7)":"✦ Card Creator")
-          )
-        ),
-        // Pick summary
-        h("div",{style:{textAlign:"center",marginBottom:10}},
-          h("div",{style:{fontSize:17,fontWeight:700}},`Pick 9 — Match ${gs.matchNum}`),
-          h("div",{style:{display:"flex",justifyContent:"center",gap:16,marginTop:4}},
-            [27,24,21].map(t=>h("span",{key:t,style:{fontSize:11,fontWeight:700,
-              color:tierSel[t]===PICKS[t]?"#10B981":TIER_META[t].color}},
-              `${TIER_META[t].label} ${tierSel[t]}/${PICKS[t]}`))
-          ),
-          h("div",{style:{fontSize:11,color:"#475569",marginTop:2}},
-            gs.opponentHandReady?"✓ Opponent ready":"⏳ Opponent picking...")
-        ),
-        // ── Three tier rows ──
-        [27,24,21].map(t=>{
-          const meta=TIER_META[t];
-          return h("div",{key:t,style:{marginBottom:14}},
-            h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
-              h("div",{style:{fontSize:11,fontWeight:700,letterSpacing:2,color:meta.color}},meta.label),
-              h("div",{style:{fontSize:10,color:"#475569"}},meta.desc),
-              tierSel[t]===PICKS[t]&&h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,marginLeft:4}},"✓")
-            ),
-            rows[t].length===0
-              ?h("div",{style:{fontSize:11,color:"#334155",fontStyle:"italic",padding:"4px 0"}},"No cards — create some in Card Creator")
-              :h("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
-                  rows[t].map(c=>h(CardView,{key:c.id,card:c,
-                    sel:handSel.has(c.id),
-                    dim:!handSel.has(c.id)&&tierSel[t]>=PICKS[t],
-                    small:true,onClick:()=>toggleCard(c.id)}))
-                )
-          );
-        }),
-        h("div",{style:{textAlign:"center",marginTop:4}},
-          gs.myHandReady
-            ?h("div",{style:{fontSize:13,color:"#10B981",fontWeight:700}},"✓ Hand locked — waiting for opponent...")
-            :h("button",{className:"btn btn-p",disabled:!handReady,onClick:submitHand},"Start Match "+gs.matchNum+" →")
-        )
-      )
-    );
+  const act = async (action, data = {}) => {
+    setLoading(true);
+    try {
+      await postAction(session.code, session.playerId, action, data);
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!session) return <MenuScreen onSession={saveSession} showToast={showToast} />;
+
+  if (!gs || gs.status === 'waiting') {
+    return <WaitingScreen code={session.code} gs={gs} onLeave={clearSession} />;
   }
 
-  // ── REVEAL ANIMATION (runs regardless of status, so final round shows before end screen) ──
-  if(revealPhase&&latestResult){
-      const lr=latestResult;
-      const myCard=getCard(playerNum===1?lr.p1CardId:lr.p2CardId);
-      const opCard=getCard(playerNum===1?lr.p2CardId:lr.p1CardId);
-      const myVal=playerNum===1?lr.p1v:lr.p2v;
-      const opVal=playerNum===1?lr.p2v:lr.p1v;
-      const iWon=(playerNum===1&&lr.winner==="p1")||(playerNum===2&&lr.winner==="p2");
-      const iLost=(playerNum===1&&lr.winner==="p2")||(playerNum===2&&lr.winner==="p1");
-
-      if(revealPhase==="flip"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
-            h("div",{style:{fontSize:11,color:"#475569",letterSpacing:3,fontWeight:700}},"CARDS REVEALED"),
-            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease",flex:1,maxWidth:200}},
-                h("div",{style:{fontSize:10,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
-                h(CardView,{card:myCard,small:true})
-              ),
-              h("div",{style:{fontSize:22,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"flipIn .6s ease .2s both",flex:1,maxWidth:200}},
-                h("div",{style:{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPPONENT"),
-                h(CardView,{card:opCard,small:true})
-              )
-            ),
-            h("div",{style:{fontSize:11,color:"#334155",animation:"pulse 1s infinite",letterSpacing:1}},"Checking attribute...")
-          )
-        );
-      }
-
-      if(revealPhase==="attr"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:640,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:"0 16px"}},
-            h("div",{style:{animation:"attrReveal .5s cubic-bezier(.4,0,.2,1)",display:"flex",alignItems:"center",gap:12,padding:"14px 32px",borderRadius:16,
-              background:`${CLR[lr.attr]}18`,border:`2px solid ${CLR[lr.attr]}60`,boxShadow:`0 0 60px ${CLR_GLOW[lr.attr]}`}},
-              h("span",{style:{fontSize:48}},SYM[lr.attr]),
-              h("span",{style:{fontSize:26,fontWeight:900,color:CLR[lr.attr],letterSpacing:2}},ANAME[lr.attr].toUpperCase())
-            ),
-            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200}},
-                h(CardView,{card:myCard,small:true}),
-                h("div",{style:{fontSize:24,fontWeight:900,color:"#10B981",animation:"scorePopIn .4s ease"}},myVal)
-              ),
-              h("div",{style:{fontSize:18,fontWeight:900,color:"#1e293b",paddingTop:60}},"VS"),
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200}},
-                h(CardView,{card:opCard,small:true}),
-                h("div",{style:{fontSize:24,fontWeight:900,color:"#EF4444",animation:"scorePopIn .4s ease"}},opVal)
-              )
-            )
-          )
-        );
-      }
-
-      if(revealPhase==="result"){
-        return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",background:"#0B0F1A"}},header,
-          h("div",{style:{flex:1,width:"100%",maxWidth:640,padding:"16px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .4s ease"}},
-            // Result badge
-            h("div",{style:{padding:"8px 28px",borderRadius:12,fontSize:18,fontWeight:900,letterSpacing:2,
-              background:iWon?"rgba(16,185,129,.15)":iLost?"rgba(239,68,68,.15)":"rgba(234,179,8,.15)",
-              color:iWon?"#10B981":iLost?"#EF4444":"#EAB308",
-              border:`2px solid ${iWon?"#10B981":iLost?"#EF4444":"#EAB308"}40`,
-              boxShadow:iWon?"0 0 30px rgba(16,185,129,.2)":iLost?"0 0 30px rgba(239,68,68,.2)":"none",
-              animation:lr.winner==="tie"?"shake .4s ease":"scorePopIn .4s ease"}},
-              iWon?`YOU WIN${lr.pts>1?" +"+lr.pts+" pts":""}`:iLost?`OPPONENT WINS${lr.pts>1?" +"+lr.pts+" pts":""}`: "TIE — CARRY +"+(lr.pts)
-            ),
-            // Score
-            h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:24}},
-              h("div",{style:{textAlign:"center"}},
-                h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
-                h("div",{style:{fontSize:40,fontWeight:900,color:"#10B981"}},gs.matchScore[playerNum===1?0:1])),
-              h("div",{style:{fontSize:13,color:"#334155",fontWeight:700}},"—"),
-              h("div",{style:{textAlign:"center"}},
-                h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPP"),
-                h("div",{style:{fontSize:40,fontWeight:900,color:"#EF4444"}},gs.matchScore[playerNum===1?1:0]))
-            ),
-            // Cards — full size on desktop, small on mobile
-            h("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:20,width:"100%"}},
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
-                animation:iWon?"winGlow 1.5s ease infinite":"none",borderRadius:14}},
-                h(CardView,{card:myCard,hl:iWon,small:true}),
-                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+myVal)
-              ),
-              h("div",{style:{fontSize:16,fontWeight:900,color:"#1e293b",paddingTop:60}},"vs"),
-              h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1,maxWidth:200,
-                animation:iLost?"loseGlow 1.5s ease infinite":"none",borderRadius:14}},
-                h(CardView,{card:opCard,hl:iLost,small:true}),
-                h("div",{style:{fontSize:11,fontWeight:700,color:CLR[lr.attr]}},SYM[lr.attr]+" "+opVal)
-              )
-            ),
-            // Continue button
-            h("button",{className:"btn btn-s",onClick:()=>setRevealPhase(null),
-              style:{marginTop:4,fontSize:13,padding:"10px 32px",letterSpacing:1}},
-              "Continue →")
-          )
-        );
-      }
+  if (gs.status === 'complete') {
+    return <CompleteScreen gs={gs} session={session} onNew={clearSession} />;
   }
 
-  // ── PLAYING PHASE ──
-  if(status==="playing"){
-    // Normal play state
-    const myScore=gs.matchScore[playerNum===1?0:1];
-    const opScore=gs.matchScore[playerNum===1?1:0];
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},
-      header,
-      h("div",{style:{flex:1,width:"100%",maxWidth:800,padding:"0 14px",animation:"fadeIn .3s ease"}},
-        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",fontSize:11,color:"#64748B"}},
-          h("span",null,`Series ${gs.seriesScore[0]}–${gs.seriesScore[1]} · Match ${gs.matchNum}`),
-          h("span",null,`Round ${(gs.history||[]).length+1}/9`)
-        ),
-        // Scoreboard
-        h("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:28,marginBottom:2}},
-          h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#10B981",fontWeight:700,letterSpacing:2}},"YOU"),
-            h("div",{style:{fontSize:38,fontWeight:900,color:"#10B981"}},myScore)),
-          h("div",{style:{width:50,height:50,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.02)"}},
-            gs.myPlayReady
-              ?h("div",{style:{width:20,height:20,border:"3px solid rgba(255,255,255,.1)",borderTopColor:CLR[1],borderRadius:"50%",animation:"spin 1s linear infinite"}})
-              :h("span",{style:{fontSize:14,fontWeight:900,color:"#64748B"}},"⚔️")),
-          h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:9,color:"#EF4444",fontWeight:700,letterSpacing:2}},"OPP"),
-            h("div",{style:{fontSize:38,fontWeight:900,color:"#EF4444"}},opScore))
-        ),
-        h(AttrCount,{history:gs.history,carry:gs.carry}),
-        // Opponent cards remaining
-        h("div",{style:{display:"flex",justifyContent:"center",gap:3,marginBottom:8}},
-          Array.from({length:9},(_,i)=>h("div",{key:i,style:{width:32,height:44,borderRadius:5,
-            background:i<gs.opponentCardsLeft?"linear-gradient(180deg,#1e293b,#0f172a)":"transparent",
-            border:i<gs.opponentCardsLeft?"1px solid rgba(255,255,255,.06)":"none",
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,color:"#334155",fontWeight:900}},
-            i<gs.opponentCardsLeft?"TE":""))
-        ),
-        h("div",{style:{height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)",margin:"0 0 8px"}}),
-        h("div",{style:{textAlign:"center",marginBottom:6}},
-          h("span",{style:{fontSize:11,color:"#64748B",fontWeight:600,letterSpacing:1}},
-            gs.myPlayReady?"WAITING FOR OPPONENT...":"TAP A CARD")),
-        // My hand
-        h("div",{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}},
-          myHandCards.map(c=>h(CardView,{key:c.id,card:c,onClick:gs.myPlayReady?undefined:()=>playCard(c.id),dim:gs.myPlayReady,small:true}))
-        ),
-        // History
-        (gs.history||[]).length>0&&h("div",{style:{marginTop:12,padding:"6px 8px",background:"rgba(255,255,255,.02)",borderRadius:8,border:"1px solid rgba(255,255,255,.04)"}},
-          h("div",{style:{display:"flex",flexWrap:"wrap",gap:4}},
-            (gs.history||[]).map((hr,i)=>{
-              const iw=(playerNum===1&&hr.winner==="p1")||(playerNum===2&&hr.winner==="p2");
-              const il=(playerNum===1&&hr.winner==="p2")||(playerNum===2&&hr.winner==="p1");
-              return h("div",{key:i,style:{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:4,fontSize:10,fontWeight:700,
-                background:iw?"rgba(16,185,129,.1)":il?"rgba(239,68,68,.1)":"rgba(255,255,255,.03)",
-                color:iw?"#10B981":il?"#EF4444":"#475569"}},
-                h("span",null,SYM[hr.attr]),
-                h("span",null,(playerNum===1?hr.p1v:hr.p2v)+"–"+(playerNum===1?hr.p2v:hr.p1v)),
-                hr.pts>1&&h("span",{style:{color:"#F59E0B"}},"×"+hr.pts));
-            })
-          )
-        ),
-        gs.opponentPlayReady&&!gs.myPlayReady&&h("div",{style:{textAlign:"center",marginTop:8,fontSize:12,color:CLR[2],fontWeight:700,animation:"pulse 1s infinite"}},"⚡ Opponent is waiting on you!")
-      )
-    );
-  }
-
-  // ── MATCH END ──
-  if(status==="match_end"){
-    const myScore=gs.matchScore[playerNum===1?0:1];
-    const opScore=gs.matchScore[playerNum===1?1:0];
-    const won=myScore>opScore;
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,animation:"slideUp .5s ease",padding:24}},
-        h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:2}},"MATCH "+gs.matchNum),
-        h("div",{style:{fontSize:48,fontWeight:900,color:won?"#10B981":myScore===opScore?"#EAB308":"#EF4444"}},won?"VICTORY":myScore===opScore?"DRAW":"DEFEAT"),
-        h("div",{style:{fontSize:32,fontWeight:800}},
-          h("span",{style:{color:"#10B981"}},myScore),
-          h("span",{style:{color:"#334155",margin:"0 10px"}},"–"),
-          h("span",{style:{color:"#EF4444"}},opScore)),
-        h("button",{className:"btn btn-p",onClick:nextMatch},"Match "+(gs.matchNum+1)+" →")
-      )
-    );
-  }
-
-  // ── SERIES END ──
-  if(status==="series_end"){
-    const myS=gs.seriesScore[playerNum===1?0:1];
-    const opS=gs.seriesScore[playerNum===1?1:0];
-    return h("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center"}},header,
-      h("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,animation:"slideUp .6s ease",padding:24}},
-        h("div",{style:{fontSize:12,color:"#64748B",letterSpacing:3}},"SERIES COMPLETE"),
-        h("div",{style:{fontSize:48,fontWeight:900,letterSpacing:3,background:myS>=2?"linear-gradient(135deg,#10B981,#34D399)":"linear-gradient(135deg,#EF4444,#F87171)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},myS>=2?"YOU WIN":"YOU LOSE"),
-        h("div",{style:{fontSize:36,fontWeight:800}},
-          h("span",{style:{color:"#10B981"}},myS),
-          h("span",{style:{color:"#334155",margin:"0 12px"}},"–"),
-          h("span",{style:{color:"#EF4444"}},opS)),
-        h("button",{className:"btn btn-s",onClick:()=>location.reload()},"New Game")
-      )
-    );
-  }
-
-  // Fallback
-  return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}},
-    h("div",{style:{color:"#64748B"}},"Loading... Status: "+(gs?.status||"unknown")));
+  return (
+    <GameScreen
+      gs={gs}
+      session={session}
+      act={act}
+      loading={loading}
+      onLeave={clearSession}
+      showToast={showToast}
+      toast={toast}
+      onClearToast={() => setToast(null)}
+    />
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+// ─── Menu Screen ──────────────────────────────────────────────────────────────
+function MenuScreen({ onSession, showToast }) {
+  const [joinCode, setJoinCode] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
+
+  const create = async () => {
+    setCreating(true);
+    try {
+      const r = await apiFetch('/api/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      onSession({ code: r.code, playerId: r.playerId, playerNum: r.playerNum });
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const join = async () => {
+    if (!joinCode.trim()) return;
+    setJoining(true);
+    try {
+      const r = await apiFetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: joinCode.trim().toUpperCase() }),
+      });
+      onSession({ code: r.code, playerId: r.playerId, playerNum: r.playerNum });
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  return (
+    <div className="screen animate">
+      <div className="menu-wrap">
+        <div className="menu-logo">Clash of Creations</div>
+        <div className="menu-tagline">Two decks. Three stats. One winner.</div>
+        <button className="btn btn-primary" style={{width:'100%',padding:'14px',fontSize:'15px'}} onClick={create} disabled={creating}>
+          {creating ? 'Creating...' : '⚔️ Create Game'}
+        </button>
+        <div className="menu-sep">— or join with a code —</div>
+        <div style={{display:'flex',gap:8}}>
+          <input
+            value={joinCode}
+            onChange={e => setJoinCode(e.target.value.toUpperCase())}
+            onKeyDown={e => e.key === 'Enter' && join()}
+            placeholder="Room code"
+            maxLength={4}
+            style={{fontSize:'18px',fontWeight:700,letterSpacing:4,textAlign:'center'}}
+          />
+          <button className="btn btn-ghost" onClick={join} disabled={joining || !joinCode.trim()}>
+            {joining ? '...' : 'Join'}
+          </button>
+        </div>
+        <div style={{marginTop:24,fontSize:12,color:'var(--muted)',textAlign:'center'}}>
+          Open in two browser tabs for hot-seat play.<br/>
+          Player 1 creates, Player 2 joins with the code.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Waiting Screen ───────────────────────────────────────────────────────────
+function WaitingScreen({ code, gs, onLeave }) {
+  return (
+    <div className="screen animate" style={{textAlign:'center'}}>
+      <div style={{fontSize:14,color:'var(--muted)',marginBottom:8}}>Room Code</div>
+      <div className="waiting-code">{code}</div>
+      <div style={{fontSize:14,color:'var(--muted)',marginBottom:24}} className="waiting-dot">
+        Waiting for opponent to join…
+      </div>
+      <div style={{fontSize:12,color:'var(--muted)',marginBottom:24}}>
+        Share this code with your opponent. They open the same URL and click "Join".
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={onLeave}>Leave</button>
+    </div>
+  );
+}
+
+// ─── Complete Screen ──────────────────────────────────────────────────────────
+function CompleteScreen({ gs, session, onNew }) {
+  const isWinner = gs.winnerId === session.playerId;
+  const myW = gs.wins[session.playerId] || 0;
+  const oppW = gs.wins[Object.keys(gs.wins).find(k => k !== session.playerId)] || 0;
+  return (
+    <div className="screen animate" style={{textAlign:'center'}}>
+      <div style={{fontSize:40,marginBottom:12}}>{isWinner ? '🏆' : '😤'}</div>
+      <div style={{fontSize:24,fontWeight:900,marginBottom:8}}>
+        {isWinner ? 'You Win the Match!' : 'Opponent Wins the Match!'}
+      </div>
+      <div style={{fontSize:16,color:'var(--muted)',marginBottom:24}}>
+        Final score: {myW} – {oppW}
+      </div>
+      <button className="btn btn-primary" onClick={onNew}>New Game</button>
+    </div>
+  );
+}
+
+// ─── Game Screen ──────────────────────────────────────────────────────────────
+function GameScreen({ gs, session, act, loading, onLeave, showToast, toast, onClearToast }) {
+  const { playerId } = session;
+  const [selectedAttacker, setSelectedAttacker] = useState(null);
+  const [challengeMode, setChallengeMode] = useState(false);
+  const [swapGive, setSwapGive] = useState(null);
+  const [swapTake, setSwapTake] = useState(null);
+
+  // Reset challenge state when phase changes
+  useEffect(() => {
+    setSelectedAttacker(null);
+    setChallengeMode(false);
+  }, [gs.phase]);
+
+  const myId = playerId;
+  const [p1Id, p2Id] = gs.wins ? Object.keys(gs.wins) : [null, null];
+  const oppId = myId === p1Id ? p2Id : p1Id;
+
+  const myWins = gs.wins ? (gs.wins[myId] || 0) : 0;
+  const oppWins = gs.wins ? (gs.wins[oppId] || 0) : 0;
+  const myTeam = gs.myTeam || [];
+  const oppTeam = gs.opponentTeam || [];
+  const myHand = gs.myHand || [];
+  const myTotal = getTeamTotal(myTeam);
+  const oppTotal = getTeamTotal(oppTeam);
+  const ch = gs.challenge;
+
+  // Opening phase
+  if (gs.phase === 'opening') {
+    return (
+      <OpeningPhase gs={gs} session={session} act={act} loading={loading} onLeave={onLeave} toast={toast} onClearToast={onClearToast} />
+    );
+  }
+
+  // Rally pending
+  if (gs.phase === 'rallyPending' && gs.rallyPending) {
+    return (
+      <RallyPhase gs={gs} session={session} act={act} loading={loading} myTeam={myTeam} onLeave={onLeave} toast={toast} onClearToast={onClearToast} />
+    );
+  }
+
+  // Post-game
+  if (gs.status === 'postGame') {
+    return (
+      <PostGamePhase
+        gs={gs} session={session} act={act} loading={loading}
+        swapGive={swapGive} setSwapGive={setSwapGive}
+        swapTake={swapTake} setSwapTake={setSwapTake}
+        onLeave={onLeave} toast={toast} onClearToast={onClearToast}
+        myId={myId} oppId={oppId} myWins={myWins} oppWins={oppWins}
+      />
+    );
+  }
+
+  // Challenge
+  if (gs.phase === 'challenge' && ch) {
+    return (
+      <ChallengePhase
+        gs={gs} session={session} act={act} loading={loading}
+        ch={ch} myId={myId} oppId={oppId}
+        myTeam={myTeam} oppTeam={oppTeam}
+        myWins={myWins} oppWins={oppWins}
+        myTotal={myTotal} oppTotal={oppTotal}
+        onLeave={onLeave} toast={toast} onClearToast={onClearToast}
+      />
+    );
+  }
+
+  // Turn phase
+  const myStanding = myTeam.filter(c => !c.knockedOut);
+  const oppStanding = oppTeam.filter(c => !c.knockedOut);
+  const canChallenge = myStanding.length > 0 && oppStanding.length > 0;
+  const canPass = myHand.length === 0 && !canChallenge;
+
+  const handleHandCardClick = (card) => {
+    if (!gs.isMyTurn) return;
+    if (challengeMode) return;
+    act('recruit', { cardId: card.id });
+  };
+
+  const handleAttackerSelect = (cip) => {
+    if (!gs.isMyTurn || !challengeMode) return;
+    if (cip.knockedOut) return;
+    setSelectedAttacker(cip.card.id === selectedAttacker ? null : cip.card.id);
+  };
+
+  const handleDefenderSelect = (cip) => {
+    if (!gs.isMyTurn || !challengeMode || !selectedAttacker) return;
+    if (cip.knockedOut) return;
+    act('initiateChallenge', { attackerCardId: selectedAttacker, defenderCardId: cip.card.id });
+    setChallengeMode(false);
+    setSelectedAttacker(null);
+  };
+
+  return (
+    <div className="game-wrap animate">
+      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+
+      {/* Header */}
+      <div className="header-bar">
+        <div className="wins-badge">
+          <span className="wins-num mine">{myWins}</span>
+          <span style={{color:'var(--muted)'}}>–</span>
+          <span className="wins-num opp">{oppWins}</span>
+          <span style={{fontSize:11,color:'var(--muted)'}}>Game {(gs.gameIndex || 0) + 1}</span>
+        </div>
+        <div className="phase-label">
+          {gs.isMyTurn ? '⚡ Your Turn' : '⏳ Opponent\'s Turn'}
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
+      </div>
+
+      {/* Score bar */}
+      <ScoreBar myTotal={myTotal} oppTotal={oppTotal} myLabel="You" oppLabel="Opp" />
+
+      {/* Opponent team */}
+      <div>
+        <div className="section-label">Opponent's Team ({oppStanding.length} standing)</div>
+        <div className="team-grid">
+          {oppTeam.length === 0 && <div style={{color:'var(--muted)',fontSize:13}}>No cards yet</div>}
+          {oppTeam.map(cip => (
+            <CardInPlay
+              key={cip.card.id}
+              cip={cip}
+              showAbility={false}
+              onClick={challengeMode && gs.isMyTurn && selectedAttacker && !cip.knockedOut
+                ? () => handleDefenderSelect(cip)
+                : undefined
+              }
+              selected={false}
+              dimmed={challengeMode && gs.isMyTurn && selectedAttacker && cip.knockedOut}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* My team */}
+      <div>
+        <div className="section-label">Your Team ({myStanding.length} standing) — Deck: {gs.myDeckCount}</div>
+        <div className="team-grid">
+          {myTeam.length === 0 && <div style={{color:'var(--muted)',fontSize:13}}>No cards yet</div>}
+          {myTeam.map(cip => (
+            <CardInPlay
+              key={cip.card.id}
+              cip={cip}
+              showAbility={true}
+              onClick={challengeMode && gs.isMyTurn && !cip.knockedOut
+                ? () => handleAttackerSelect(cip)
+                : undefined
+              }
+              selected={selectedAttacker === cip.card.id}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Hand */}
+      <div className="hand-section">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div className="section-label" style={{margin:0}}>Your Hand ({myHand.length})</div>
+          <div style={{fontSize:12,color:'var(--muted)'}}>Opp hand: {gs.opponentHandCount}</div>
+        </div>
+        <div className="hand-grid">
+          {myHand.length === 0 && <div style={{color:'var(--muted)',fontSize:13,marginTop:6}}>Hand empty</div>}
+          {myHand.map(card => (
+            <HandCard
+              key={card.id}
+              card={card}
+              onClick={gs.isMyTurn && !challengeMode ? () => handleHandCardClick(card) : undefined}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Action bar */}
+      {gs.isMyTurn && (
+        <div className="action-bar">
+          {myHand.length > 0 && !challengeMode && (
+            <span style={{fontSize:12,color:'var(--muted)'}}>Click a hand card to recruit it</span>
+          )}
+          {canChallenge && (
+            <button
+              className={`btn ${challengeMode ? 'btn-danger' : 'btn-ghost'}`}
+              onClick={() => { setChallengeMode(!challengeMode); setSelectedAttacker(null); }}
+            >
+              {challengeMode ? 'Cancel Challenge' : '⚔️ Challenge'}
+            </button>
+          )}
+          {challengeMode && !selectedAttacker && (
+            <span style={{fontSize:12,color:'var(--muted)'}}>Select one of YOUR cards to attack with</span>
+          )}
+          {challengeMode && selectedAttacker && (
+            <span style={{fontSize:12,color:'var(--accent)'}}>Now click an OPPONENT card to defend</span>
+          )}
+          {canPass && (
+            <button className="btn btn-ghost" onClick={() => act('passTurn')} disabled={loading}>Pass</button>
+          )}
+        </div>
+      )}
+      {!gs.isMyTurn && (
+        <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px'}}>
+          Waiting for opponent…
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Opening Phase ────────────────────────────────────────────────────────────
+function OpeningPhase({ gs, session, act, loading, onLeave, toast, onClearToast }) {
+  const [selected, setSelected] = useState(null);
+  const myHand = gs.myHand || [];
+  const myPicked = gs.openingPicks?.myPick;
+  const oppPicked = gs.openingPicks?.opponentPicked;
+
+  const submit = () => {
+    if (!selected) return;
+    act('submitOpeningPick', { cardId: selected });
+    setSelected(null);
+  };
+
+  return (
+    <div className="game-wrap animate">
+      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+      <div className="header-bar">
+        <div style={{fontWeight:700}}>Opening Pick</div>
+        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
+      </div>
+      <div className="card-surface">
+        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>Choose 1 card to start your team</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}>
+          Both players pick simultaneously. Your choice won't be revealed until both have picked.
+        </div>
+        {myPicked ? (
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:24}}>✅</div>
+            <div style={{marginTop:8,fontWeight:600}}>You've made your pick!</div>
+            <div style={{color:'var(--muted)',fontSize:13,marginTop:4}}>
+              {oppPicked ? 'Both picked — transitioning…' : 'Waiting for opponent…'}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="hand-grid">
+              {myHand.map(card => (
+                <HandCard
+                  key={card.id}
+                  card={card}
+                  selected={selected === card.id}
+                  onClick={() => setSelected(card.id === selected ? null : card.id)}
+                />
+              ))}
+            </div>
+            <div style={{marginTop:14,display:'flex',gap:8}}>
+              <button className="btn btn-primary" onClick={submit} disabled={!selected || loading}>
+                Confirm Pick
+              </button>
+              {oppPicked && <span style={{alignSelf:'center',fontSize:12,color:'var(--green)'}}>Opponent has picked</span>}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Rally Phase ──────────────────────────────────────────────────────────────
+function RallyPhase({ gs, session, act, loading, myTeam, onLeave, toast, onClearToast }) {
+  const { rallyPending } = gs;
+  if (!rallyPending) return null;
+
+  const isMyRally = rallyPending.playerId === session.playerId;
+  const rallyCard = myTeam.find(c => c.card.id === rallyPending.cardId);
+  const allies = myTeam.filter(c => !c.knockedOut && c.card.id !== rallyPending.cardId);
+
+  if (!isMyRally) {
+    return (
+      <div className="game-wrap animate">
+        {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+        <div className="screen" style={{minHeight:'auto'}}>
+          <div className="card-surface" style={{textAlign:'center',maxWidth:360}}>
+            <div style={{fontSize:24,marginBottom:8}}>⚡</div>
+            <div style={{fontWeight:700,marginBottom:6}}>Opponent's Rally!</div>
+            <div style={{color:'var(--muted)',fontSize:13}}>Waiting for opponent to use their Rally ability…</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="game-wrap animate">
+      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+      <div className="overlay">
+        <div className="overlay-box">
+          <div style={{fontSize:18,fontWeight:800,marginBottom:6}}>
+            ⚡ Rally Ready!
+          </div>
+          <div style={{color:'var(--muted)',fontSize:13,marginBottom:16}}>
+            {rallyCard?.card.name || 'Rally card'}'s Rally ability is triggered.
+            {allies.length > 0
+              ? ' Choose an ally to give +1 to all stats permanently.'
+              : ' No allies yet — you can fire (reveal) or decline (keep secret).'}
+          </div>
+          {allies.length > 0 ? (
+            <>
+              <div style={{fontWeight:600,marginBottom:8,fontSize:13}}>Choose ally to buff:</div>
+              <div className="team-grid" style={{marginBottom:16}}>
+                {allies.map(cip => (
+                  <CardInPlay
+                    key={cip.card.id}
+                    cip={cip}
+                    showAbility={true}
+                    onClick={() => act('fireRally', { targetCardId: cip.card.id })}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <button className="btn btn-primary" style={{width:'100%',marginBottom:8}} onClick={() => act('fireRally', { targetCardId: null })} disabled={loading}>
+              Fire Rally (reveal, no effect)
+            </button>
+          )}
+          <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineRally')} disabled={loading}>
+            Decline (keep ability secret)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Challenge Phase ──────────────────────────────────────────────────────────
+function ChallengePhase({ gs, session, act, loading, ch, myId, oppId, myTeam, oppTeam, myWins, oppWins, myTotal, oppTotal, onLeave, toast, onClearToast }) {
+  const [trickStat, setTrickStat] = useState(null);
+
+  const attackerCIP = [...myTeam, ...oppTeam].find(c => c.card.id === ch.attackerCardId);
+  const defenderCIP = [...myTeam, ...oppTeam].find(c => c.card.id === ch.defenderCardId);
+
+  const iam = {
+    attacker: ch.attackerPlayerId === myId,
+    defender: ch.defenderPlayerId === myId,
+  };
+
+  const StatButtons = ({ onPick, label }) => (
+    <div style={{textAlign:'center'}}>
+      {label && <div style={{color:'var(--muted)',fontSize:13,marginBottom:10}}>{label}</div>}
+      <div className="stat-btns">
+        {[['power','💪 Power','power'],['speed','⚡ Speed','speed'],['wits','🧠 Wits','wits']].map(([stat, label, cls]) => (
+          <button key={stat} className={`stat-btn ${cls}`} onClick={() => onPick(stat)} disabled={loading}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const MiniCard = ({ cip, label, statToShow }) => {
+    if (!cip) return null;
+    const val = statToShow ? cip.card[statToShow] + (cip.bondPartnerId ? 1 : 0) + (cip.rallyBonus || 0) : null;
+    return (
+      <div style={{textAlign:'center',minWidth:120}}>
+        <div style={{fontSize:11,color:'var(--muted)',marginBottom:6,textTransform:'uppercase',letterSpacing:'1px'}}>{label}</div>
+        <CardInPlay cip={cip} showAbility={cip.abilityRevealed || (label === 'Your Card')} />
+        {val !== null && statToShow && (
+          <div style={{marginTop:6,fontSize:18,fontWeight:900}}>
+            {statToShow === 'power' ? '💪' : statToShow === 'speed' ? '⚡' : '🧠'} {val}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const contested = ch.trickedToStat || ch.attackerStat;
+
+  return (
+    <div className="game-wrap animate">
+      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+
+      <div className="header-bar">
+        <div className="wins-badge">
+          <span className="wins-num mine">{myWins}</span>
+          <span style={{color:'var(--muted)'}}>–</span>
+          <span className="wins-num opp">{oppWins}</span>
+        </div>
+        <div className="phase-label">⚔️ Challenge</div>
+        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
+      </div>
+
+      <ScoreBar myTotal={myTotal} oppTotal={oppTotal} />
+
+      <div className="overlay">
+        <div className="overlay-box" style={{maxWidth:560}}>
+
+          {/* Step: picking */}
+          {ch.step === 'picking' && (
+            <>
+              <div className="pick-title">⚔️ Challenge!</div>
+              <div className="pick-sub">
+                {iam.attacker && !ch.attackerStat && 'Choose your attack stat (secret until both pick)'}
+                {iam.attacker && ch.attackerStat && 'Waiting for opponent to guard…'}
+                {iam.defender && !ch.guardedStat && 'Choose your guard stat (secret until both pick)'}
+                {iam.defender && ch.guardedStat && 'Waiting for opponent to attack…'}
+              </div>
+              <div className="challenge-cards">
+                <MiniCard cip={attackerCIP} label="Attacker" />
+                <div className="challenge-vs">VS</div>
+                <MiniCard cip={defenderCIP} label="Defender" />
+              </div>
+              {iam.attacker && !ch.attackerStat && (
+                <StatButtons onPick={s => act('submitAttackStat', { stat: s })} label="Your Attack Stat" />
+              )}
+              {iam.defender && !ch.guardedStat && (
+                <StatButtons onPick={s => act('submitGuardStat', { stat: s })} label="Your Guard Stat" />
+              )}
+              {((iam.attacker && ch.attackerStat) || (iam.defender && ch.guardedStat)) && (
+                <div style={{textAlign:'center',padding:'10px 0',color:'var(--muted)'}}>Waiting for opponent's pick…</div>
+              )}
+            </>
+          )}
+
+          {/* Step: defenderWindow */}
+          {ch.step === 'defenderWindow' && (
+            <>
+              <div className="pick-title">Stat Reveal</div>
+              {contested && (
+                <div className="reveal-stat">
+                  <div className="reveal-stat-name">Contested Stat</div>
+                  <div className="reveal-stat-val">
+                    {contested === 'power' ? '💪' : contested === 'speed' ? '⚡' : '🧠'} {contested.toUpperCase()}
+                  </div>
+                </div>
+              )}
+              <div className="challenge-cards">
+                <MiniCard cip={attackerCIP} label="Attacker" statToShow={contested} />
+                <div className="challenge-vs">VS</div>
+                <MiniCard cip={defenderCIP} label="Defender" statToShow={contested} />
+              </div>
+              {iam.defender ? (
+                <>
+                  <div style={{marginBottom:12,fontSize:13,fontWeight:600}}>Defender Ability Window</div>
+                  {defenderCIP?.card.ability === 'Trick' && !defenderCIP?.abilityUsed && defenderCIP?.card.wits >= 4 ? (
+                    trickStat === 'choosing' ? (
+                      <>
+                        <div style={{marginBottom:8,fontSize:13,color:'var(--muted)'}}>Pick new contested stat:</div>
+                        <StatButtons onPick={s => { act('fireDefenderTrick', { newStat: s }); setTrickStat(null); }} />
+                        <button className="btn btn-ghost" style={{width:'100%',marginTop:8}} onClick={() => setTrickStat(null)}>Back</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => setTrickStat('choosing')}>
+                          🎭 Fire Trick (redirect contested stat)
+                        </button>
+                        <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>Decline</button>
+                      </>
+                    )
+                  ) : defenderCIP?.card.ability === 'Smash' && !defenderCIP?.abilityUsed && defenderCIP?.card.power >= 4 ? (
+                    <>
+                      <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireDefenderSmash')}>
+                        💥 Fire Smash (+2)
+                      </button>
+                      <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>Decline</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>
+                      No ability / Decline
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
+                  Waiting for opponent (defender) to decide…
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step: attackerWindow */}
+          {ch.step === 'attackerWindow' && (
+            <>
+              <div className="pick-title">Attacker Ability Window</div>
+              {contested && (
+                <div className="reveal-stat">
+                  <div className="reveal-stat-name">Contested Stat</div>
+                  <div className="reveal-stat-val">
+                    {contested === 'power' ? '💪' : contested === 'speed' ? '⚡' : '🧠'} {contested.toUpperCase()}
+                  </div>
+                </div>
+              )}
+              <div className="challenge-cards">
+                <MiniCard cip={attackerCIP} label="Attacker" statToShow={contested} />
+                <div className="challenge-vs">VS</div>
+                <MiniCard cip={defenderCIP} label="Defender" statToShow={contested} />
+              </div>
+              {iam.attacker ? (
+                <>
+                  {attackerCIP?.card.ability === 'Smash' && !attackerCIP?.abilityUsed && attackerCIP?.card.power >= 4 ? (
+                    <>
+                      <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireAttackerSmash')}>
+                        💥 Fire Smash (+2)
+                      </button>
+                      <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineAttackerAbility')}>Decline</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineAttackerAbility')}>
+                      No ability / Continue
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
+                  Waiting for opponent (attacker) to decide…
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step: dodgeWindow */}
+          {ch.step === 'dodgeWindow' && (
+            <>
+              <div className="pick-title">💨 Dodge Window!</div>
+              <div style={{marginBottom:16}}>
+                <div className="challenge-cards">
+                  <MiniCard cip={attackerCIP} label="Attacker" />
+                  <div className="challenge-vs">VS</div>
+                  <MiniCard cip={defenderCIP} label="Defender" />
+                </div>
+              </div>
+              {ch.knockedOutPlayerId === myId ? (
+                <>
+                  <div style={{fontWeight:700,marginBottom:12,textAlign:'center'}}>
+                    {[...myTeam,...oppTeam].find(c=>c.card.id===ch.knockedOutCardId)?.card.name} was knocked out!<br/>
+                    <span style={{color:'var(--muted)',fontSize:13}}>Fire Dodge to survive?</span>
+                  </div>
+                  <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireDodge')}>
+                    💨 Fire Dodge (survive!)
+                  </button>
+                  <button className="btn btn-danger" style={{width:'100%'}} onClick={() => act('declineDodge')}>
+                    Accept KO
+                  </button>
+                </>
+              ) : (
+                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
+                  Opponent is deciding whether to Dodge…
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Post Game Phase ──────────────────────────────────────────────────────────
+function PostGamePhase({ gs, session, act, loading, swapGive, setSwapGive, swapTake, setSwapTake, onLeave, toast, onClearToast, myId, oppId, myWins, oppWins }) {
+  const lastGame = gs.lastCompletedGame;
+  const iWonLastGame = lastGame?.winnerId === myId;
+  const myDeck = gs.myDeck || [];
+  const oppId_ = oppId;
+
+  // Find opponent's deck from matchState decks — not exposed directly, but we can infer
+  // The poll returns myDeck. We don't have oppDeck directly.
+  // For swap UI, winner needs to pick from their deck (give) and opponent's deck (take).
+  // We'll approximate by showing swaps info. The server validates.
+  // Since poll doesn't expose oppDeck, we'll show a swap input for opponent's card by ID
+  // or use a text input. Actually, let's think about this differently.
+  // The spec says: "show all cards since both players have full knowledge".
+  // We need oppDeck. Let's add it to poll... but we shouldn't modify poll.js
+  // Alternative: show swaps list and let winner pick reclaim, or show all swap history.
+  // For simplicity, show winner's deck to give from, and for taking show a text input,
+  // or better: show the swap history and known opponent deck from swaps.
+
+  // Actually, we CAN compute what's in opponent's deck from original deck + swaps.
+  // The DECK_ALPHA and DECK_BETA are known on the client via the spec.
+  // Let's just show swaps and allow manual ID input. That's too clunky.
+
+  // Better: modify poll to include oppDeck in postGame status only.
+  // We already return myDeck in poll. For postGame, the spec says:
+  // "show all cards since both players have full knowledge of swapped cards"
+  // Let me just also expose oppDeck in the poll response when status=postGame.
+  // But we can't modify poll.js further in this file...
+  // We do control poll.js - let's add oppDeck for postGame status.
+
+  // For now: we have myDeck. We'll show the winner a UI to pick from myDeck (give),
+  // and for taking from opponent, we'll render swaps. The server has full validation.
+  // Actually the cleanest solution for demo: since both players poll, we can show
+  // opponent's deck cards from what we know. But we don't have it.
+
+  // Resolution: I'll add oppDeck to poll for postGame. But we've already written poll.js.
+  // Let me work with what we have: myDeck is available.
+  // For the "take" side, render the swaps data and a note that they need to see opponent's tab.
+  // This is a hot-seat game anyway! Both players can see each other's screens.
+
+  // Actually, for a clean demo experience: winner can see their own deck to pick "give",
+  // and winner can type/pick "take" card ID if needed. OR, since the spec says hot-seat,
+  // the winner can look at opponent's tab. But that's terrible UX.
+
+  // Best fix: show both decks on the winner's screen. But we don't have oppDeck.
+  // I'll add oppDeck to the poll response when status='postGame' only - we can edit poll.js.
+
+  // Note: we already have the poll.js file written. Since we control it, let's just also
+  // expose the opponent deck when the match status is postGame so the winner can make
+  // informed swap choices. We'll update the poll.js after.
+
+  const oppDeck = gs.oppDeck || []; // will add to poll
+
+  const canSwap = iWonLastGame;
+  const activeSwaps = (gs.swaps || []).filter(s => !s.undone && s.winnerPlayerId === myId);
+
+  const doSwap = () => {
+    if (!swapGive || !swapTake) return;
+    act('swap', { winnerGaveCardId: swapGive, winnerTookCardId: swapTake });
+    setSwapGive(null);
+    setSwapTake(null);
+  };
+
+  const winReasonText = (r) => {
+    if (r === 'goal') return 'reached the goal';
+    if (r === 'elimination') return 'eliminated all opponents';
+    if (r === 'deckOut') return 'won on deck-out';
+    return r;
+  };
+
+  return (
+    <div className="game-wrap animate">
+      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
+      <div className="header-bar">
+        <div className="wins-badge">
+          <span className="wins-num mine">{myWins}</span>
+          <span style={{color:'var(--muted)'}}>–</span>
+          <span className="wins-num opp">{oppWins}</span>
+        </div>
+        <div className="phase-label">Game Over</div>
+        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
+      </div>
+
+      <div className="card-surface">
+        <div style={{fontSize:20,fontWeight:900,marginBottom:6}}>
+          {iWonLastGame ? '🏆 You won Game ' : '😤 You lost Game '}{(lastGame?.gameIndex || 0) + 1}
+        </div>
+        <div style={{color:'var(--muted)',fontSize:13,marginBottom:16}}>
+          {lastGame?.winnerId === myId ? 'You' : 'Opponent'} {winReasonText(lastGame?.winReason)}.
+          Series: {myWins} – {oppWins}
+        </div>
+
+        {canSwap && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontWeight:700,marginBottom:8}}>💱 Card Swap (Winner's Privilege)</div>
+            <div style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
+              Pick one of your cards to give, then one from opponent's deck to take.
+            </div>
+
+            <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Give (from your deck):</div>
+            <div className="deck-grid">
+              {myDeck.map(card => (
+                <div
+                  key={card.id}
+                  className={`deck-card ${swapGive === card.id ? 'selected' : ''}`}
+                  onClick={() => setSwapGive(swapGive === card.id ? null : card.id)}
+                >
+                  {card.name} <span style={{color:'var(--muted)',fontSize:10}}>{card.trait}</span>
+                </div>
+              ))}
+            </div>
+
+            {oppDeck.length > 0 && (
+              <>
+                <div style={{fontWeight:600,fontSize:13,marginBottom:6,marginTop:12}}>Take (from opponent's deck):</div>
+                <div className="deck-grid">
+                  {oppDeck.map(card => (
+                    <div
+                      key={card.id}
+                      className={`deck-card ${swapTake === card.id ? 'selected' : ''}`}
+                      onClick={() => setSwapTake(swapTake === card.id ? null : card.id)}
+                    >
+                      {card.name} <span style={{color:'var(--muted)',fontSize:10}}>{card.trait}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {oppDeck.length === 0 && (
+              <div style={{fontSize:12,color:'var(--muted)',marginTop:8}}>
+                Opponent deck not visible yet — wait for next poll or check opponent's screen.
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+              <button className="btn btn-primary" onClick={doSwap} disabled={!swapGive || !swapTake || loading}>
+                Confirm Swap
+              </button>
+              {activeSwaps.length > 0 && (
+                <button className="btn btn-ghost" onClick={() => act('reclaim', { swapIndex: gs.swaps.findIndex(s => !s.undone && s.winnerPlayerId === myId) })} disabled={loading}>
+                  Reclaim Previous Swap
+                </button>
+              )}
+              <button className="btn btn-ghost" onClick={() => act('declinePostGame')} disabled={loading}>
+                Decline Swap
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!canSwap && (
+          <div style={{marginBottom:16,color:'var(--muted)',fontSize:13}}>
+            Waiting for winner to decide on card swap…
+          </div>
+        )}
+
+        <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:8}}>
+          <button
+            className="btn btn-primary"
+            style={{width:'100%'}}
+            onClick={() => act('startNextGame')}
+            disabled={loading}
+          >
+            Start Game {(gs.completedGamesCount || 0) + 1} →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>

@@ -1,234 +1,203 @@
-const { getDb } = require("./_db");
-const { genSeq, dealRoster, botSelectHand, CARD_MAP } = require("./_game");
-const { TIERS, HAND_PICKS } = require("./_constants");
+'use strict';
 
-// Greedy bot: pick highest-value unplayed card for the current attribute
-function botPickCard(hand, history, attr, botPNum) {
-  const played = new Set(history.map(h => botPNum === 2 ? h.p2CardId : h.p1CardId));
-  const available = hand.filter(id => !played.has(id));
-  let best = null, bestVal = -1;
-  for (const id of available) {
-    const card = CARD_MAP[id];
-    if (card && card.attrs[attr] > bestVal) { bestVal = card.attrs[attr]; best = id; }
-  }
-  return best;
-}
+const { getDb } = require('./_db');
+const {
+  submitOpeningPick,
+  fireRally,
+  declineRally,
+  recruit,
+  initiateChallenge,
+  submitAttackStat,
+  submitGuardStat,
+  fireDefenderTrick,
+  fireDefenderSmash,
+  declineDefenderAbility,
+  fireAttackerSmash,
+  declineAttackerAbility,
+  fireDodge,
+  declineDodge,
+  passTurn,
+} = require('../engine/game');
+const {
+  recordGameResult,
+  swapCard,
+  reclaimSwap,
+  declinePostGame,
+  startGame,
+  finalizeMatch,
+} = require('../engine/match');
+const { shuffle } = require('./_utils');
 
-async function resolveCard(db, cardId, localId) {
-  if (CARD_MAP[cardId]) return CARD_MAP[cardId];
-  if (cardId && cardId.startsWith("cc_")) {
-    const c = await db.collection("custom_cards").findOne({ id: cardId, playerId: localId });
-    return c || null;
+/**
+ * After any game action, check if the game ended and auto-record the result.
+ * Returns { matchState, docStatus } with the updated matchState and doc status string.
+ */
+function autoRecordIfGameOver(matchState) {
+  const cg = matchState.currentGame;
+  if (!cg || cg.phase !== 'gameOver') {
+    return { matchState, docStatus: 'active' };
   }
-  return null;
+
+  const updated = recordGameResult(matchState);
+  // recordGameResult sets matchState.status to 'postGame' or 'complete'
+  let docStatus = updated.status === 'complete' ? 'complete' : 'postGame';
+
+  let finalMs = updated;
+  if (updated.status === 'complete') {
+    finalMs = finalizeMatch(updated);
+  }
+
+  return { matchState: finalMs, docStatus };
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
-    const { code, playerId, action, data } = req.body;
-    if (!code || !playerId || !action) return res.status(400).json({ error: "Missing fields" });
+    const { code, playerId, action, data = {} } = req.body;
+    if (!code || !playerId || !action) {
+      return res.status(400).json({ error: 'Missing fields: code, playerId, action' });
+    }
 
     const db = await getDb();
-    const games = db.collection("games");
+    const games = db.collection('games');
     const game = await games.findOne({ code: code.toUpperCase() });
-    if (!game) return res.status(404).json({ error: "Game not found" });
+    if (!game) return res.status(404).json({ error: 'Game not found' });
 
-    const pNum = game.p1?.id === playerId ? 1 : game.p2?.id === playerId ? 2 : 0;
-    if (pNum === 0) return res.status(403).json({ error: "Not in this game" });
-
-    const localId = pNum === 1 ? game.p1?.localId : game.p2?.localId;
-    const m = game.match;
-    const update = { updatedAt: new Date() };
-
-    // ── HAND ──
-    if (action === "hand") {
-      if (game.status !== "hand") return res.status(400).json({ error: "Not in hand phase" });
-      if (!Array.isArray(data) || data.length !== 9) return res.status(400).json({ error: "Need exactly 9 card IDs" });
-
-      const standardIds = data.filter(id => !id.startsWith("cc_"));
-      const customIds   = data.filter(id =>  id.startsWith("cc_"));
-
-      if (customIds.length > 7) return res.status(400).json({ error: "Maximum 7 custom cards in hand" });
-
-      // Validate standard cards are in roster
-      const roster = pNum === 1 ? m.p1Roster : m.p2Roster;
-      if (!roster) return res.status(400).json({ error: "Roster not set" });
-      const rosterSet = new Set(roster);
-      if (!standardIds.every(id => rosterSet.has(id)))
-        return res.status(400).json({ error: "Standard cards must be from your dealt hand" });
-
-      // Validate custom cards belong to this player
-      let customCardDocs = [];
-      if (customIds.length > 0) {
-        if (!localId) return res.status(400).json({ error: "Player identity not linked" });
-        customCardDocs = await db.collection("custom_cards")
-          .find({ id: { $in: customIds }, playerId: localId })
-          .toArray();
-        if (customCardDocs.length !== customIds.length)
-          return res.status(400).json({ error: "One or more custom cards not found" });
-      }
-
-      // Validate tier composition using HAND_PICKS
-      const tierCounts = {};
-      TIERS.forEach(t => { tierCounts[t] = 0; });
-      for (const id of standardIds) {
-        const card = CARD_MAP[id];
-        if (!card) return res.status(400).json({ error: "Unknown card: " + id });
-        const tier = card.attrs.reduce((a, b) => a + b, 0);
-        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
-      }
-      for (const card of customCardDocs) {
-        const tier = card.attrs.reduce((a, b) => a + b, 0);
-        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
-      }
-      if (TIERS.some(t => (tierCounts[t] || 0) !== HAND_PICKS[t]))
-        return res.status(400).json({ error: "Hand must contain 5 Standard, 2 Focused, and 2 Specialist cards" });
-
-      const key = pNum === 1 ? "match.p1Hand" : "match.p2Hand";
-      update[key] = data;
-
-      const otherHand = pNum === 1 ? m.p2Hand : m.p1Hand;
-      if (otherHand) {
-        update.status = "playing";
-        update["match.seq"]     = genSeq();
-        update["match.round"]   = 0;
-        update["match.score"]   = [0, 0];
-        update["match.carry"]   = 0;
-        update["match.history"] = [];
-        update["match.p1Play"]  = null;
-        update["match.p2Play"]  = null;
-      }
-
-      await games.updateOne({ _id: game._id }, { $set: update });
-      return res.status(200).json({ ok: true });
+    const isP1 = game.p1?.id === playerId;
+    const isP2 = game.p2?.id === playerId;
+    if (!isP1 && !isP2) {
+      return res.status(403).json({ error: 'Not a player in this game' });
     }
 
-    // ── PLAY CARD ──
-    if (action === "play") {
-      if (game.status !== "playing") return res.status(400).json({ error: "Not in playing phase" });
+    let matchState = game.matchState;
+    if (!matchState) {
+      return res.status(400).json({ error: 'Match not started yet' });
+    }
 
-      const cardId = data;
-      if (!cardId) return res.status(400).json({ error: "Invalid card" });
+    let newGame = matchState.currentGame;
+    let newMatchState = matchState;
+    let docStatus = game.status;
 
-      const card = await resolveCard(db, cardId, localId);
-      if (!card) return res.status(400).json({ error: "Invalid card" });
+    try {
+      // Game-level actions (operate on matchState.currentGame)
+      if (action === 'submitOpeningPick') {
+        newGame = submitOpeningPick(newGame, playerId, data.cardId);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-      const hand = pNum === 1 ? m.p1Hand : m.p2Hand;
-      if (!hand.includes(cardId)) return res.status(400).json({ error: "Card not in hand" });
-      const playedIds = new Set(m.history.map(h => pNum === 1 ? h.p1CardId : h.p2CardId));
-      if (playedIds.has(cardId)) return res.status(400).json({ error: "Card already played" });
+      } else if (action === 'recruit') {
+        newGame = recruit(newGame, data.cardId);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-      const myPlay = pNum === 1 ? m.p1Play : m.p2Play;
-      if (myPlay) return res.status(400).json({ error: "Already played this round" });
+      } else if (action === 'initiateChallenge') {
+        newGame = initiateChallenge(newGame, data.attackerCardId, data.defenderCardId);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-      const playKey = pNum === 1 ? "match.p1Play" : "match.p2Play";
-      update[playKey] = cardId;
+      } else if (action === 'submitAttackStat') {
+        newGame = submitAttackStat(newGame, data.stat);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-      // If opponent is bot, auto-play now in the same update
-      const opponentIsBot = pNum === 1 ? game.p2?.isBot : game.p1?.isBot;
-      let otherPlay = pNum === 1 ? m.p2Play : m.p1Play;
-      if (!otherPlay && opponentIsBot) {
-        const botPNum = pNum === 1 ? 2 : 1;
-        const botHand = pNum === 1 ? m.p2Hand : m.p1Hand;
-        const botCardId = botPickCard(botHand, m.history, m.seq[m.round], botPNum);
-        const botPlayKey = pNum === 1 ? "match.p2Play" : "match.p1Play";
-        update[botPlayKey] = botCardId;
-        otherPlay = botCardId;
-      }
+      } else if (action === 'submitGuardStat') {
+        newGame = submitGuardStat(newGame, data.stat);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-      if (otherPlay) {
-        const p1CardId = pNum === 1 ? cardId : otherPlay;
-        const p2CardId = pNum === 1 ? otherPlay : cardId;
-        const p1LocalId = game.p1?.localId;
-        const p2LocalId = game.p2?.localId;
-        const p1Card = await resolveCard(db, p1CardId, p1LocalId);
-        const p2Card = await resolveCard(db, p2CardId, p2LocalId);
+      } else if (action === 'fireDefenderTrick') {
+        newGame = fireDefenderTrick(newGame, data.newStat);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-        const attr = m.seq[m.round];
-        const p1v = p1Card.attrs[attr];
-        const p2v = p2Card.attrs[attr];
-        const pts = 1 + m.carry;
+      } else if (action === 'fireDefenderSmash') {
+        newGame = fireDefenderSmash(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-        let winner = "tie";
-        let newCarry = m.carry;
-        const newScore = [...m.score];
+      } else if (action === 'declineDefenderAbility') {
+        newGame = declineDefenderAbility(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
 
-        if (p1v > p2v)      { winner = "p1"; newScore[0] += pts; newCarry = 0; }
-        else if (p2v > p1v) { winner = "p2"; newScore[1] += pts; newCarry = 0; }
-        else                { newCarry = m.carry + 1; }
+      } else if (action === 'fireAttackerSmash') {
+        newGame = fireAttackerSmash(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-        const roundResult = {
-          round: m.round, attr,
-          p1CardId, p2CardId,
-          p1Attrs: p1Card.attrs, p2Attrs: p2Card.attrs,
-          p1v, p2v, winner, pts,
-        };
+      } else if (action === 'declineAttackerAbility') {
+        newGame = declineAttackerAbility(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-        const newHistory = [...m.history, roundResult];
-        const newRound = m.round + 1;
+      } else if (action === 'fireDodge') {
+        newGame = fireDodge(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-        update["match.history"] = newHistory;
-        update["match.score"]   = newScore;
-        update["match.carry"]   = newCarry;
-        update["match.round"]   = newRound;
-        update["match.p1Play"]  = null;
-        update["match.p2Play"]  = null;
+      } else if (action === 'declineDodge') {
+        newGame = declineDodge(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-        const rem = 9 - newRound;
-        const matchOver = newRound >= 9 ||
-          newScore[0] > newScore[1] + rem + newCarry ||
-          newScore[1] > newScore[0] + rem + newCarry;
+      } else if (action === 'fireRally') {
+        newGame = fireRally(newGame, data.targetCardId !== undefined ? data.targetCardId : null);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
 
-        if (matchOver) {
-          const newSeriesScore = [...game.seriesScore];
-          if (newScore[0] > newScore[1]) newSeriesScore[0]++;
-          else if (newScore[1] > newScore[0]) newSeriesScore[1]++;
-          update.seriesScore = newSeriesScore;
-          update.status = (newSeriesScore[0] >= 2 || newSeriesScore[1] >= 2) ? "series_end" : "match_end";
+      } else if (action === 'declineRally') {
+        newGame = declineRally(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
+
+      } else if (action === 'passTurn') {
+        newGame = passTurn(newGame);
+        newMatchState = { ...matchState, currentGame: newGame };
+        ({ matchState: newMatchState, docStatus } = autoRecordIfGameOver(newMatchState));
+
+      // Match-level actions (operate on matchState directly)
+      } else if (action === 'swap') {
+        newMatchState = swapCard(matchState, data.winnerGaveCardId, data.winnerTookCardId);
+        docStatus = 'postGame';
+
+      } else if (action === 'reclaim') {
+        newMatchState = reclaimSwap(matchState, data.swapIndex);
+        docStatus = 'postGame';
+
+      } else if (action === 'declinePostGame') {
+        newMatchState = declinePostGame(matchState);
+        docStatus = 'postGame';
+
+      } else if (action === 'startNextGame') {
+        // firstPlayerId = loser of last completed game
+        const completedGames = matchState.completedGames;
+        const lastGame = completedGames[completedGames.length - 1];
+        const [p1Id, p2Id] = matchState.playerIds;
+        let firstPlayerId;
+        if (!lastGame || !lastGame.winnerId) {
+          // Draw or no completed games: pick randomly
+          firstPlayerId = Math.random() < 0.5 ? p1Id : p2Id;
+        } else {
+          // Loser of last game goes first
+          firstPlayerId = lastGame.winnerId === p1Id ? p2Id : p1Id;
         }
-      }
+        newMatchState = startGame(matchState, firstPlayerId);
+        docStatus = 'active';
 
-      await games.updateOne({ _id: game._id }, { $set: update });
-      return res.status(200).json({ ok: true });
+      } else {
+        return res.status(400).json({ error: `Unknown action: ${action}` });
+      }
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
     }
 
-    // ── NEXT MATCH ──
-    if (action === "next_match") {
-      if (game.status !== "match_end") return res.status(400).json({ error: "Not in match_end phase" });
+    await games.updateOne(
+      { _id: game._id },
+      { $set: { matchState: newMatchState, status: docStatus, updatedAt: new Date() } }
+    );
 
-      update.status        = "hand";
-      update.matchNum      = game.matchNum + 1;
-      update["match.seq"]     = null;
-      update["match.round"]   = 0;
-      update["match.score"]   = [0, 0];
-      update["match.carry"]   = 0;
-      update["match.history"] = [];
-      update["match.p1Hand"]  = null;
-      update["match.p2Hand"]  = null;
-      update["match.p1Play"]  = null;
-      update["match.p2Play"]  = null;
-      update["match.p1Roster"] = dealRoster();
-      const newP2Roster = dealRoster();
-      update["match.p2Roster"] = newP2Roster;
-
-      // Bot auto-selects new hand immediately
-      if (game.p2?.isBot) {
-        update["match.p2Hand"] = botSelectHand(newP2Roster);
-      }
-
-      await games.updateOne({ _id: game._id }, { $set: update });
-      return res.status(200).json({ ok: true });
-    }
-
-    return res.status(400).json({ error: "Unknown action" });
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("action error:", err);
-    return res.status(500).json({ error: "Server error" });
+    console.error('action error:', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 };
