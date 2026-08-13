@@ -46,6 +46,6 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ code, playerId: p1Id, playerNum: 1 });
   } catch (err) {
     console.error('create error:', err);
-    return res.status(500).json({ error: err.message || 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
