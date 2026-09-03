@@ -12,7 +12,7 @@ const {
   RULE_SET,
 } = require("./constants");
 const { validateDeck } = require("./validate");
-const { setupRound, submitMove, revealAndAdvance, roundWinner } = require("./round");
+const { setupRound, submitMove, revealAndAdvance, resolveToReveal, advanceTurn, roundWinner } = require("./round");
 
 // ── Match creation ────────────────────────────────────────────────────────────
 
@@ -97,17 +97,33 @@ function submitPlayerMove(match, playerId, cardId, category) {
 }
 
 function resolveCurrentTurn(match) {
-  const { round: newRound, result } = revealAndAdvance(
-    currentRound(match),
-    cardLookup(match),
-    match.ruleSet,
-  );
+  const round = currentRound(match);
 
+  // Opening turn: use revealAndAdvance directly (goes straight to commit)
+  if (round.phase === "opening") {
+    const { round: newRound } = revealAndAdvance(round, cardLookup(match), match.ruleSet);
+    return replaceCurrentRound(match, newRound);
+  }
+
+  // Normal turn: stop at "reveal" phase
+  const { round: revealRound } = resolveToReveal(round, cardLookup(match), match.ruleSet);
+  return replaceCurrentRound(match, revealRound);
+}
+
+/**
+ * Advance past the "reveal" phase, applying slide and checking for round end.
+ * @param {object} match  current round must be in "reveal" phase
+ * @returns {MatchState}
+ */
+function advanceMatchTurn(match) {
+  const round = currentRound(match);
+  if (round.phase !== "reveal") throw new Error("Current round is not in 'reveal' phase");
+
+  const newRound = advanceTurn(round);
   let updatedMatch = replaceCurrentRound(match, newRound);
 
   // Handle special round phases
   if (newRound.phase === "exhausted-tied") {
-    // Replay: re-setup with same decks, increment index stays at current
     updatedMatch = startNextRound(updatedMatch, /* replay */ true);
   } else if (newRound.phase === "over") {
     updatedMatch = handleRoundOver(updatedMatch);
@@ -374,6 +390,7 @@ function shuffleArr(a) {
 module.exports = {
   createMatch,
   submitPlayerMove,
+  advanceMatchTurn,
   executeTrade,
   executeReclaim,
   declineTrade,

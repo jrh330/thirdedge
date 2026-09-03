@@ -3,1202 +3,715 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Clash of Creations</title>
+<title>Third Edge</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0B0F1A;font-family:'Outfit',sans-serif;color:#E2E8F0;min-height:100vh}
 :root{
   --bg:#0B0F1A;--surface:#131929;--surface2:#1A2236;--border:rgba(255,255,255,.08);
-  --accent:#6366F1;--accent2:#8B5CF6;--green:#10B981;--red:#EF4444;--yellow:#F59E0B;
-  --text:#E2E8F0;--muted:#64748B;--dim:rgba(255,255,255,.04);
+  --accent:#6366F1;--green:#10B981;--red:#EF4444;--yellow:#F59E0B;--gold:#D4AF37;
+  --text:#E2E8F0;--muted:#64748B;
+  --living:#4ADE80;--made:#60A5FA;--raw:#FB923C;
 }
+body{background:var(--bg);font-family:'Outfit',sans-serif;color:var(--text);min-height:100vh}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes toast{0%{opacity:0;transform:translateY(-20px)}15%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
-@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(99,102,241,0)}50%{box-shadow:0 0 20px rgba(99,102,241,.5)}}
-@keyframes attackPulse{0%,100%{box-shadow:0 0 0 2px rgba(239,68,68,0)}50%{box-shadow:0 0 0 3px rgba(239,68,68,.7)}}
-@keyframes defendPulse{0%,100%{box-shadow:0 0 0 2px rgba(245,158,11,0)}50%{box-shadow:0 0 0 3px rgba(245,158,11,.7)}}
-.challenge-banner{background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.35);border-radius:10px;padding:10px 16px;text-align:center;font-weight:700;font-size:14px;color:#EF4444;margin-bottom:8px}
-.cip.attack-target{animation:attackPulse 1.2s infinite;border-color:rgba(239,68,68,.6)!important;cursor:pointer!important}
-.cip.defend-target{animation:defendPulse 1.2s infinite;border-color:rgba(245,158,11,.6)!important;cursor:pointer!important}
-.animate{animation:fadeIn .3s ease both}
-.btn{padding:10px 22px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .18s;letter-spacing:.5px;text-transform:uppercase}
-.btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.1)}
+.fade{animation:fadeIn .25s ease both}
+.btn{padding:10px 22px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;letter-spacing:.4px;text-transform:uppercase}
+.btn:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(0)}
 .btn:disabled{opacity:.35;cursor:default;transform:none!important}
 .btn-primary{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff}
-.btn-primary:hover:not(:disabled){box-shadow:0 6px 20px rgba(99,102,241,.4)}
 .btn-danger{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.25)}
-.btn-danger:hover:not(:disabled){background:rgba(239,68,68,.25)}
 .btn-success{background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.25)}
-.btn-success:hover:not(:disabled){background:rgba(16,185,129,.25)}
-.btn-ghost{background:rgba(255,255,255,.06);color:#E2E8F0;border:1px solid rgba(255,255,255,.1)}
-.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
+.btn-gold{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.3)}
 .btn-sm{padding:6px 14px;font-size:11px;border-radius:7px}
-input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s}
-input:focus{border-color:var(--accent)}
+.btn-lg{padding:14px 32px;font-size:15px}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
 .screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.card-surface{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.surface{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+/* Spinner */
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+/* Family colors */
+.fam-living{color:var(--living)}
+.fam-made{color:var(--made)}
+.fam-raw{color:var(--raw)}
+.badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.badge-living{background:rgba(74,222,128,.12);color:var(--living);border:1px solid rgba(74,222,128,.2)}
+.badge-made{background:rgba(96,165,250,.12);color:var(--made);border:1px solid rgba(96,165,250,.2)}
+.badge-raw{background:rgba(251,146,60,.12);color:var(--raw);border:1px solid rgba(251,146,60,.2)}
+/* Card Tile */
+.card-tile{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none;position:relative}
+.card-tile:hover{border-color:rgba(99,102,241,.5);background:#1e2a3d}
+.card-tile.selected{border-color:var(--accent);background:rgba(99,102,241,.1)}
+.card-tile.disabled{opacity:.4;cursor:default;pointer-events:none}
+.card-name{font-weight:700;font-size:13px;margin-bottom:4px}
+.card-stats{display:flex;gap:6px;margin-top:6px}
+.stat{flex:1;text-align:center;background:rgba(255,255,255,.05);border-radius:6px;padding:3px 0}
+.stat-label{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.stat-val{font-size:15px;font-weight:800;line-height:1}
+.stat-val.max{color:var(--gold)}
+/* Anchor display */
+.anchor-area{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-height:56px}
+.anchor-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+/* HUD */
+.hud{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:12px;gap:10px}
+.hud-item{text-align:center}
+.hud-val{font-size:18px;font-weight:800}
+.hud-key{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+/* Reveal result */
+.reveal-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:8px}
+.reveal-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
+.reveal-row + .reveal-row{border-top:1px solid rgba(255,255,255,.05)}
+.hit-winner{color:var(--green);font-weight:800}
+.hit-loser{color:var(--red)}
+.hit-tie{color:var(--muted)}
+/* Phase banner */
+.phase-banner{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:5px 12px;border-radius:8px}
+.phase-opening{background:rgba(99,102,241,.12);color:var(--accent)}
+.phase-commit{background:rgba(212,175,55,.12);color:var(--gold)}
+.phase-reveal{background:rgba(16,185,129,.12);color:var(--green)}
+.phase-over{background:rgba(239,68,68,.12);color:var(--red)}
+.phase-trade{background:rgba(251,146,60,.12);color:var(--raw)}
+/* Cover screen */
+.cover{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px}
+/* Deck picker cards */
+.deck-opt{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .15s}
+.deck-opt:hover{border-color:rgba(99,102,241,.4)}
+.deck-opt.selected{border-color:var(--accent);background:rgba(99,102,241,.08)}
+.deck-opt-name{font-weight:700;font-size:14px;margin-bottom:4px}
+.deck-opt-desc{font-size:11px;color:var(--muted)}
+/* Hand grid */
+.hand-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+/* Cat buttons */
+.cat-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.cat-btn{flex:1;min-width:80px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;transition:all .15s}
+.cat-btn:hover{background:rgba(99,102,241,.15);border-color:var(--accent)}
+.cat-btn.selected{background:rgba(99,102,241,.2);border-color:var(--accent);color:var(--accent)}
+/* Trade card list */
+.trade-card-opt{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.trade-card-opt:hover{border-color:rgba(99,102,241,.4)}
+.trade-card-opt.selected{border-color:var(--accent);background:rgba(99,102,241,.08)}
+/* Rounds won pips */
+.pips{display:flex;gap:6px;align-items:center}
+.pip{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.pip.won{background:var(--gold)}
+/* Game wrap */
+.game-wrap{width:100%;max-width:740px;margin:0 auto;padding:12px 12px 80px;display:flex;flex-direction:column;gap:10px;min-height:100vh}
+/* Sticky bottom action */
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,15,26,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:12px 16px;z-index:50;display:flex;gap:8px;justify-content:center}
 /* Toast */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--border);border-radius:10px;padding:10px 20px;z-index:9999;font-size:13px;max-width:340px;text-align:center;animation:toast 3.5s ease forwards}
-.toast.error{border-color:rgba(239,68,68,.4);color:#EF4444}
-/* Overlay */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
-.overlay-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:480px;width:100%;animation:fadeIn .25s ease}
-/* Game Layout */
-.game-wrap{width:100%;max-width:820px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:100vh}
-.header-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:13px}
-.wins-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
-.wins-num{padding:2px 10px;border-radius:6px;background:var(--surface2)}
-.wins-num.mine{color:var(--green)}
-.wins-num.opp{color:var(--red)}
-.phase-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-/* Score Bar */
-.score-bar-wrap{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
-.score-bar-label{font-size:12px;color:var(--muted);white-space:nowrap;min-width:80px}
-.score-bar-label.right{text-align:right}
-.score-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative}
-.score-bar-fill-left{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:5px;transition:width .4s ease}
-.score-bar-fill-right{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#EF4444,#DC2626);border-radius:5px;transition:width .4s ease}
-.score-bar-goal{position:absolute;right:0;top:-3px;bottom:-3px;width:2px;background:#F59E0B;opacity:.6}
-.score-num{font-weight:700;font-size:14px;min-width:30px;text-align:center}
-/* Team Section */
-.section-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;padding:0 2px}
-.team-grid{display:flex;flex-wrap:wrap;gap:8px}
-/* Card in Play */
-.cip{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;width:130px;min-height:160px;display:flex;flex-direction:column;gap:5px;cursor:default;transition:all .2s;position:relative;flex-shrink:0}
-.cip:hover{border-color:rgba(255,255,255,.2)}
-.cip.bonded{border-color:rgba(251,191,36,.5);box-shadow:0 0 12px rgba(251,191,36,.15)}
-.cip.selected{border-color:var(--accent);box-shadow:0 0 16px rgba(99,102,241,.3)}
-.cip.ko{opacity:.45;filter:grayscale(.7)}
-.cip.clickable{cursor:pointer}
-.cip.clickable:hover{border-color:var(--accent);transform:translateY(-2px)}
-.cip-name{font-weight:700;font-size:13px;line-height:1.2;margin-bottom:2px}
-.cip-trait{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
-.cip-stats{display:flex;flex-direction:column;gap:3px}
-.cip-stat{display:flex;align-items:center;justify-content:space-between;font-size:12px}
-.cip-stat-label{color:var(--muted);font-size:10px}
-.cip-stat-val{font-weight:700}
-.stat-p{color:#EF4444}
-.stat-s{color:#3B82F6}
-.stat-w{color:#8B5CF6}
-.cip-ability{font-size:10px;margin-top:4px;padding:2px 6px;border-radius:5px;background:var(--surface2);color:var(--muted);text-align:center;border:1px solid var(--border)}
-.cip-ability.revealed{color:var(--accent)}
-.cip-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-.badge{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:600}
-.badge-bond{background:rgba(251,191,36,.15);color:#FBB724;border:1px solid rgba(251,191,36,.3)}
-.badge-rally{background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.3)}
-.badge-ko{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.3)}
-.cip.ko .cip-name{text-decoration:line-through;opacity:.6}
-/* Hand cards */
-.hand-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
-.hand-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.hand-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;cursor:pointer;transition:all .18s;min-width:110px}
-.hand-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.hand-card.selected{border-color:var(--accent);box-shadow:0 0 14px rgba(99,102,241,.3)}
-.hand-card-name{font-weight:700;font-size:12px}
-.hand-card-stats{display:flex;gap:6px;margin-top:4px;font-size:11px}
-.hand-card-trait{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.hand-card-ability{font-size:9px;color:var(--accent);margin-top:2px}
-/* Action bar */
-.action-bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;align-items:center}
-/* Picking overlay */
-.pick-overlay{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center}
-.pick-title{font-size:18px;font-weight:800;margin-bottom:6px}
-.pick-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
-.stat-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
-.stat-btn{padding:14px 22px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;min-width:90px}
-.stat-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.12)}
-.stat-btn.power{border-color:rgba(239,68,68,.4)}
-.stat-btn.power:hover{background:rgba(239,68,68,.15)}
-.stat-btn.speed{border-color:rgba(59,130,246,.4)}
-.stat-btn.speed:hover{background:rgba(59,130,246,.15)}
-.stat-btn.wits{border-color:rgba(139,92,246,.4)}
-.stat-btn.wits:hover{background:rgba(139,92,246,.15)}
-/* Challenge view */
-.challenge-cards{display:flex;gap:16px;justify-content:center;margin:16px 0;flex-wrap:wrap}
-.challenge-vs{font-size:18px;font-weight:900;color:var(--muted);align-self:center}
-.reveal-stat{text-align:center;padding:12px;background:var(--surface2);border-radius:10px;margin:10px 0}
-.reveal-stat-name{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
-.reveal-stat-val{font-size:28px;font-weight:900;margin-top:2px}
-/* Post game */
-.deck-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.deck-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;transition:all .18s;font-size:12px;font-weight:600}
-.deck-card:hover{border-color:var(--accent)}
-.deck-card.selected{border-color:var(--accent);background:rgba(99,102,241,.12)}
-/* Menu */
-.menu-wrap{text-align:center;max-width:380px;width:100%}
-.menu-logo{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;background:linear-gradient(135deg,#6366F1,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.menu-tagline{font-size:13px;color:var(--muted);margin-bottom:32px}
-.menu-sep{font-size:11px;color:var(--muted);text-align:center;margin:14px 0;text-transform:uppercase;letter-spacing:1px}
-.waiting-code{font-size:48px;font-weight:900;letter-spacing:8px;color:var(--accent);margin:16px 0}
-/* Misc */
-.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-.waiting-dot{animation:pulse 1.5s ease infinite}
+@keyframes toast{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-12px)}}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--border);border-radius:10px;padding:9px 18px;z-index:9999;font-size:13px;animation:toast 3s ease forwards;white-space:nowrap}
+.toast.err{border-color:rgba(239,68,68,.4);color:#EF4444}
+/* Responsive */
+@media(max-width:480px){.hand-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useCallback, useRef } = React;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const GOAL = 30;
-const API = '';
+// ── Constants ────────────────────────────────────────────────────────────────
+const FAMILIES = { Beast:"Living",Titan:"Living",Machine:"Made",Icon:"Made",Element:"Raw",Spirit:"Raw" };
+const FAMILY_COLOR = { Living:"living", Made:"made", Raw:"raw" };
 
-// ─── Utility ─────────────────────────────────────────────────────────────────
-async function apiFetch(path, opts = {}) {
-  const r = await fetch(API + path, opts);
-  const json = await r.json();
-  if (!r.ok) throw new Error(json.error || 'Request failed');
-  return json;
+function familyOf(trait){ return FAMILIES[trait] || "?"; }
+function famClass(trait){ return "fam-" + (FAMILY_COLOR[familyOf(trait)] || ""); }
+function badgeClass(trait){ return "badge badge-" + (FAMILY_COLOR[familyOf(trait)] || ""); }
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(method, path, body){
+  const opts = { method, headers:{ "Content-Type":"application/json" } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Request failed");
+  return j;
 }
 
-async function postAction(code, playerId, action, data = {}) {
-  return apiFetch('/api/action', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, playerId, action, data }),
-  });
-}
-
-function getTeamTotal(team) {
-  if (!team) return 0;
-  return team.filter(c => !c.knockedOut).reduce((s, cip) => {
-    const b = cip.bondPartnerId ? 1 : 0;
-    const r = cip.rallyBonus || 0;
-    return s + (cip.card.power + b + r) + (cip.card.speed + b + r) + (cip.card.wits + b + r);
-  }, 0);
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ msg, type, onDone }) {
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ msg, err, onDone }){
   useEffect(() => {
-    const t = setTimeout(onDone, 3500);
+    const t = setTimeout(onDone, 3000);
     return () => clearTimeout(t);
   }, []);
-  return <div className={`toast ${type === 'error' ? 'error' : ''}`}>{msg}</div>;
+  return <div className={"toast" + (err ? " err" : "")}>{msg}</div>;
 }
 
-// ─── Card in Play component ──────────────────────────────────────────────────
-function CardInPlay({ cip, selected, onClick, dimmed, showAbility = true, extraClass = '' }) {
-  const { card, bondPartnerId, rallyBonus, knockedOut, abilityRevealed, abilityUsed } = cip;
-  const maxStat = Math.max(card.power, card.speed, card.wits);
-  const cls = [
-    'cip',
-    bondPartnerId ? 'bonded' : '',
-    selected ? 'selected' : '',
-    knockedOut ? 'ko' : '',
-    onClick ? 'clickable' : '',
-    extraClass,
-  ].filter(Boolean).join(' ');
-
-  const statColor = (val) => {
-    if (val === maxStat) return val === card.power ? 'stat-p' : val === card.speed ? 'stat-s' : 'stat-w';
-    return '';
-  };
-
-  const effP = card.power + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
-  const effS = card.speed + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
-  const effW = card.wits + (bondPartnerId ? 1 : 0) + (rallyBonus || 0);
-
-  const ability = showAbility ? card.ability : (abilityRevealed ? card.ability : null);
-
-  return (
-    <div className={cls} onClick={onClick} style={dimmed ? { opacity: 0.3 } : {}}>
-      <div className="cip-name">{card.name}</div>
-      <div className="cip-trait">{card.trait}</div>
-      <div className="cip-stats">
-        <div className="cip-stat">
-          <span className="cip-stat-label">💪</span>
-          <span className={`cip-stat-val ${card.power === maxStat ? 'stat-p' : ''}`}>
-            {effP}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.power})</span> : null}
-          </span>
-        </div>
-        <div className="cip-stat">
-          <span className="cip-stat-label">⚡</span>
-          <span className={`cip-stat-val ${card.speed === maxStat ? 'stat-s' : ''}`}>
-            {effS}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.speed})</span> : null}
-          </span>
-        </div>
-        <div className="cip-stat">
-          <span className="cip-stat-label">🧠</span>
-          <span className={`cip-stat-val ${card.wits === maxStat ? 'stat-w' : ''}`}>
-            {effW}{bondPartnerId || rallyBonus ? <span style={{fontSize:'9px',color:'#64748B'}}> ({card.wits})</span> : null}
-          </span>
-        </div>
-      </div>
-      {ability && (
-        <div className={`cip-ability ${abilityRevealed ? 'revealed' : ''}`}>
-          {ability}{abilityUsed ? ' ✓' : ''}
-        </div>
-      )}
-      {!ability && !showAbility && (
-        <div className="cip-ability">?</div>
-      )}
-      <div className="cip-badges">
-        {bondPartnerId && <span className="badge badge-bond">Bond</span>}
-        {(rallyBonus > 0) && <span className="badge badge-rally">+{rallyBonus} Rally</span>}
-        {knockedOut && <span className="badge badge-ko">KO</span>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Hand Card ───────────────────────────────────────────────────────────────
-function HandCard({ card, selected, onClick }) {
-  return (
-    <div className={`hand-card ${selected ? 'selected' : ''}`} onClick={onClick}>
-      <div className="hand-card-name">{card.name}</div>
-      <div className="hand-card-stats">
-        <span className="stat-p">💪{card.power}</span>
-        <span className="stat-s">⚡{card.speed}</span>
-        <span className="stat-w">🧠{card.wits}</span>
-      </div>
-      <div className="hand-card-trait">{card.trait}</div>
-      <div className="hand-card-ability">{card.ability}</div>
-    </div>
-  );
-}
-
-// ─── Score Bar ───────────────────────────────────────────────────────────────
-function ScoreBar({ myTotal, oppTotal, myLabel, oppLabel }) {
-  const total = myTotal + oppTotal;
-  const leftPct = total > 0 ? Math.min(100, (myTotal / GOAL) * 100) : 0;
-  const rightPct = total > 0 ? Math.min(100, (oppTotal / GOAL) * 100) : 0;
-  return (
-    <div className="score-bar-wrap">
-      <div className="score-bar-label">{myLabel || 'You'}</div>
-      <div className="score-num" style={{color:'#6366F1'}}>{myTotal}</div>
-      <div className="score-bar-track">
-        <div className="score-bar-fill-left" style={{width: leftPct + '%'}} />
-        <div className="score-bar-fill-right" style={{width: rightPct + '%'}} />
-      </div>
-      <div className="score-num" style={{color:'#EF4444'}}>{oppTotal}</div>
-      <div className="score-bar-label right">{oppLabel || 'Opp'}</div>
-      <div style={{fontSize:'10px',color:'var(--muted)',whiteSpace:'nowrap'}}>Goal: {GOAL}</div>
-    </div>
-  );
-}
-
-// ─── Main App ─────────────────────────────────────────────────────────────────
-function App() {
-  const [session, setSession] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('coc_session')) || null; } catch { return null; }
-  });
-  const [gs, setGs] = useState(null);
+function useToast(){
   const [toast, setToast] = useState(null);
+  function show(msg, err=false){ setToast({ msg, err, key: Date.now() }); }
+  const el = toast
+    ? <Toast key={toast.key} msg={toast.msg} err={toast.err} onDone={() => setToast(null)} />
+    : null;
+  return [el, show];
+}
+
+// ── CardTile ──────────────────────────────────────────────────────────────────
+function CardTile({ cardId, cards, selected, onClick, disabled, showFull=true }){
+  const c = cards?.[cardId];
+  if (!c) return <div className="card-tile disabled"><span style={{color:"var(--muted)",fontSize:11}}>{cardId}</span></div>;
+  const stats = [["POW",c.power],["SPD",c.speed],["WIT",c.wit]];
+  const maxVal = Math.max(c.power, c.speed, c.wit);
+  const fam = familyOf(c.trait);
+  return (
+    <div
+      className={"card-tile" + (selected?" selected":"") + (disabled?" disabled":"")}
+      onClick={!disabled ? onClick : undefined}
+    >
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
+        <span className="card-name">{c.name}</span>
+        <span className={badgeClass(c.trait)}>{fam}</span>
+      </div>
+      {showFull && (
+        <div className="card-stats">
+          {stats.map(([l,v]) => (
+            <div className="stat" key={l}>
+              <div className="stat-label">{l}</div>
+              <div className={"stat-val" + (v===maxVal?" max":"")}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AnchorArea ────────────────────────────────────────────────────────────────
+function AnchorArea({ cardId, cards, label }){
+  const c = cards?.[cardId];
+  return (
+    <div className="anchor-area">
+      <div className="anchor-label">{label || "Anchor"}</div>
+      {c
+        ? <div style={{fontWeight:700,fontSize:13}}>{c.name} <span style={{fontSize:11,color:"var(--muted)"}}>{familyOf(c.trait)}</span></div>
+        : <div style={{color:"var(--muted)",fontSize:12}}>—</div>
+      }
+    </div>
+  );
+}
+
+// ── HUD ───────────────────────────────────────────────────────────────────────
+function Hud({ ms, p1, p2 }){
+  if (!ms) return null;
+  const r = ms.round;
+  const rw = ms.roundsWon;
+  const phaseLabel = r.phase.replace("-"," ");
+  const phaseClass = { opening:"phase-opening", commit:"phase-commit", reveal:"phase-reveal",
+    over:"phase-over", "exhausted-tied":"phase-reveal" }[r.phase] || "phase-commit";
+  return (
+    <div className="hud">
+      <div className="hud-item">
+        <div className="hud-val">{r.index}</div>
+        <div className="hud-key">Round</div>
+      </div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontWeight:700,fontSize:12}}>{p1?.name}</div>
+          <div className="pips">
+            {[0,1].map(i=><div key={i} className={"pip"+(rw[p1?.id]>i?" won":"")}/>)}
+          </div>
+        </div>
+        <div style={{color:"var(--muted)",fontWeight:700,fontSize:11}}>vs</div>
+        <div style={{textAlign:"left"}}>
+          <div style={{fontWeight:700,fontSize:12}}>{p2?.name}</div>
+          <div className="pips">
+            {[0,1].map(i=><div key={i} className={"pip"+(rw[p2?.id]>i?" won":"")}/>)}
+          </div>
+        </div>
+      </div>
+      <div className="hud-item">
+        <div className="hud-val" style={{color:"var(--gold)"}}>{r.stake}</div>
+        <div className="hud-key">Stake</div>
+      </div>
+      <div>
+        <div className={"phase-banner "+phaseClass}>{phaseLabel}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── RevealResult ──────────────────────────────────────────────────────────────
+function RevealResult({ ms, p1, p2, cards }){
+  const r = ms?.round;
+  if (!r || r.phase !== "reveal" || !r.lastResult) return null;
+  const res = r.lastResult;
+  const lp  = r.lastPlayed;
+  const lc  = r.lastCategories;
+
+  // Build per-player rows
+  function PlayerReveal({ pid, pname }){
+    const side  = res[pid] || {};
+    const cat   = lc?.[pid];
+    const played = lp?.[pid];
+    const c = cards?.[played];
+    const won = res.winner === pid;
+    const tied = !res.winner;
+    return (
+      <div style={{flex:1}}>
+        <div style={{fontWeight:700,fontSize:12,marginBottom:6,
+          color: won ? "var(--green)" : tied ? "var(--muted)" : "var(--red)"}}>
+          {pname} {won ? "✓" : tied ? "—" : "✗"}
+        </div>
+        <div style={{fontSize:11,color:"var(--muted)",marginBottom:4}}>
+          Played: <span style={{color:"var(--text)",fontWeight:600}}>{c?.name || played}</span>
+          {cat && <span style={{marginLeft:6,color:"var(--accent)"}}>[ {cat.toUpperCase()} ]</span>}
+        </div>
+        {side.bond > 0 && <div style={{fontSize:11,color:"var(--living)"}}>Bond +{side.bond}</div>}
+        {side.blocked && <div style={{fontSize:11,color:"var(--red)"}}>Blocked</div>}
+        <div style={{fontSize:11,color:"var(--muted)",marginTop:4}}>
+          Total {cat}: <span style={{color:"var(--text)",fontWeight:700}}>{side.total ?? "?"}</span>
+        </div>
+        <div style={{fontSize:13,fontWeight:700,marginTop:2,
+          color: won ? "var(--green)" : tied ? "var(--muted)" : "var(--red)"}}>
+          Hit: {side.hit > 0 ? "+"+side.hit : side.hit ?? 0}
+        </div>
+      </div>
+    );
+  }
+
+  const awardMsg = res.winner
+    ? `+${res.awarded} to ${res.winner === p1.id ? p1.name : p2.name}`
+    : `Pot grows (stake +1)`;
+
+  return (
+    <div className="reveal-box fade">
+      <div style={{display:"flex",gap:14,marginBottom:8}}>
+        <PlayerReveal pid={p1.id} pname={p1.name} />
+        <div style={{width:1,background:"var(--border)"}}/>
+        <PlayerReveal pid={p2.id} pname={p2.name} />
+      </div>
+      <div style={{borderTop:"1px solid var(--border)",paddingTop:8,fontSize:12,
+        color:"var(--gold)",fontWeight:700,textAlign:"center"}}>
+        {awardMsg}
+      </div>
+    </div>
+  );
+}
+
+// ── SetupScreen ───────────────────────────────────────────────────────────────
+const DECK_NAMES = ["Even Hand","The Wall","Two Camps","Weighted"];
+
+function SetupScreen({ onStart }){
+  const [p1Name, setP1Name] = useState("");
+  const [p2Name, setP2Name] = useState("");
+  const [p1Deck, setP1Deck] = useState(DECK_NAMES[0]);
+  const [p2Deck, setP2Deck] = useState(DECK_NAMES[1]);
   const [loading, setLoading] = useState(false);
+  const [ToastEl, showToast] = useToast();
+
+  async function handleStart(){
+    if (!p1Name.trim() || !p2Name.trim()) { showToast("Both players need a name", true); return; }
+    setLoading(true);
+    try {
+      const cr = await api("POST", "/api2/create", { p1Name: p1Name.trim(), p1DeckName: p1Deck });
+      const jr = await api("POST", "/api2/join",   { code: cr.code, p2Name: p2Name.trim(), p2DeckName: p2Deck });
+      onStart({ code: cr.code, p1Id: cr.playerId, p2Id: jr.p2Id, p1Name: p1Name.trim(), p2Name: p2Name.trim() });
+    } catch(e){
+      showToast(e.message, true);
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="screen">
+      {ToastEl}
+      <div style={{width:"100%",maxWidth:520}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:28,fontWeight:900,letterSpacing:-1}}>Third Edge</div>
+          <div style={{color:"var(--muted)",fontSize:13,marginTop:4}}>Hot-seat · 2 players · 1 device</div>
+        </div>
+
+        <div className="surface fade" style={{display:"flex",flexDirection:"column",gap:18}}>
+          {/* Player 1 */}
+          <div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"var(--living)"}}>Player 1</div>
+            <div style={{marginBottom:10}}>
+              <label>Name</label>
+              <input value={p1Name} onChange={e=>setP1Name(e.target.value)} placeholder="Enter name" />
+            </div>
+            <label>Deck</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {DECK_NAMES.map(d => (
+                <div key={d} className={"deck-opt"+(p1Deck===d?" selected":"")} onClick={()=>setP1Deck(d)}>
+                  <div className="deck-opt-name">{d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{borderTop:"1px solid var(--border)"}}/>
+
+          {/* Player 2 */}
+          <div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"var(--made)"}}>Player 2</div>
+            <div style={{marginBottom:10}}>
+              <label>Name</label>
+              <input value={p2Name} onChange={e=>setP2Name(e.target.value)} placeholder="Enter name" />
+            </div>
+            <label>Deck</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {DECK_NAMES.map(d => (
+                <div key={d} className={"deck-opt"+(p2Deck===d?" selected":"")} onClick={()=>setP2Deck(d)}>
+                  <div className="deck-opt-name">{d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button className="btn btn-primary btn-lg" onClick={handleStart} disabled={loading} style={{width:"100%",marginTop:4}}>
+            {loading ? "Starting…" : "Start Game"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── GameScreen ────────────────────────────────────────────────────────────────
+function GameScreen({ gameInfo, onNewGame }){
+  const { code, p1Id, p2Id, p1Name, p2Name } = gameInfo;
+  const p1 = { id: p1Id, name: p1Name };
+  const p2 = { id: p2Id, name: p2Name };
+
+  const [ms, setMs] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [loading, setLoading] = useState(false);
+
+  // Hot-seat active player tracking
+  const [activeP, setActiveP] = useState("p1");   // "p1" | "p2"
+  const [showCover, setShowCover] = useState(false);
+  const [p1Submitted, setP1Submitted] = useState(false);
+
+  // Selection state
+  const [selCard, setSelCard] = useState(null);
+  const [selCat, setSelCat] = useState(null);
+  const [selGiveCard, setSelGiveCard] = useState(null);
+
+  const [ToastEl, showToast] = useToast();
   const pollRef = useRef(null);
 
-  const showToast = useCallback((msg, type = 'info') => {
-    setToast({ msg, type, key: Date.now() });
-  }, []);
+  const activePId = activeP === "p1" ? p1Id : p2Id;
+  const activeName = activeP === "p1" ? p1Name : p2Name;
 
-  const saveSession = (s) => {
-    localStorage.setItem('coc_session', JSON.stringify(s));
-    setSession(s);
-  };
+  // ── Poll ─────────────────────────────────────────────────────────────────
+  const poll = useCallback(async () => {
+    try {
+      const data = await api("GET", `/api2/poll?code=${code}`);
+      setStatus(data.status);
+      if (data.matchState) setMs(data.matchState);
+    } catch(e){ /* ignore poll errors */ }
+  }, [code]);
 
-  const clearSession = () => {
-    localStorage.removeItem('coc_session');
-    setSession(null);
-    setGs(null);
-  };
-
-  // Polling
   useEffect(() => {
-    if (!session) { clearInterval(pollRef.current); return; }
-    const poll = async () => {
-      try {
-        const data = await apiFetch(`/api/poll?code=${session.code}&playerId=${session.playerId}`);
-        setGs(data);
-      } catch (e) {
-        // silently ignore poll errors
-      }
-    };
     poll();
     pollRef.current = setInterval(poll, 1500);
     return () => clearInterval(pollRef.current);
-  }, [session]);
+  }, [poll]);
 
-  const act = async (action, data = {}) => {
+  // Reset selection when phase changes
+  useEffect(() => {
+    setSelCard(null); setSelCat(null); setSelGiveCard(null);
+  }, [ms?.round?.phase, ms?.round?.index]);
+
+  // ── Action helper ─────────────────────────────────────────────────────────
+  async function act(action, extra = {}){
     setLoading(true);
     try {
-      await postAction(session.code, session.playerId, action, data);
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!session) return <MenuScreen onSession={saveSession} showToast={showToast} />;
-
-  if (!gs || gs.status === 'waiting') {
-    return <WaitingScreen code={session.code} gs={gs} onLeave={clearSession} />;
+      await api("POST", "/api2/action", { code, playerId: activePId, action, ...extra });
+      await poll();
+    } catch(e){
+      showToast(e.message, true);
+    } finally { setLoading(false); }
   }
 
-  if (gs.status === 'complete') {
-    return <CompleteScreen gs={gs} session={session} onNew={clearSession} />;
-  }
-
-  return (
-    <GameScreen
-      gs={gs}
-      session={session}
-      act={act}
-      loading={loading}
-      onLeave={clearSession}
-      showToast={showToast}
-      toast={toast}
-      onClearToast={() => setToast(null)}
-    />
+  // ── Phase logic ───────────────────────────────────────────────────────────
+  if (!ms) return (
+    <div className="screen"><div className="spinner"/></div>
   );
-}
 
-// ─── Menu Screen ──────────────────────────────────────────────────────────────
-function MenuScreen({ onSession, showToast }) {
-  const [joinCode, setJoinCode] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [joining, setJoining] = useState(false);
+  const r = ms.round;
+  const cards = ms.cards;
+  const phase = r.phase;
 
-  const create = async () => {
-    setCreating(true);
-    try {
-      const r = await apiFetch('/api/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      onSession({ code: r.code, playerId: r.playerId, playerNum: r.playerNum });
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      setCreating(false);
-    }
-  };
+  // Find player slots in round
+  const rp = (pid) => r.players.find(p => p.playerId === pid);
+  const mySlot   = rp(activePId);
+  const theirPId = activePId === p1Id ? p2Id : p1Id;
+  const theirSlot = rp(theirPId);
+  const theirName = activePId === p1Id ? p2Name : p1Name;
 
-  const join = async () => {
-    if (!joinCode.trim()) return;
-    setJoining(true);
-    try {
-      const r = await apiFetch('/api/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: joinCode.trim().toUpperCase() }),
-      });
-      onSession({ code: r.code, playerId: r.playerId, playerNum: r.playerNum });
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      setJoining(false);
-    }
-  };
+  // Match over
+  if (ms.winnerId) {
+    const winName = ms.winnerId === p1Id ? p1Name : p2Name;
+    return (
+      <div className="screen">
+        {ToastEl}
+        <div style={{textAlign:"center",maxWidth:400}}>
+          <div style={{fontSize:48,marginBottom:8}}>🏆</div>
+          <div style={{fontSize:28,fontWeight:900,marginBottom:4}}>{winName} wins!</div>
+          <div style={{color:"var(--muted)",fontSize:14,marginBottom:28}}>
+            {ms.roundsWon[p1Id]}-{ms.roundsWon[p2Id]} in rounds
+          </div>
+          <button className="btn btn-primary btn-lg" onClick={onNewGame}>New Game</button>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="screen animate">
-      <div className="menu-wrap">
-        <div className="menu-logo">Clash of Creations</div>
-        <div className="menu-tagline">Two decks. Three stats. One winner.</div>
-        <button className="btn btn-primary" style={{width:'100%',padding:'14px',fontSize:'15px'}} onClick={create} disabled={creating}>
-          {creating ? 'Creating...' : '⚔️ Create Game'}
-        </button>
-        <div className="menu-sep">— or join with a code —</div>
-        <div style={{display:'flex',gap:8}}>
-          <input
-            value={joinCode}
-            onChange={e => setJoinCode(e.target.value.toUpperCase())}
-            onKeyDown={e => e.key === 'Enter' && join()}
-            placeholder="Room code"
-            maxLength={4}
-            style={{fontSize:'18px',fontWeight:700,letterSpacing:4,textAlign:'center'}}
-          />
-          <button className="btn btn-ghost" onClick={join} disabled={joining || !joinCode.trim()}>
-            {joining ? '...' : 'Join'}
+  // Trade phase
+  if (ms.pendingTrade) {
+    const trade = ms.pendingTrade;
+    const winId = trade.winner;
+    const winName = winId === p1Id ? p1Name : p2Name;
+    const isWinner = activePId === winId;
+
+    // The cover screen forces the winner to be on device
+    if (!isWinner && !showCover) {
+      // Wrong player is active — show cover to hand device to winner
+      return (
+        <div className="cover">
+          <div style={{fontSize:22,fontWeight:800,textAlign:"center"}}>
+            Hand device to<br/><span style={{color:"var(--gold)"}}>{winName}</span>
+          </div>
+          <div style={{color:"var(--muted)",fontSize:13}}>Round winner decides the Trade</div>
+          <button className="btn btn-primary" onClick={() => { setActiveP(winId===p1Id?"p1":"p2"); }}>
+            I'm {winName} →
           </button>
         </div>
-        <div style={{marginTop:24,fontSize:12,color:'var(--muted)',textAlign:'center'}}>
-          Open in two browser tabs for hot-seat play.<br/>
-          Player 1 creates, Player 2 joins with the code.
+      );
+    }
+
+    const myDeck = ms.round.players.find(p=>p.playerId===winId)?.hand || [];
+
+    return (
+      <div className="game-wrap fade">
+        {ToastEl}
+        <Hud ms={ms} p1={p1} p2={p2} />
+        <div className="surface">
+          <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>Trade Phase</div>
+          <div style={{color:"var(--muted)",fontSize:12,marginBottom:14}}>
+            {winName} wins the round. Choose to Trade, Reclaim, or Decline.
+          </div>
+
+          <div style={{fontWeight:600,fontSize:12,marginBottom:8,color:"var(--muted)"}}>Your hand — pick a card to give away:</div>
+          {mySlot?.hand.map(cid => (
+            <div key={cid} className={"trade-card-opt"+(selGiveCard===cid?" selected":"")}
+              onClick={()=>setSelGiveCard(cid===selGiveCard?null:cid)}>
+              <span style={{fontWeight:600}}>{cards[cid]?.name || cid}</span>
+              <span style={{fontSize:11,color:"var(--muted)"}}>{familyOf(cards[cid]?.trait)}</span>
+            </div>
+          ))}
+
+          {ms.swaps?.filter(s=>s.by===winId&&!s.undone).length > 0 && (
+            <div style={{marginTop:12}}>
+              <div style={{fontWeight:600,fontSize:12,marginBottom:6,color:"var(--muted)"}}>Reclaim a previous trade:</div>
+              {ms.swaps.map((s,i) => s.by===winId&&!s.undone ? (
+                <div key={i} className={"trade-card-opt"+(selGiveCard==="reclaim:"+i?" selected":"")}
+                  onClick={()=>setSelGiveCard("reclaim:"+i)}>
+                  <span style={{fontSize:12}}>Reclaim: gave {cards[s.gaveCardId]?.name}, took {cards[s.tookCardId]?.name}</span>
+                </div>
+              ) : null)}
+            </div>
+          )}
+        </div>
+
+        <div className="action-bar">
+          {selGiveCard?.startsWith("reclaim:") ? (
+            <button className="btn btn-gold" disabled={loading}
+              onClick={()=>{
+                const idx = parseInt(selGiveCard.split(":")[1]);
+                act("executeReclaim",{swapIndex:idx});
+                setActiveP("p1"); setP1Submitted(false);
+              }}>
+              Reclaim Trade
+            </button>
+          ) : (
+            <button className="btn btn-primary" disabled={!selGiveCard||loading}
+              onClick={()=>{
+                act("executeTrade",{giveCardId:selGiveCard});
+                setActiveP("p1"); setP1Submitted(false);
+              }}>
+              Execute Trade
+            </button>
+          )}
+          <button className="btn btn-ghost" disabled={loading}
+            onClick={()=>{
+              act("declineTrade");
+              setActiveP("p1"); setP1Submitted(false);
+            }}>
+            Decline
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Waiting Screen ───────────────────────────────────────────────────────────
-function WaitingScreen({ code, gs, onLeave }) {
-  return (
-    <div className="screen animate" style={{textAlign:'center'}}>
-      <div style={{fontSize:14,color:'var(--muted)',marginBottom:8}}>Room Code</div>
-      <div className="waiting-code">{code}</div>
-      <div style={{fontSize:14,color:'var(--muted)',marginBottom:24}} className="waiting-dot">
-        Waiting for opponent to join…
-      </div>
-      <div style={{fontSize:12,color:'var(--muted)',marginBottom:24}}>
-        Share this code with your opponent. They open the same URL and click "Join".
-      </div>
-      <button className="btn btn-ghost btn-sm" onClick={onLeave}>Leave</button>
-    </div>
-  );
-}
-
-// ─── Complete Screen ──────────────────────────────────────────────────────────
-function CompleteScreen({ gs, session, onNew }) {
-  const isWinner = gs.winnerId === session.playerId;
-  const myW = gs.wins[session.playerId] || 0;
-  const oppW = gs.wins[Object.keys(gs.wins).find(k => k !== session.playerId)] || 0;
-  return (
-    <div className="screen animate" style={{textAlign:'center'}}>
-      <div style={{fontSize:40,marginBottom:12}}>{isWinner ? '🏆' : '😤'}</div>
-      <div style={{fontSize:24,fontWeight:900,marginBottom:8}}>
-        {isWinner ? 'You Win the Match!' : 'Opponent Wins the Match!'}
-      </div>
-      <div style={{fontSize:16,color:'var(--muted)',marginBottom:24}}>
-        Final score: {myW} – {oppW}
-      </div>
-      <button className="btn btn-primary" onClick={onNew}>New Game</button>
-    </div>
-  );
-}
-
-// ─── Game Screen ──────────────────────────────────────────────────────────────
-function GameScreen({ gs, session, act, loading, onLeave, showToast, toast, onClearToast }) {
-  const { playerId } = session;
-  const [selectedAttacker, setSelectedAttacker] = useState(null);
-  const [challengeMode, setChallengeMode] = useState(false);
-  const [swapGive, setSwapGive] = useState(null);
-  const [swapTake, setSwapTake] = useState(null);
-
-  // Reset challenge state when phase changes
-  useEffect(() => {
-    setSelectedAttacker(null);
-    setChallengeMode(false);
-  }, [gs.phase]);
-
-  const myId = playerId;
-  const [p1Id, p2Id] = gs.wins ? Object.keys(gs.wins) : [null, null];
-  const oppId = myId === p1Id ? p2Id : p1Id;
-
-  const myWins = gs.wins ? (gs.wins[myId] || 0) : 0;
-  const oppWins = gs.wins ? (gs.wins[oppId] || 0) : 0;
-  const myTeam = gs.myTeam || [];
-  const oppTeam = gs.opponentTeam || [];
-  const myHand = gs.myHand || [];
-  const myTotal = getTeamTotal(myTeam);
-  const oppTotal = getTeamTotal(oppTeam);
-  const ch = gs.challenge;
-
-  // Opening phase
-  if (gs.phase === 'opening') {
-    return (
-      <OpeningPhase gs={gs} session={session} act={act} loading={loading} onLeave={onLeave} toast={toast} onClearToast={onClearToast} />
     );
   }
 
-  // Rally pending
-  if (gs.phase === 'rallyPending' && gs.rallyPending) {
+  // Cover screen between players
+  if (showCover) {
+    const nextName = activeP === "p1" ? p2Name : p1Name;
     return (
-      <RallyPhase gs={gs} session={session} act={act} loading={loading} myTeam={myTeam} onLeave={onLeave} toast={toast} onClearToast={onClearToast} />
-    );
-  }
-
-  // Post-game
-  if (gs.status === 'postGame') {
-    return (
-      <PostGamePhase
-        gs={gs} session={session} act={act} loading={loading}
-        swapGive={swapGive} setSwapGive={setSwapGive}
-        swapTake={swapTake} setSwapTake={setSwapTake}
-        onLeave={onLeave} toast={toast} onClearToast={onClearToast}
-        myId={myId} oppId={oppId} myWins={myWins} oppWins={oppWins}
-      />
-    );
-  }
-
-  // Challenge
-  if (gs.phase === 'challenge' && ch) {
-    return (
-      <ChallengePhase
-        gs={gs} session={session} act={act} loading={loading}
-        ch={ch} myId={myId} oppId={oppId}
-        myTeam={myTeam} oppTeam={oppTeam}
-        myWins={myWins} oppWins={oppWins}
-        myTotal={myTotal} oppTotal={oppTotal}
-        onLeave={onLeave} toast={toast} onClearToast={onClearToast}
-      />
-    );
-  }
-
-  // Turn phase
-  const myStanding = myTeam.filter(c => !c.knockedOut);
-  const oppStanding = oppTeam.filter(c => !c.knockedOut);
-  const canChallenge = myStanding.length > 0 && oppStanding.length > 0;
-  const canPass = myHand.length === 0 && !canChallenge;
-
-  const handleHandCardClick = (card) => {
-    if (!gs.isMyTurn) return;
-    if (challengeMode) return;
-    act('recruit', { cardId: card.id });
-  };
-
-  const handleAttackerSelect = (cip) => {
-    if (!gs.isMyTurn || !challengeMode) return;
-    if (cip.knockedOut) return;
-    setSelectedAttacker(cip.card.id === selectedAttacker ? null : cip.card.id);
-  };
-
-  const handleDefenderSelect = (cip) => {
-    if (!gs.isMyTurn || !challengeMode || !selectedAttacker) return;
-    if (cip.knockedOut) return;
-    act('initiateChallenge', { attackerCardId: selectedAttacker, defenderCardId: cip.card.id });
-    setChallengeMode(false);
-    setSelectedAttacker(null);
-  };
-
-  return (
-    <div className="game-wrap animate">
-      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-
-      {/* Header */}
-      <div className="header-bar">
-        <div className="wins-badge">
-          <span className="wins-num mine">{myWins}</span>
-          <span style={{color:'var(--muted)'}}>–</span>
-          <span className="wins-num opp">{oppWins}</span>
-          <span style={{fontSize:11,color:'var(--muted)'}}>Game {(gs.gameIndex || 0) + 1}</span>
+      <div className="cover">
+        <div style={{fontSize:14,color:"var(--muted)",fontWeight:600}}>Move locked in.</div>
+        <div style={{fontSize:22,fontWeight:800,textAlign:"center"}}>
+          Pass device to<br/><span style={{color:"var(--accent)"}}>{nextName}</span>
         </div>
-        <div className="phase-label">
-          {gs.isMyTurn ? '⚡ Your Turn' : '⏳ Opponent\'s Turn'}
+        <div style={{color:"var(--muted)",fontSize:12}}>Don't look at {activeName}'s move</div>
+        <button className="btn btn-primary btn-lg" onClick={()=>{
+          setShowCover(false);
+          setActiveP(activeP==="p1"?"p2":"p1");
+          setSelCard(null); setSelCat(null);
+        }}>
+          I'm {nextName} →
+        </button>
+      </div>
+    );
+  }
+
+  // Reveal phase
+  if (phase === "reveal") {
+    return (
+      <div className="game-wrap fade">
+        {ToastEl}
+        <Hud ms={ms} p1={p1} p2={p2} />
+        <RevealResult ms={ms} p1={p1} p2={p2} cards={cards} />
+        <div style={{margin:"6px 0",display:"flex",gap:10}}>
+          {r.players.map(p => (
+            <div key={p.playerId} className="surface" style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",marginBottom:6}}>
+                {p.playerId===p1Id?p1Name:p2Name}
+              </div>
+              <div style={{fontSize:12}}>Points: <strong>{p.points}</strong></div>
+              <div style={{fontSize:12,color:"var(--muted)"}}>Hand: {p.handCount} · Draw: {p.drawCount}</div>
+            </div>
+          ))}
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
+        <div className="action-bar">
+          <button className="btn btn-primary" disabled={loading}
+            onClick={()=>{ act("advanceTurn"); setActiveP("p1"); setP1Submitted(false); }}>
+            Next Turn →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Opening / Commit phase — submit move
+  const isOpening = phase === "opening";
+  const isP1Turn = activeP === "p1";
+
+  // Check if both submitted (only possible if we know from server — in hot-seat both go sequentially)
+  const submitMove = async () => {
+    if (!selCard) { showToast("Pick a card", true); return; }
+    if (!isOpening && !selCat) { showToast("Choose a category", true); return; }
+    await act("submitMove", { cardId: selCard, category: isOpening ? null : selCat });
+    if (isP1Turn && !p1Submitted) {
+      // After P1 submits, show cover for P2
+      setP1Submitted(true);
+      setShowCover(true);
+    } else {
+      // P2 submitted — both in — server resolved — reset
+      setP1Submitted(false);
+      setActiveP("p1");
+    }
+    setSelCard(null); setSelCat(null);
+  };
+
+  const cats = ["power","speed","wit"];
+
+  return (
+    <div className="game-wrap fade">
+      {ToastEl}
+      <Hud ms={ms} p1={p1} p2={p2} />
+
+      {/* Active player banner */}
+      <div style={{textAlign:"center",padding:"6px 0"}}>
+        <span style={{fontWeight:700,fontSize:13,color:"var(--accent)"}}>
+          {activeName}'s turn {isOpening ? "(Opening — no category)" : ""}
+        </span>
       </div>
 
-      {/* Score bar */}
-      <ScoreBar myTotal={myTotal} oppTotal={oppTotal} myLabel="You" oppLabel="Opp" />
-
-      {/* Challenge mode banner */}
-      {challengeMode && gs.isMyTurn && (
-        <div className="challenge-banner">
-          {!selectedAttacker
-            ? '⚔️ CHALLENGE MODE — Click one of YOUR cards below to attack with'
-            : '🎯 Now click an OPPONENT card above to defend'}
+      {/* Their anchor */}
+      {!isOpening && theirSlot?.anchor && (
+        <div>
+          <div style={{fontSize:11,color:"var(--muted)",fontWeight:600,marginBottom:4}}>{theirName}'s Anchor</div>
+          <AnchorArea cardId={theirSlot.anchor} cards={cards} label={theirName} />
         </div>
       )}
 
-      {/* Opponent team */}
-      <div>
-        <div className="section-label" style={challengeMode && selectedAttacker ? {color:'#F59E0B',fontWeight:700} : {}}>
-          {challengeMode && selectedAttacker ? '🎯 Pick Defender — Opponent\'s Team' : `Opponent's Team (${oppStanding.length} standing)`}
-        </div>
-        <div className="team-grid">
-          {oppTeam.length === 0 && <div style={{color:'var(--muted)',fontSize:13}}>No cards yet</div>}
-          {oppTeam.map(cip => (
-            <CardInPlay
-              key={cip.card.id}
-              cip={cip}
-              showAbility={false}
-              extraClass={challengeMode && gs.isMyTurn && selectedAttacker && !cip.knockedOut ? 'defend-target' : ''}
-              onClick={challengeMode && gs.isMyTurn && selectedAttacker && !cip.knockedOut
-                ? () => handleDefenderSelect(cip)
-                : undefined
-              }
-              selected={false}
-              dimmed={challengeMode && gs.isMyTurn && selectedAttacker && cip.knockedOut}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* My team */}
-      <div>
-        <div className="section-label" style={challengeMode && !selectedAttacker ? {color:'#EF4444',fontWeight:700} : {}}>
-          {challengeMode && !selectedAttacker ? '⚔️ Pick Attacker — Your Team' : `Your Team (${myStanding.length} standing) — Deck: ${gs.myDeckCount}`}
-        </div>
-        <div className="team-grid">
-          {myTeam.length === 0 && <div style={{color:'var(--muted)',fontSize:13}}>No cards yet</div>}
-          {myTeam.map(cip => (
-            <CardInPlay
-              key={cip.card.id}
-              cip={cip}
-              showAbility={true}
-              extraClass={challengeMode && gs.isMyTurn && !cip.knockedOut && !selectedAttacker ? 'attack-target' : ''}
-              onClick={challengeMode && gs.isMyTurn && !cip.knockedOut
-                ? () => handleAttackerSelect(cip)
-                : undefined
-              }
-              selected={selectedAttacker === cip.card.id}
-            />
-          ))}
-        </div>
-      </div>
+      {/* My anchor */}
+      {!isOpening && mySlot?.anchor && (
+        <AnchorArea cardId={mySlot.anchor} cards={cards} label="Your Anchor" />
+      )}
 
       {/* Hand */}
-      <div className="hand-section">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div className="section-label" style={{margin:0}}>Your Hand ({myHand.length})</div>
-          <div style={{fontSize:12,color:'var(--muted)'}}>Opp hand: {gs.opponentHandCount}</div>
+      <div>
+        <div style={{fontSize:11,color:"var(--muted)",fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>
+          Your Hand ({mySlot?.hand?.length ?? 0})
         </div>
         <div className="hand-grid">
-          {myHand.length === 0 && <div style={{color:'var(--muted)',fontSize:13,marginTop:6}}>Hand empty</div>}
-          {myHand.map(card => (
-            <HandCard
-              key={card.id}
-              card={card}
-              onClick={gs.isMyTurn && !challengeMode ? () => handleHandCardClick(card) : undefined}
+          {mySlot?.hand?.map(cid => (
+            <CardTile key={cid} cardId={cid} cards={cards}
+              selected={selCard===cid}
+              onClick={()=>setSelCard(cid===selCard?null:cid)}
             />
           ))}
         </div>
       </div>
 
-      {/* Action bar */}
-      {gs.isMyTurn && (
-        <div className="action-bar">
-          {myHand.length > 0 && !challengeMode && (
-            <span style={{fontSize:12,color:'var(--muted)'}}>Click a hand card to recruit it</span>
-          )}
-          {canChallenge && (
-            <button
-              className={`btn ${challengeMode ? 'btn-danger' : 'btn-ghost'}`}
-              onClick={() => { setChallengeMode(!challengeMode); setSelectedAttacker(null); }}
-            >
-              {challengeMode ? 'Cancel Challenge' : '⚔️ Challenge'}
-            </button>
-          )}
-          {canPass && (
-            <button className="btn btn-ghost" onClick={() => act('passTurn')} disabled={loading}>Pass</button>
-          )}
-        </div>
-      )}
-      {!gs.isMyTurn && (
-        <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px'}}>
-          Waiting for opponent…
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Opening Phase ────────────────────────────────────────────────────────────
-function OpeningPhase({ gs, session, act, loading, onLeave, toast, onClearToast }) {
-  const [selected, setSelected] = useState(null);
-  const myHand = gs.myHand || [];
-  const myPicked = gs.openingPicks?.myPick;
-  const oppPicked = gs.openingPicks?.opponentPicked;
-
-  const submit = () => {
-    if (!selected) return;
-    act('submitOpeningPick', { cardId: selected });
-    setSelected(null);
-  };
-
-  return (
-    <div className="game-wrap animate">
-      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-      <div className="header-bar">
-        <div style={{fontWeight:700}}>Opening Pick</div>
-        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
-      </div>
-      <div className="card-surface">
-        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>Choose 1 card to start your team</div>
-        <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}>
-          Both players pick simultaneously. Your choice won't be revealed until both have picked.
-        </div>
-        {myPicked ? (
-          <div style={{textAlign:'center',padding:'20px 0'}}>
-            <div style={{fontSize:24}}>✅</div>
-            <div style={{marginTop:8,fontWeight:600}}>You've made your pick!</div>
-            <div style={{color:'var(--muted)',fontSize:13,marginTop:4}}>
-              {oppPicked ? 'Both picked — transitioning…' : 'Waiting for opponent…'}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="hand-grid">
-              {myHand.map(card => (
-                <HandCard
-                  key={card.id}
-                  card={card}
-                  selected={selected === card.id}
-                  onClick={() => setSelected(card.id === selected ? null : card.id)}
-                />
-              ))}
-            </div>
-            <div style={{marginTop:14,display:'flex',gap:8}}>
-              <button className="btn btn-primary" onClick={submit} disabled={!selected || loading}>
-                Confirm Pick
+      {/* Category selector (normal turns only) */}
+      {!isOpening && selCard && (
+        <div className="surface fade">
+          <div style={{fontSize:12,fontWeight:700,marginBottom:6,color:"var(--muted)"}}>Attack category</div>
+          <div className="cat-row">
+            {cats.map(c => (
+              <button key={c} className={"cat-btn"+(selCat===c?" selected":"")}
+                onClick={()=>setSelCat(c===selCat?null:c)}>
+                {c}
               </button>
-              {oppPicked && <span style={{alignSelf:'center',fontSize:12,color:'var(--green)'}}>Opponent has picked</span>}
-            </div>
-          </>
-        )}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Discard pile */}
+      {mySlot?.discard?.length > 0 && (
+        <div style={{fontSize:11,color:"var(--muted)"}}>
+          Discard: {mySlot.discard.map(id=>cards[id]?.name||id).join(", ")}
+        </div>
+      )}
+
+      <div className="action-bar">
+        <button className="btn btn-primary" disabled={!selCard || (!isOpening && !selCat) || loading}
+          onClick={submitMove}>
+          Lock In →
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── Rally Phase ──────────────────────────────────────────────────────────────
-function RallyPhase({ gs, session, act, loading, myTeam, onLeave, toast, onClearToast }) {
-  const { rallyPending } = gs;
-  if (!rallyPending) return null;
+// ── App ───────────────────────────────────────────────────────────────────────
+function App(){
+  const [gameInfo, setGameInfo] = useState(null);
 
-  const isMyRally = rallyPending.playerId === session.playerId;
-  const rallyCard = myTeam.find(c => c.card.id === rallyPending.cardId);
-  const allies = myTeam.filter(c => !c.knockedOut && c.card.id !== rallyPending.cardId);
-
-  if (!isMyRally) {
-    return (
-      <div className="game-wrap animate">
-        {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-        <div className="screen" style={{minHeight:'auto'}}>
-          <div className="card-surface" style={{textAlign:'center',maxWidth:360}}>
-            <div style={{fontSize:24,marginBottom:8}}>⚡</div>
-            <div style={{fontWeight:700,marginBottom:6}}>Opponent's Rally!</div>
-            <div style={{color:'var(--muted)',fontSize:13}}>Waiting for opponent to use their Rally ability…</div>
-          </div>
-        </div>
-      </div>
-    );
+  if (!gameInfo) {
+    return <SetupScreen onStart={setGameInfo} />;
   }
 
-  return (
-    <div className="game-wrap animate">
-      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-      <div className="overlay">
-        <div className="overlay-box">
-          <div style={{fontSize:18,fontWeight:800,marginBottom:6}}>
-            ⚡ Rally Ready!
-          </div>
-          <div style={{color:'var(--muted)',fontSize:13,marginBottom:16}}>
-            {rallyCard?.card.name || 'Rally card'}'s Rally ability is triggered.
-            {allies.length > 0
-              ? ' Choose an ally to give +1 to all stats permanently.'
-              : ' No allies yet — you can fire (reveal) or decline (keep secret).'}
-          </div>
-          {allies.length > 0 ? (
-            <>
-              <div style={{fontWeight:600,marginBottom:8,fontSize:13}}>Choose ally to buff:</div>
-              <div className="team-grid" style={{marginBottom:16}}>
-                {allies.map(cip => (
-                  <CardInPlay
-                    key={cip.card.id}
-                    cip={cip}
-                    showAbility={true}
-                    onClick={() => act('fireRally', { targetCardId: cip.card.id })}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <button className="btn btn-primary" style={{width:'100%',marginBottom:8}} onClick={() => act('fireRally', { targetCardId: null })} disabled={loading}>
-              Fire Rally (reveal, no effect)
-            </button>
-          )}
-          <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineRally')} disabled={loading}>
-            Decline (keep ability secret)
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <GameScreen key={gameInfo.code} gameInfo={gameInfo} onNewGame={() => setGameInfo(null)} />;
 }
 
-// ─── Challenge Phase ──────────────────────────────────────────────────────────
-function ChallengePhase({ gs, session, act, loading, ch, myId, oppId, myTeam, oppTeam, myWins, oppWins, myTotal, oppTotal, onLeave, toast, onClearToast }) {
-  const [trickStat, setTrickStat] = useState(null);
-
-  const attackerCIP = [...myTeam, ...oppTeam].find(c => c.card.id === ch.attackerCardId);
-  const defenderCIP = [...myTeam, ...oppTeam].find(c => c.card.id === ch.defenderCardId);
-
-  const iam = {
-    attacker: ch.attackerPlayerId === myId,
-    defender: ch.defenderPlayerId === myId,
-  };
-
-  const StatButtons = ({ onPick, label }) => (
-    <div style={{textAlign:'center'}}>
-      {label && <div style={{color:'var(--muted)',fontSize:13,marginBottom:10}}>{label}</div>}
-      <div className="stat-btns">
-        {[['power','💪 Power','power'],['speed','⚡ Speed','speed'],['wits','🧠 Wits','wits']].map(([stat, label, cls]) => (
-          <button key={stat} className={`stat-btn ${cls}`} onClick={() => onPick(stat)} disabled={loading}>
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const MiniCard = ({ cip, label, statToShow }) => {
-    if (!cip) return null;
-    const val = statToShow ? cip.card[statToShow] + (cip.bondPartnerId ? 1 : 0) + (cip.rallyBonus || 0) : null;
-    return (
-      <div style={{textAlign:'center',minWidth:120}}>
-        <div style={{fontSize:11,color:'var(--muted)',marginBottom:6,textTransform:'uppercase',letterSpacing:'1px'}}>{label}</div>
-        <CardInPlay cip={cip} showAbility={cip.abilityRevealed || (label === 'Your Card')} />
-        {val !== null && statToShow && (
-          <div style={{marginTop:6,fontSize:18,fontWeight:900}}>
-            {statToShow === 'power' ? '💪' : statToShow === 'speed' ? '⚡' : '🧠'} {val}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const contested = ch.trickedToStat || ch.attackerStat;
-
-  return (
-    <div className="game-wrap animate">
-      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-
-      <div className="header-bar">
-        <div className="wins-badge">
-          <span className="wins-num mine">{myWins}</span>
-          <span style={{color:'var(--muted)'}}>–</span>
-          <span className="wins-num opp">{oppWins}</span>
-        </div>
-        <div className="phase-label">⚔️ Challenge</div>
-        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
-      </div>
-
-      <ScoreBar myTotal={myTotal} oppTotal={oppTotal} />
-
-      <div className="overlay">
-        <div className="overlay-box" style={{maxWidth:560}}>
-
-          {/* Step: picking */}
-          {ch.step === 'picking' && (
-            <>
-              <div className="pick-title">⚔️ Challenge!</div>
-              <div className="pick-sub">
-                {iam.attacker && !ch.attackerStat && 'Choose your attack stat (secret until both pick)'}
-                {iam.attacker && ch.attackerStat && 'Waiting for opponent to guard…'}
-                {iam.defender && !ch.guardedStat && 'Choose your guard stat (secret until both pick)'}
-                {iam.defender && ch.guardedStat && 'Waiting for opponent to attack…'}
-              </div>
-              <div className="challenge-cards">
-                <MiniCard cip={attackerCIP} label="Attacker" />
-                <div className="challenge-vs">VS</div>
-                <MiniCard cip={defenderCIP} label="Defender" />
-              </div>
-              {iam.attacker && !ch.attackerStat && (
-                <StatButtons onPick={s => act('submitAttackStat', { stat: s })} label="Your Attack Stat" />
-              )}
-              {iam.defender && !ch.guardedStat && (
-                <StatButtons onPick={s => act('submitGuardStat', { stat: s })} label="Your Guard Stat" />
-              )}
-              {((iam.attacker && ch.attackerStat) || (iam.defender && ch.guardedStat)) && (
-                <div style={{textAlign:'center',padding:'10px 0',color:'var(--muted)'}}>Waiting for opponent's pick…</div>
-              )}
-            </>
-          )}
-
-          {/* Step: defenderWindow */}
-          {ch.step === 'defenderWindow' && (
-            <>
-              <div className="pick-title">Stat Reveal</div>
-              {contested && (
-                <div className="reveal-stat">
-                  <div className="reveal-stat-name">Contested Stat</div>
-                  <div className="reveal-stat-val">
-                    {contested === 'power' ? '💪' : contested === 'speed' ? '⚡' : '🧠'} {contested.toUpperCase()}
-                  </div>
-                </div>
-              )}
-              <div className="challenge-cards">
-                <MiniCard cip={attackerCIP} label="Attacker" statToShow={contested} />
-                <div className="challenge-vs">VS</div>
-                <MiniCard cip={defenderCIP} label="Defender" statToShow={contested} />
-              </div>
-              {iam.defender ? (
-                <>
-                  <div style={{marginBottom:12,fontSize:13,fontWeight:600}}>Defender Ability Window</div>
-                  {defenderCIP?.card.ability === 'Trick' && !defenderCIP?.abilityUsed && defenderCIP?.card.wits >= 4 ? (
-                    trickStat === 'choosing' ? (
-                      <>
-                        <div style={{marginBottom:8,fontSize:13,color:'var(--muted)'}}>Pick new contested stat:</div>
-                        <StatButtons onPick={s => { act('fireDefenderTrick', { newStat: s }); setTrickStat(null); }} />
-                        <button className="btn btn-ghost" style={{width:'100%',marginTop:8}} onClick={() => setTrickStat(null)}>Back</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => setTrickStat('choosing')}>
-                          🎭 Fire Trick (redirect contested stat)
-                        </button>
-                        <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>Decline</button>
-                      </>
-                    )
-                  ) : defenderCIP?.card.ability === 'Smash' && !defenderCIP?.abilityUsed && defenderCIP?.card.power >= 4 ? (
-                    <>
-                      <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireDefenderSmash')}>
-                        💥 Fire Smash (+2)
-                      </button>
-                      <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>Decline</button>
-                    </>
-                  ) : (
-                    <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineDefenderAbility')}>
-                      No ability / Decline
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
-                  Waiting for opponent (defender) to decide…
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Step: attackerWindow */}
-          {ch.step === 'attackerWindow' && (
-            <>
-              <div className="pick-title">Attacker Ability Window</div>
-              {contested && (
-                <div className="reveal-stat">
-                  <div className="reveal-stat-name">Contested Stat</div>
-                  <div className="reveal-stat-val">
-                    {contested === 'power' ? '💪' : contested === 'speed' ? '⚡' : '🧠'} {contested.toUpperCase()}
-                  </div>
-                </div>
-              )}
-              <div className="challenge-cards">
-                <MiniCard cip={attackerCIP} label="Attacker" statToShow={contested} />
-                <div className="challenge-vs">VS</div>
-                <MiniCard cip={defenderCIP} label="Defender" statToShow={contested} />
-              </div>
-              {iam.attacker ? (
-                <>
-                  {attackerCIP?.card.ability === 'Smash' && !attackerCIP?.abilityUsed && attackerCIP?.card.power >= 4 ? (
-                    <>
-                      <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireAttackerSmash')}>
-                        💥 Fire Smash (+2)
-                      </button>
-                      <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineAttackerAbility')}>Decline</button>
-                    </>
-                  ) : (
-                    <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => act('declineAttackerAbility')}>
-                      No ability / Continue
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
-                  Waiting for opponent (attacker) to decide…
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Step: dodgeWindow */}
-          {ch.step === 'dodgeWindow' && (
-            <>
-              <div className="pick-title">💨 Dodge Window!</div>
-              <div style={{marginBottom:16}}>
-                <div className="challenge-cards">
-                  <MiniCard cip={attackerCIP} label="Attacker" />
-                  <div className="challenge-vs">VS</div>
-                  <MiniCard cip={defenderCIP} label="Defender" />
-                </div>
-              </div>
-              {ch.knockedOutPlayerId === myId ? (
-                <>
-                  <div style={{fontWeight:700,marginBottom:12,textAlign:'center'}}>
-                    {[...myTeam,...oppTeam].find(c=>c.card.id===ch.knockedOutCardId)?.card.name} was knocked out!<br/>
-                    <span style={{color:'var(--muted)',fontSize:13}}>Fire Dodge to survive?</span>
-                  </div>
-                  <button className="btn btn-success" style={{width:'100%',marginBottom:8}} onClick={() => act('fireDodge')}>
-                    💨 Fire Dodge (survive!)
-                  </button>
-                  <button className="btn btn-danger" style={{width:'100%'}} onClick={() => act('declineDodge')}>
-                    Accept KO
-                  </button>
-                </>
-              ) : (
-                <div style={{textAlign:'center',color:'var(--muted)',fontSize:13,padding:'10px 0'}}>
-                  Opponent is deciding whether to Dodge…
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Post Game Phase ──────────────────────────────────────────────────────────
-function PostGamePhase({ gs, session, act, loading, swapGive, setSwapGive, swapTake, setSwapTake, onLeave, toast, onClearToast, myId, oppId, myWins, oppWins }) {
-  const lastGame = gs.lastCompletedGame;
-  const iWonLastGame = lastGame?.winnerId === myId;
-  const myDeck = gs.myDeck || [];
-  const oppId_ = oppId;
-
-  // Find opponent's deck from matchState decks — not exposed directly, but we can infer
-  // The poll returns myDeck. We don't have oppDeck directly.
-  // For swap UI, winner needs to pick from their deck (give) and opponent's deck (take).
-  // We'll approximate by showing swaps info. The server validates.
-  // Since poll doesn't expose oppDeck, we'll show a swap input for opponent's card by ID
-  // or use a text input. Actually, let's think about this differently.
-  // The spec says: "show all cards since both players have full knowledge".
-  // We need oppDeck. Let's add it to poll... but we shouldn't modify poll.js
-  // Alternative: show swaps list and let winner pick reclaim, or show all swap history.
-  // For simplicity, show winner's deck to give from, and for taking show a text input,
-  // or better: show the swap history and known opponent deck from swaps.
-
-  // Actually, we CAN compute what's in opponent's deck from original deck + swaps.
-  // The DECK_ALPHA and DECK_BETA are known on the client via the spec.
-  // Let's just show swaps and allow manual ID input. That's too clunky.
-
-  // Better: modify poll to include oppDeck in postGame status only.
-  // We already return myDeck in poll. For postGame, the spec says:
-  // "show all cards since both players have full knowledge of swapped cards"
-  // Let me just also expose oppDeck in the poll response when status=postGame.
-  // But we can't modify poll.js further in this file...
-  // We do control poll.js - let's add oppDeck for postGame status.
-
-  // For now: we have myDeck. We'll show the winner a UI to pick from myDeck (give),
-  // and for taking from opponent, we'll render swaps. The server has full validation.
-  // Actually the cleanest solution for demo: since both players poll, we can show
-  // opponent's deck cards from what we know. But we don't have it.
-
-  // Resolution: I'll add oppDeck to poll for postGame. But we've already written poll.js.
-  // Let me work with what we have: myDeck is available.
-  // For the "take" side, render the swaps data and a note that they need to see opponent's tab.
-  // This is a hot-seat game anyway! Both players can see each other's screens.
-
-  // Actually, for a clean demo experience: winner can see their own deck to pick "give",
-  // and winner can type/pick "take" card ID if needed. OR, since the spec says hot-seat,
-  // the winner can look at opponent's tab. But that's terrible UX.
-
-  // Best fix: show both decks on the winner's screen. But we don't have oppDeck.
-  // I'll add oppDeck to the poll response when status='postGame' only - we can edit poll.js.
-
-  // Note: we already have the poll.js file written. Since we control it, let's just also
-  // expose the opponent deck when the match status is postGame so the winner can make
-  // informed swap choices. We'll update the poll.js after.
-
-  const oppDeck = gs.oppDeck || []; // will add to poll
-
-  const canSwap = iWonLastGame;
-  const activeSwaps = (gs.swaps || []).filter(s => !s.undone && s.winnerPlayerId === myId);
-
-  const doSwap = () => {
-    if (!swapGive || !swapTake) return;
-    act('swap', { winnerGaveCardId: swapGive, winnerTookCardId: swapTake });
-    setSwapGive(null);
-    setSwapTake(null);
-  };
-
-  const winReasonText = (r) => {
-    if (r === 'goal') return 'reached the goal';
-    if (r === 'elimination') return 'eliminated all opponents';
-    if (r === 'deckOut') return 'won on deck-out';
-    return r;
-  };
-
-  return (
-    <div className="game-wrap animate">
-      {toast && <Toast msg={toast.msg} type={toast.type} key={toast.key} onDone={onClearToast} />}
-      <div className="header-bar">
-        <div className="wins-badge">
-          <span className="wins-num mine">{myWins}</span>
-          <span style={{color:'var(--muted)'}}>–</span>
-          <span className="wins-num opp">{oppWins}</span>
-        </div>
-        <div className="phase-label">Game Over</div>
-        <button className="btn btn-ghost btn-sm" onClick={onLeave}>Exit</button>
-      </div>
-
-      <div className="card-surface">
-        <div style={{fontSize:20,fontWeight:900,marginBottom:6}}>
-          {iWonLastGame ? '🏆 You won Game ' : '😤 You lost Game '}{(lastGame?.gameIndex || 0) + 1}
-        </div>
-        <div style={{color:'var(--muted)',fontSize:13,marginBottom:16}}>
-          {lastGame?.winnerId === myId ? 'You' : 'Opponent'} {winReasonText(lastGame?.winReason)}.
-          Series: {myWins} – {oppWins}
-        </div>
-
-        {canSwap && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontWeight:700,marginBottom:8}}>💱 Card Swap (Winner's Privilege)</div>
-            <div style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
-              Pick one of your cards to give, then one from opponent's deck to take.
-            </div>
-
-            <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Give (from your deck):</div>
-            <div className="deck-grid">
-              {myDeck.map(card => (
-                <div
-                  key={card.id}
-                  className={`deck-card ${swapGive === card.id ? 'selected' : ''}`}
-                  onClick={() => setSwapGive(swapGive === card.id ? null : card.id)}
-                >
-                  {card.name} <span style={{color:'var(--muted)',fontSize:10}}>{card.trait}</span>
-                </div>
-              ))}
-            </div>
-
-            {oppDeck.length > 0 && (
-              <>
-                <div style={{fontWeight:600,fontSize:13,marginBottom:6,marginTop:12}}>Take (from opponent's deck):</div>
-                <div className="deck-grid">
-                  {oppDeck.map(card => (
-                    <div
-                      key={card.id}
-                      className={`deck-card ${swapTake === card.id ? 'selected' : ''}`}
-                      onClick={() => setSwapTake(swapTake === card.id ? null : card.id)}
-                    >
-                      {card.name} <span style={{color:'var(--muted)',fontSize:10}}>{card.trait}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {oppDeck.length === 0 && (
-              <div style={{fontSize:12,color:'var(--muted)',marginTop:8}}>
-                Opponent deck not visible yet — wait for next poll or check opponent's screen.
-              </div>
-            )}
-
-            <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-              <button className="btn btn-primary" onClick={doSwap} disabled={!swapGive || !swapTake || loading}>
-                Confirm Swap
-              </button>
-              {activeSwaps.length > 0 && (
-                <button className="btn btn-ghost" onClick={() => act('reclaim', { swapIndex: gs.swaps.findIndex(s => !s.undone && s.winnerPlayerId === myId) })} disabled={loading}>
-                  Reclaim Previous Swap
-                </button>
-              )}
-              <button className="btn btn-ghost" onClick={() => act('declinePostGame')} disabled={loading}>
-                Decline Swap
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!canSwap && (
-          <div style={{marginBottom:16,color:'var(--muted)',fontSize:13}}>
-            Waiting for winner to decide on card swap…
-          </div>
-        )}
-
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:8}}>
-          <button
-            className="btn btn-primary"
-            style={{width:'100%'}}
-            onClick={() => act('startNextGame')}
-            disabled={loading}
-          >
-            Start Game {(gs.completedGamesCount || 0) + 1} →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Boot ─────────────────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>

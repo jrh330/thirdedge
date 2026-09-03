@@ -113,9 +113,6 @@ function revealAndAdvance(round, cardById, ruleSet = RULE_SET.FAMILY_WHEEL) {
 
   if (!moveA || !moveB) throw new Error("Both moves must be submitted before reveal");
 
-  const aCard = cardById(moveA.cardId);
-  const bCard = cardById(moveB.cardId);
-
   // Opening turn: no resolution, cards become anchors
   if (round.phase === "opening") {
     const newPlayers = [
@@ -142,7 +139,57 @@ function revealAndAdvance(round, cardById, ruleSet = RULE_SET.FAMILY_WHEEL) {
     };
   }
 
+  // Normal turn: call resolveToReveal then advanceTurn
+  const { round: revealRound, result } = resolveToReveal(round, cardById, ruleSet);
+  const finalRound = advanceTurn(revealRound);
+
+  return { round: finalRound, result };
+}
+
+/**
+ * Resolve the turn and store results on round, stopping at "reveal" phase.
+ * For opening turns, behaves exactly like revealAndAdvance (returns phase="commit").
+ * @param {object}   round
+ * @param {Function} cardById  id => card object
+ * @param {string}   [ruleSet]
+ * @returns {{ round: RoundState, result: TurnResult }}
+ */
+function resolveToReveal(round, cardById, ruleSet = RULE_SET.FAMILY_WHEEL) {
+  const [a, b] = round.players;
+  const moveA = round.pending[a.playerId];
+  const moveB = round.pending[b.playerId];
+
+  if (!moveA || !moveB) throw new Error("Both moves must be submitted before reveal");
+
+  // Opening turn: no resolution, cards become anchors — goes straight to commit
+  if (round.phase === "opening") {
+    const newPlayers = [
+      {
+        ...a,
+        hand:    a.hand.filter(id => id !== moveA.cardId),
+        anchor:  moveA.cardId,
+        discard: a.discard,
+        draw:    a.draw,
+      },
+      {
+        ...b,
+        hand:    b.hand.filter(id => id !== moveB.cardId),
+        anchor:  moveB.cardId,
+        discard: b.discard,
+        draw:    b.draw,
+      },
+    ];
+    // Draw back to HAND_SIZE
+    const drawnPlayers = newPlayers.map(p => drawUp(p));
+    return {
+      round: { ...round, players: drawnPlayers, phase: "commit", pending: {}, history: round.history },
+      result: null,
+    };
+  }
+
   // Normal turn: resolve
+  const aCard = cardById(moveA.cardId);
+  const bCard = cardById(moveB.cardId);
   const aAnchor = cardById(a.anchor);
   const bAnchor = cardById(b.anchor);
 
@@ -158,28 +205,53 @@ function revealAndAdvance(round, cardById, ruleSet = RULE_SET.FAMILY_WHEEL) {
   if (result.winner === "a") newA = { ...newA, points: newA.points + result.stakeAwarded };
   if (result.winner === "b") newB = { ...newB, points: newB.points + result.stakeAwarded };
 
-  // Slide: old anchor → discard; played card → new anchor; draw one
-  newA = slide(newA, moveA.cardId);
-  newB = slide(newB, moveB.cardId);
-
   const newHistory = [...round.history, result];
-  const newStake   = result.newStake;
 
-  // Check for round-end conditions
+  // Store reveal data on round, set phase to "reveal", clear pending
+  return {
+    round: {
+      ...round,
+      players: [newA, newB],
+      phase:   "reveal",
+      pending: {},
+      history: newHistory,
+      lastResult:     result,
+      lastPlayed:     { [a.playerId]: moveA.cardId, [b.playerId]: moveB.cardId },
+      lastCategories: { [a.playerId]: moveA.category, [b.playerId]: moveB.category },
+    },
+    result,
+  };
+}
+
+/**
+ * Apply slide for both players and advance the round past the "reveal" phase.
+ * Reads lastPlayed from round to know which cards were played.
+ * @param {object} round  must be in "reveal" phase
+ * @returns {RoundState}
+ */
+function advanceTurn(round) {
+  if (round.phase !== "reveal") throw new Error("advanceTurn requires round in 'reveal' phase");
+
+  const [a, b] = round.players;
+  const lastPlayed = round.lastPlayed;
+
+  // Apply slide for both players
+  let newA = slide(a, lastPlayed[a.playerId]);
+  let newB = slide(b, lastPlayed[b.playerId]);
+
+  const newStake = round.lastResult.newStake;
   const newPlayers = [newA, newB];
   const { phase, extraLog } = checkRoundEnd(newPlayers, newStake);
 
   return {
-    round: {
-      ...round,
-      players: newPlayers,
-      stake:   newStake,
-      phase,
-      pending: {},
-      history: newHistory,
-      _exhaustionNote: extraLog || undefined,
-    },
-    result,
+    ...round,
+    players: newPlayers,
+    stake:   newStake,
+    phase,
+    lastResult:     undefined,
+    lastPlayed:     undefined,
+    lastCategories: undefined,
+    _exhaustionNote: extraLog || undefined,
   };
 }
 
@@ -249,6 +321,8 @@ module.exports = {
   setupRound,
   submitMove,
   revealAndAdvance,
+  resolveToReveal,
+  advanceTurn,
   roundWinner,
   drawUp,
   // exported for tests
