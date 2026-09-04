@@ -194,9 +194,13 @@ function executeTrade(match, winnerId, giveCardId) {
   if (candidates.length === 0) throw new Error("No candidates for random draw after trade");
 
   // Pick random; loop to ensure legality (§7: may not leave either deck illegal)
+  // Also exclude cards the winner already owns to prevent duplicate IDs in a deck.
   let tookCardId = null;
+  const winnerOwns = new Set(winnerDeck);
   const shuffled = shuffleArr(candidates);
   for (const candidateId of shuffled) {
+    if (winnerOwns.has(candidateId)) continue;  // skip — winner already has this card
+
     // Simulate the draw
     const testLoser  = loserDeck.filter(id => id !== candidateId);
     const testWinner = [...winnerDeck, candidateId];
