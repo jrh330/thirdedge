@@ -85,7 +85,7 @@ function submitMove(round, playerId, cardId, category, cardById) {
 
   // Validate: category
   if (round.phase === "opening") {
-    if (category !== null)
+    if (category != null)
       throw new Error("Category must be null on the opening turn");
   } else {
     if (!["power", "speed", "wits"].includes(category))

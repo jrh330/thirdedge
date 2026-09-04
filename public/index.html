@@ -161,8 +161,8 @@ function useToast(){
 function CardTile({ cardId, cards, selected, onClick, disabled, showFull=true }){
   const c = cards?.[cardId];
   if (!c) return <div className="card-tile disabled"><span style={{color:"var(--muted)",fontSize:11}}>{cardId}</span></div>;
-  const stats = [["POW",c.power],["SPD",c.speed],["WIT",c.wit]];
-  const maxVal = Math.max(c.power, c.speed, c.wit);
+  const stats = [["POW",c.power],["SPD",c.speed],["WIT",c.wits]];
+  const maxVal = Math.max(c.power, c.speed, c.wits);
   const fam = familyOf(c.trait);
   return (
     <div
@@ -249,14 +249,20 @@ function RevealResult({ ms, p1, p2, cards }){
   const lp  = r.lastPlayed;
   const lc  = r.lastCategories;
 
+  // Map player IDs to "a"/"b" by round.players order
+  const sideKey = (pid) => r.players[0].playerId === pid ? "a" : "b";
+  const winnerPid = res.winner ? r.players[res.winner === "a" ? 0 : 1].playerId : null;
+
   // Build per-player rows
   function PlayerReveal({ pid, pname }){
-    const side  = res[pid] || {};
+    const key   = sideKey(pid);
+    const side  = res[key] || {};
     const cat   = lc?.[pid];
     const played = lp?.[pid];
     const c = cards?.[played];
-    const won = res.winner === pid;
+    const won = winnerPid === pid;
     const tied = !res.winner;
+    const total = cat ? (side.totals?.[cat] ?? "?") : "?";
     return (
       <div style={{flex:1}}>
         <div style={{fontWeight:700,fontSize:12,marginBottom:6,
@@ -267,10 +273,10 @@ function RevealResult({ ms, p1, p2, cards }){
           Played: <span style={{color:"var(--text)",fontWeight:600}}>{c?.name || played}</span>
           {cat && <span style={{marginLeft:6,color:"var(--accent)"}}>[ {cat.toUpperCase()} ]</span>}
         </div>
-        {side.bond > 0 && <div style={{fontSize:11,color:"var(--living)"}}>Bond +{side.bond}</div>}
+        {side.bonded && <div style={{fontSize:11,color:"var(--living)"}}>Bond +2</div>}
         {side.blocked && <div style={{fontSize:11,color:"var(--red)"}}>Blocked</div>}
         <div style={{fontSize:11,color:"var(--muted)",marginTop:4}}>
-          Total {cat}: <span style={{color:"var(--text)",fontWeight:700}}>{side.total ?? "?"}</span>
+          Total {cat}: <span style={{color:"var(--text)",fontWeight:700}}>{total}</span>
         </div>
         <div style={{fontSize:13,fontWeight:700,marginTop:2,
           color: won ? "var(--green)" : tied ? "var(--muted)" : "var(--red)"}}>
@@ -280,9 +286,9 @@ function RevealResult({ ms, p1, p2, cards }){
     );
   }
 
-  const awardMsg = res.winner
-    ? `+${res.awarded} to ${res.winner === p1.id ? p1.name : p2.name}`
-    : `Pot grows (stake +1)`;
+  const awardMsg = winnerPid
+    ? `+${res.stakeAwarded} pts to ${winnerPid === p1.id ? p1.name : p2.name}`
+    : `Tie — stake grows to ${res.newStake}`;
 
   return (
     <div className="reveal-box fade">
@@ -626,7 +632,7 @@ function GameScreen({ gameInfo, onNewGame }){
     setSelCard(null); setSelCat(null);
   };
 
-  const cats = ["power","speed","wit"];
+  const cats = ["power","speed","wits"];
 
   return (
     <div className="game-wrap fade">
