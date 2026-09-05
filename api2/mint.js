@@ -5,7 +5,12 @@ const Anthropic = require("@anthropic-ai/sdk");
 const { validateCard } = require("../engine2/validate");
 const { RULE_SET, TRAITS, FAMILY_OF } = require("../engine2/constants");
 
-const client = new Anthropic();
+// Client is created per-request so Railway env vars are always current
+function getClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+  return new Anthropic({ apiKey });
+}
 
 const LEGAL_SHAPES = [[7,4,1],[7,3,2],[6,5,1],[6,4,2],[6,3,3],[5,5,2],[5,4,3],[4,4,4]];
 
@@ -92,7 +97,7 @@ module.exports = async function handler(req, res) {
     });
 
     // Call Claude
-    const message = await client.messages.create({
+    const message = await getClient().messages.create({
       model: "claude-opus-4-6",
       max_tokens: 256,
       system: SYSTEM_PROMPT,
