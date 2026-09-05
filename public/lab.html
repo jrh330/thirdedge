@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Card Lab — Third Edge</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0B0F1A;--surface:#131929;--surface2:#1A2236;--border:rgba(255,255,255,.08);
+  --accent:#6366F1;--green:#10B981;--red:#EF4444;--gold:#D4AF37;
+  --text:#E2E8F0;--muted:#64748B;
+  --living:#4ADE80;--made:#60A5FA;--raw:#FB923C;
+}
+body{background:var(--bg);font-family:'Outfit',sans-serif;color:var(--text);min-height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes toast{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-12px)}}
+.fade{animation:fadeIn .25s ease both}
+.btn{padding:10px 22px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;letter-spacing:.4px;text-transform:uppercase}
+.btn:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none!important}
+.btn-primary{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:6px 14px;font-size:11px;border-radius:7px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.surface{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 80px}
+/* Nav */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.nav-title{font-size:18px;font-weight:900;letter-spacing:-0.5px}
+/* Trait pills */
+.trait-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trait-pill{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 10px;cursor:pointer;text-align:center;transition:all .15s}
+.trait-pill:hover{border-color:rgba(99,102,241,.4)}
+.trait-pill.selected{border-color:var(--accent);background:rgba(99,102,241,.1)}
+.trait-name{font-size:12px;font-weight:700}
+.trait-fam{font-size:10px;margin-top:2px}
+.fam-living{color:var(--living)}
+.fam-made{color:var(--made)}
+.fam-raw{color:var(--raw)}
+/* Spinner */
+.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+/* Minted card display */
+.minted-card{display:flex;gap:16px;align-items:flex-start}
+.minted-img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--border);flex-shrink:0;background:var(--surface2)}
+.minted-img-placeholder{width:120px;height:120px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;flex-shrink:0}
+.minted-info{flex:1}
+.minted-name{font-size:20px;font-weight:900;margin-bottom:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.badge-living{background:rgba(74,222,128,.12);color:var(--living);border:1px solid rgba(74,222,128,.2)}
+.badge-made{background:rgba(96,165,250,.12);color:var(--made);border:1px solid rgba(96,165,250,.2)}
+.badge-raw{background:rgba(251,146,60,.12);color:var(--raw);border:1px solid rgba(251,146,60,.2)}
+.stat-row{display:flex;gap:8px;margin-top:10px}
+.stat-box{flex:1;text-align:center;background:rgba(255,255,255,.05);border-radius:8px;padding:6px 4px}
+.stat-label{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.stat-val{font-size:22px;font-weight:900;line-height:1.1}
+.stat-val.max{color:var(--gold)}
+.reasoning{font-size:12px;color:var(--muted);margin-top:10px;font-style:italic;line-height:1.5}
+/* Collection grid */
+.collection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
+.coll-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.coll-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--surface)}
+.coll-img-placeholder{width:100%;height:120px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
+.coll-body{padding:10px 12px}
+.coll-name{font-weight:700;font-size:13px;margin-bottom:4px}
+.coll-stats{display:flex;gap:4px;margin-top:8px}
+.coll-stat{flex:1;text-align:center;background:rgba(255,255,255,.04);border-radius:5px;padding:3px 0}
+.coll-stat-label{font-size:8px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.coll-stat-val{font-size:14px;font-weight:800}
+.coll-stat-val.max{color:var(--gold)}
+/* Toast */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--border);border-radius:10px;padding:9px 18px;z-index:9999;font-size:13px;animation:toast 3.5s ease forwards;white-space:nowrap}
+.toast.err{border-color:rgba(239,68,68,.4);color:#EF4444}
+/* Owner banner */
+.owner-banner{display:flex;align-items:center;gap:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:10px 14px;margin-bottom:20px}
+.owner-name{font-weight:700;font-size:14px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="nav-title">⚗️ Card Lab</div>
+  <a href="/" class="btn btn-ghost btn-sm">← Play</a>
+</div>
+
+<div class="wrap">
+  <!-- Identity gate -->
+  <div id="identity-section">
+    <div class="surface fade" style="max-width:420px;margin:60px auto">
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px">Welcome to the Card Lab</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:20px">Enter your name to access your collection.</div>
+      <label>Your name</label>
+      <input id="name-input" type="text" placeholder="e.g. jrh" maxlength="40" />
+      <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="enterLab()">Enter Lab →</button>
+    </div>
+  </div>
+
+  <!-- Lab (shown after name entry) -->
+  <div id="lab-section" style="display:none">
+
+    <div class="owner-banner">
+      <div style="font-size:13px;color:var(--muted)">Minting as</div>
+      <div class="owner-name" id="owner-display"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="changeName()">Change</button>
+    </div>
+
+    <!-- Mint form -->
+    <div class="surface fade" style="margin-bottom:24px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:16px">Mint a New Card</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label>Card Name</label>
+          <input id="card-name" type="text" placeholder="e.g. Charles Barkley" maxlength="60" />
+        </div>
+        <div>
+          <label>Image URL</label>
+          <input id="image-url" type="url" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label>Trait</label>
+        <div class="trait-grid" id="trait-grid">
+          <div class="trait-pill" data-trait="Beast" onclick="selectTrait(this)">
+            <div class="trait-name">Beast</div>
+            <div class="trait-fam fam-living">Living</div>
+          </div>
+          <div class="trait-pill" data-trait="Titan" onclick="selectTrait(this)">
+            <div class="trait-name">Titan</div>
+            <div class="trait-fam fam-living">Living</div>
+          </div>
+          <div class="trait-pill" data-trait="Machine" onclick="selectTrait(this)">
+            <div class="trait-name">Machine</div>
+            <div class="trait-fam fam-made">Made</div>
+          </div>
+          <div class="trait-pill" data-trait="Icon" onclick="selectTrait(this)">
+            <div class="trait-name">Icon</div>
+            <div class="trait-fam fam-made">Made</div>
+          </div>
+          <div class="trait-pill" data-trait="Element" onclick="selectTrait(this)">
+            <div class="trait-name">Element</div>
+            <div class="trait-fam fam-raw">Raw</div>
+          </div>
+          <div class="trait-pill" data-trait="Spirit" onclick="selectTrait(this)">
+            <div class="trait-name">Spirit</div>
+            <div class="trait-fam fam-raw">Raw</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label>Description <span style="color:var(--muted);font-weight:400;text-transform:none">(tell Claude about this card)</span></label>
+        <textarea id="description" rows="3" placeholder="Describe the card's personality, strengths, what makes it special..."></textarea>
+      </div>
+
+      <button class="btn btn-primary" id="mint-btn" onclick="mintCard()" style="width:100%">
+        Mint Card
+      </button>
+
+      <!-- Minted result -->
+      <div id="mint-result" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)"></div>
+    </div>
+
+    <!-- Collection -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:16px;font-weight:800">Your Collection</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadCollection()">Refresh</button>
+      </div>
+      <div id="collection-area">
+        <div style="color:var(--muted);font-size:13px;margin-top:12px">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FAMILIES = { Beast:"Living", Titan:"Living", Machine:"Made", Icon:"Made", Element:"Raw", Spirit:"Raw" };
+const FAM_CLASS = { Living:"badge-living", Made:"badge-made", Raw:"badge-raw" };
+
+let ownerName = localStorage.getItem("labOwner") || "";
+let selectedTrait = null;
+
+// ── Identity ──────────────────────────────────────────────────────────────────
+function enterLab() {
+  const name = document.getElementById("name-input").value.trim();
+  if (!name) { showToast("Enter your name", true); return; }
+  ownerName = name;
+  localStorage.setItem("labOwner", name);
+  showLab();
+}
+
+function changeName() {
+  localStorage.removeItem("labOwner");
+  ownerName = "";
+  document.getElementById("lab-section").style.display = "none";
+  document.getElementById("identity-section").style.display = "block";
+  document.getElementById("name-input").value = "";
+}
+
+function showLab() {
+  document.getElementById("identity-section").style.display = "none";
+  document.getElementById("lab-section").style.display = "block";
+  document.getElementById("owner-display").textContent = ownerName;
+  loadCollection();
+}
+
+// Auto-enter if name already stored
+if (ownerName) {
+  document.addEventListener("DOMContentLoaded", showLab);
+} else {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("name-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") enterLab();
+    });
+  });
+}
+
+// ── Trait picker ──────────────────────────────────────────────────────────────
+function selectTrait(el) {
+  document.querySelectorAll(".trait-pill").forEach(p => p.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedTrait = el.dataset.trait;
+}
+
+// ── Mint ──────────────────────────────────────────────────────────────────────
+async function mintCard() {
+  const cardName = document.getElementById("card-name").value.trim();
+  const imageUrl = document.getElementById("image-url").value.trim();
+  const description = document.getElementById("description").value.trim();
+
+  if (!cardName) { showToast("Enter a card name", true); return; }
+  if (!selectedTrait) { showToast("Pick a trait", true); return; }
+
+  const btn = document.getElementById("mint-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Asking Claude…';
+
+  try {
+    const res = await fetch("/api2/mint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerName, cardName, trait: selectedTrait, imageUrl, description }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Mint failed");
+
+    showMintResult(data.card);
+    loadCollection();
+    // Reset form
+    document.getElementById("card-name").value = "";
+    document.getElementById("image-url").value = "";
+    document.getElementById("description").value = "";
+    document.querySelectorAll(".trait-pill").forEach(p => p.classList.remove("selected"));
+    selectedTrait = null;
+  } catch(e) {
+    showToast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Mint Card";
+  }
+}
+
+function showMintResult(card) {
+  const fam = FAMILIES[card.trait] || "";
+  const badgeClass = FAM_CLASS[fam] || "";
+  const maxStat = Math.max(card.power, card.speed, card.wits);
+  const el = document.getElementById("mint-result");
+  el.style.display = "block";
+  el.innerHTML = `
+    <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">✓ Card Minted</div>
+    <div class="minted-card fade">
+      ${card.imageUrl
+        ? `<img class="minted-img" src="${esc(card.imageUrl)}" alt="${esc(card.name)}" onerror="this.style.display='none'">`
+        : `<div class="minted-img-placeholder">No image</div>`}
+      <div class="minted-info">
+        <div class="minted-name">${esc(card.name)}</div>
+        <span class="badge ${badgeClass}">${esc(card.trait)} · ${esc(fam)}</span>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-label">POW</div>
+            <div class="stat-val${card.power===maxStat?" max":""}">${card.power}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">SPD</div>
+            <div class="stat-val${card.speed===maxStat?" max":""}">${card.speed}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">WIT</div>
+            <div class="stat-val${card.wits===maxStat?" max":""}">${card.wits}</div>
+          </div>
+        </div>
+        ${card.reasoning ? `<div class="reasoning">"${esc(card.reasoning)}"</div>` : ""}
+      </div>
+    </div>`;
+}
+
+// ── Collection ────────────────────────────────────────────────────────────────
+async function loadCollection() {
+  const area = document.getElementById("collection-area");
+  area.innerHTML = '<div style="color:var(--muted);font-size:13px;margin-top:12px">Loading…</div>';
+  try {
+    const res = await fetch(`/api2/collection?owner=${encodeURIComponent(ownerName)}`);
+    const data = await res.json();
+    if (!data.cards?.length) {
+      area.innerHTML = '<div style="color:var(--muted);font-size:13px;margin-top:12px">No cards yet. Mint your first one above.</div>';
+      return;
+    }
+    area.innerHTML = `<div class="collection-grid">${data.cards.map(renderCollCard).join("")}</div>`;
+  } catch(e) {
+    area.innerHTML = `<div style="color:var(--red);font-size:13px;margin-top:12px">${esc(e.message)}</div>`;
+  }
+}
+
+function renderCollCard(card) {
+  const fam = FAMILIES[card.trait] || "";
+  const badgeClass = FAM_CLASS[fam] || "";
+  const maxStat = Math.max(card.power, card.speed, card.wits);
+  return `
+    <div class="coll-card fade">
+      ${card.imageUrl
+        ? `<img class="coll-img" src="${esc(card.imageUrl)}" alt="${esc(card.name)}" onerror="this.outerHTML='<div class=coll-img-placeholder>No image</div>'">`
+        : `<div class="coll-img-placeholder">No image</div>`}
+      <div class="coll-body">
+        <div class="coll-name">${esc(card.name)}</div>
+        <span class="badge ${badgeClass}" style="font-size:9px">${esc(card.trait)} · ${esc(fam)}</span>
+        <div class="coll-stats">
+          <div class="coll-stat">
+            <div class="coll-stat-label">POW</div>
+            <div class="coll-stat-val${card.power===maxStat?" max":""}">${card.power}</div>
+          </div>
+          <div class="coll-stat">
+            <div class="coll-stat-label">SPD</div>
+            <div class="coll-stat-val${card.speed===maxStat?" max":""}">${card.speed}</div>
+          </div>
+          <div class="coll-stat">
+            <div class="coll-stat-label">WIT</div>
+            <div class="coll-stat-val${card.wits===maxStat?" max":""}">${card.wits}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+let toastTimer;
+function showToast(msg, err) {
+  const existing = document.querySelector(".toast");
+  if (existing) existing.remove();
+  clearTimeout(toastTimer);
+  const el = document.createElement("div");
+  el.className = "toast" + (err ? " err" : "");
+  el.textContent = msg;
+  document.body.appendChild(el);
+  toastTimer = setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>
