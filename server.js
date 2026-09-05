@@ -15,6 +15,7 @@ app.post("/api2/create",     require("./api2/create"));
 app.post("/api2/join",       require("./api2/join"));
 app.get( "/api2/poll",       require("./api2/poll"));
 app.post("/api2/action",     require("./api2/action"));
+app.get( "/lab",             (req, res) => res.sendFile(path.join(__dirname, "public/lab.html")));
 app.post("/api2/mint",       require("./api2/mint"));
 app.get( "/api2/collection", require("./api2/collection"));
 const { getDecks, saveDeck } = require("./api2/decks");
