@@ -79,6 +79,15 @@ label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-trans
 /* Owner banner */
 .owner-banner{display:flex;align-items:center;gap:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:10px 14px;margin-bottom:20px}
 .owner-name{font-weight:700;font-size:14px}
+/* Deck builder */
+.builder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-height:420px;overflow-y:auto;padding-right:4px}
+.builder-card{position:relative;background:var(--surface2);border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
+.builder-card:hover{border-color:rgba(99,102,241,.4)}
+.builder-card.selected{border-color:var(--accent);background:rgba(99,102,241,.1)}
+.builder-check{position:absolute;top:4px;right:6px;font-size:13px;font-weight:900;color:var(--accent);display:none}
+.builder-card.selected .builder-check{display:block}
+.saved-deck{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px}
+.saved-deck-cards{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -177,6 +186,43 @@ label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-trans
         <div style="color:var(--muted);font-size:13px;margin-top:12px">Loading...</div>
       </div>
     </div>
+
+    <!-- Decks -->
+    <div style="margin-top:32px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:16px;font-weight:800">Your Decks</div>
+        <button class="btn btn-ghost btn-sm" id="builder-toggle-btn" onclick="toggleBuilder()">Build a Deck</button>
+      </div>
+
+      <div id="decks-area">
+        <div style="color:var(--muted);font-size:13px">Loading...</div>
+      </div>
+
+      <!-- Builder -->
+      <div id="deck-builder" style="display:none;margin-top:16px">
+        <div class="surface">
+          <!-- Status bar -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+            <div id="builder-count" style="font-size:14px;font-weight:800">0 / 12</div>
+            <div id="builder-sevens" style="font-size:13px;color:var(--muted)">0 / 3 sevens</div>
+            <div id="builder-warn" style="font-size:12px;color:var(--red);display:none">Max 3 sevens per deck</div>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="clearSelection()">Clear all</button>
+          </div>
+
+          <!-- Card picker grid -->
+          <div id="builder-grid" class="builder-grid"></div>
+
+          <!-- Name + save -->
+          <div style="display:flex;gap:8px;margin-top:14px;align-items:flex-end">
+            <div style="flex:1">
+              <label>Deck Name</label>
+              <input id="deck-name-input" type="text" placeholder="e.g. My Beast Deck" maxlength="40" />
+            </div>
+            <button class="btn btn-primary" id="save-deck-btn" onclick="saveDeckSubmit()" disabled style="white-space:nowrap">Save Deck</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -186,6 +232,9 @@ const FAM_CLASS = { Living:"badge-living", Made:"badge-made", Raw:"badge-raw" };
 
 let ownerName = localStorage.getItem("labOwner") || "";
 let selectedTrait = null;
+let collectionCards = [];   // cache for deck builder
+let deckSelection = new Set();
+let builderOpen = false;
 
 // ── Identity ──────────────────────────────────────────────────────────────────
 function enterLab() {
@@ -209,6 +258,7 @@ function showLab() {
   document.getElementById("lab-section").style.display = "block";
   document.getElementById("owner-display").textContent = ownerName;
   loadCollection();
+  loadDecks();
 }
 
 // ── Description counter ───────────────────────────────────────────────────────
@@ -319,10 +369,14 @@ async function loadCollection() {
     const res = await fetch(`/api2/collection?owner=${encodeURIComponent(ownerName)}`);
     const data = await res.json();
     if (!data.cards?.length) {
+      collectionCards = [];
       area.innerHTML = '<div style="color:var(--muted);font-size:13px;margin-top:12px">No cards yet. Mint your first one above.</div>';
+      if (builderOpen) renderBuilderGrid();
       return;
     }
+    collectionCards = data.cards;
     area.innerHTML = `<div class="collection-grid">${data.cards.map(renderCollCard).join("")}</div>`;
+    if (builderOpen) renderBuilderGrid();
   } catch(e) {
     area.innerHTML = `<div style="color:var(--red);font-size:13px;margin-top:12px">${esc(e.message)}</div>`;
   }
@@ -357,6 +411,135 @@ function renderCollCard(card) {
         ${card.description ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45">${esc(card.description)}</div>` : ""}
       </div>
     </div>`;
+}
+
+// ── Deck Builder ──────────────────────────────────────────────────────────────
+function toggleBuilder() {
+  builderOpen = !builderOpen;
+  const el = document.getElementById("deck-builder");
+  const btn = document.getElementById("builder-toggle-btn");
+  el.style.display = builderOpen ? "block" : "none";
+  btn.textContent = builderOpen ? "Cancel" : "Build a Deck";
+  if (builderOpen) renderBuilderGrid();
+}
+
+function renderBuilderGrid() {
+  const grid = document.getElementById("builder-grid");
+  if (!collectionCards.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Mint some cards first — you need at least 12 to build a deck.</div>';
+    return;
+  }
+  grid.innerHTML = collectionCards.map(card => {
+    const sel = deckSelection.has(card.id);
+    const maxStat = Math.max(card.power, card.speed, card.wits);
+    return `<div class="builder-card${sel ? " selected" : ""}" onclick="toggleCard('${esc(card.id)}')">
+      <div class="builder-check">✓</div>
+      ${card.imageUrl
+        ? `<img style="width:100%;height:80px;object-fit:cover;display:block" src="${esc(card.imageUrl)}" alt="" onerror="this.style.display='none'">`
+        : `<div style="width:100%;height:80px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)">No image</div>`}
+      <div style="padding:6px 8px">
+        <div style="font-size:11px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(card.name)}">${esc(card.name)}</div>
+        <div style="display:flex;gap:3px">
+          ${["power","speed","wits"].map(s => `<div style="flex:1;text-align:center;background:rgba(255,255,255,.04);border-radius:4px;padding:2px 0">
+            <div style="font-size:7px;color:var(--muted);font-weight:700;text-transform:uppercase">${s.slice(0,3).toUpperCase()}</div>
+            <div style="font-size:12px;font-weight:800${card[s]===maxStat?";color:var(--gold)":""}">${card[s]}</div>
+          </div>`).join("")}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function toggleCard(cardId) {
+  if (deckSelection.has(cardId)) {
+    deckSelection.delete(cardId);
+  } else {
+    if (deckSelection.size >= 12) { showToast("Deck is full (12 cards)", true); return; }
+    const card = collectionCards.find(c => c.id === cardId);
+    if (card?.carriesSeven) {
+      const sevenCount = collectionCards.filter(c => deckSelection.has(c.id) && c.carriesSeven).length;
+      if (sevenCount >= 3) {
+        document.getElementById("builder-warn").style.display = "block";
+        setTimeout(() => { document.getElementById("builder-warn").style.display = "none"; }, 2000);
+        return;
+      }
+    }
+    deckSelection.add(cardId);
+  }
+  updateBuilderStatus();
+  renderBuilderGrid();
+}
+
+function updateBuilderStatus() {
+  const count = deckSelection.size;
+  const sevens = collectionCards.filter(c => deckSelection.has(c.id) && c.carriesSeven).length;
+  document.getElementById("builder-count").textContent = `${count} / 12`;
+  document.getElementById("builder-sevens").textContent = `${sevens} / 3 sevens`;
+  document.getElementById("save-deck-btn").disabled = count !== 12;
+}
+
+function clearSelection() {
+  deckSelection.clear();
+  updateBuilderStatus();
+  renderBuilderGrid();
+}
+
+async function saveDeckSubmit() {
+  const name = document.getElementById("deck-name-input").value.trim();
+  if (!name) { showToast("Give your deck a name", true); return; }
+  if (deckSelection.size !== 12) { showToast("Select exactly 12 cards", true); return; }
+
+  const btn = document.getElementById("save-deck-btn");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    const res = await fetch("/api2/decks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerName, name, cardIds: [...deckSelection] }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Save failed");
+
+    showToast(`"${name}" saved!`);
+    document.getElementById("deck-name-input").value = "";
+    deckSelection.clear();
+    builderOpen = false;
+    document.getElementById("deck-builder").style.display = "none";
+    document.getElementById("builder-toggle-btn").textContent = "Build a Deck";
+    updateBuilderStatus();
+    loadDecks();
+  } catch(e) {
+    showToast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save Deck";
+  }
+}
+
+// ── Saved Decks ───────────────────────────────────────────────────────────────
+async function loadDecks() {
+  const area = document.getElementById("decks-area");
+  area.innerHTML = '<div style="color:var(--muted);font-size:13px">Loading…</div>';
+  try {
+    const res = await fetch(`/api2/decks?owner=${encodeURIComponent(ownerName)}`);
+    const data = await res.json();
+    if (!data.decks?.length) {
+      area.innerHTML = '<div style="color:var(--muted);font-size:13px">No decks yet.</div>';
+      return;
+    }
+    area.innerHTML = data.decks.map(d => `
+      <div class="saved-deck">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${esc(d.name)}</div>
+          <div class="saved-deck-cards">${(d.cardNames || []).join(" · ")}</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);flex-shrink:0">${new Date(d.createdAt).toLocaleDateString()}</div>
+      </div>`).join("");
+  } catch(e) {
+    area.innerHTML = `<div style="color:var(--red);font-size:13px">${esc(e.message)}</div>`;
+  }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

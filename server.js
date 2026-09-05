@@ -17,6 +17,9 @@ app.get( "/api2/poll",       require("./api2/poll"));
 app.post("/api2/action",     require("./api2/action"));
 app.post("/api2/mint",       require("./api2/mint"));
 app.get( "/api2/collection", require("./api2/collection"));
+const { getDecks, saveDeck } = require("./api2/decks");
+app.get( "/api2/decks",      getDecks);
+app.post("/api2/decks",      saveDeck);
 
 const { getCards, createCard, deleteCard } = require("./api/cards");
 app.get(   "/api/cards",        getCards);

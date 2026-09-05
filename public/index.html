@@ -306,22 +306,99 @@ function RevealResult({ ms, p1, p2, cards }){
 }
 
 // ── SetupScreen ───────────────────────────────────────────────────────────────
-const DECK_NAMES = ["Even Hand","The Wall","Two Camps","Weighted"];
+const PRESET_DECKS = [
+  { type:"preset", name:"Even Hand" },
+  { type:"preset", name:"The Wall" },
+  { type:"preset", name:"Two Camps" },
+  { type:"preset", name:"Weighted" },
+];
+
+function DeckPicker({ label, accentColor, name, onNameChange, deckOpt, onDeckOpt, customDecks }){
+  const allOpts = [
+    ...customDecks.map(d => ({ type:"custom", id:d.id, name:d.name })),
+    ...PRESET_DECKS,
+  ];
+  // If current selection no longer exists in options, reset to first
+  const selected = allOpts.find(o => o.type === deckOpt.type && (o.type === "preset" ? o.name === deckOpt.name : o.id === deckOpt.id))
+    || allOpts[0];
+
+  return (
+    <div>
+      <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:accentColor}}>{label}</div>
+      <div style={{marginBottom:10}}>
+        <label>Name</label>
+        <input value={name} onChange={e=>onNameChange(e.target.value)} placeholder="Enter name" />
+      </div>
+      <label>Deck</label>
+      {customDecks.length > 0 && (
+        <div style={{fontSize:10,color:"var(--muted)",marginBottom:6,textTransform:"uppercase",letterSpacing:".4px",fontWeight:700}}>
+          Custom · {name.trim() || "…"}
+        </div>
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {allOpts.map(opt => {
+          const key = opt.type === "preset" ? opt.name : opt.id;
+          const isSel = opt.type === selected.type && (opt.type === "preset" ? opt.name === selected.name : opt.id === selected.id);
+          return (
+            <div key={key} className={"deck-opt"+(isSel?" selected":"")} onClick={()=>onDeckOpt(opt)}
+              style={opt.type==="custom" ? {borderColor:"rgba(99,102,241,.35)"} : {}}>
+              <div className="deck-opt-name">{opt.name}</div>
+              {opt.type==="custom" && <div style={{fontSize:9,color:"var(--accent)",fontWeight:700,textTransform:"uppercase",letterSpacing:".3px",marginTop:2}}>Custom</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function SetupScreen({ onStart }){
   const [p1Name, setP1Name] = useState("");
   const [p2Name, setP2Name] = useState("");
-  const [p1Deck, setP1Deck] = useState(DECK_NAMES[0]);
-  const [p2Deck, setP2Deck] = useState(DECK_NAMES[1]);
+  const [p1DeckOpt, setP1DeckOpt] = useState(PRESET_DECKS[0]);
+  const [p2DeckOpt, setP2DeckOpt] = useState(PRESET_DECKS[1]);
+  const [p1CustomDecks, setP1CustomDecks] = useState([]);
+  const [p2CustomDecks, setP2CustomDecks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [ToastEl, showToast] = useToast();
+
+  // Load custom decks when name changes (debounced)
+  useEffect(() => {
+    if (!p1Name.trim()) { setP1CustomDecks([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api2/decks?owner=${encodeURIComponent(p1Name.trim())}`);
+        const d = await r.json();
+        setP1CustomDecks(d.decks || []);
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [p1Name]);
+
+  useEffect(() => {
+    if (!p2Name.trim()) { setP2CustomDecks([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api2/decks?owner=${encodeURIComponent(p2Name.trim())}`);
+        const d = await r.json();
+        setP2CustomDecks(d.decks || []);
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [p2Name]);
 
   async function handleStart(){
     if (!p1Name.trim() || !p2Name.trim()) { showToast("Both players need a name", true); return; }
     setLoading(true);
     try {
-      const cr = await api("POST", "/api2/create", { p1Name: p1Name.trim(), p1DeckName: p1Deck });
-      const jr = await api("POST", "/api2/join",   { code: cr.code, p2Name: p2Name.trim(), p2DeckName: p2Deck });
+      const p1Body = p1DeckOpt.type === "preset"
+        ? { p1DeckName: p1DeckOpt.name }
+        : { p1DeckId: p1DeckOpt.id };
+      const p2Body = p2DeckOpt.type === "preset"
+        ? { p2DeckName: p2DeckOpt.name }
+        : { p2DeckId: p2DeckOpt.id };
+      const cr = await api("POST", "/api2/create", { p1Name: p1Name.trim(), ...p1Body });
+      const jr = await api("POST", "/api2/join",   { code: cr.code, p2Name: p2Name.trim(), ...p2Body });
       onStart({ code: cr.code, p1Id: cr.playerId, p2Id: jr.p2Id, p1Name: p1Name.trim(), p2Name: p2Name.trim() });
     } catch(e){
       showToast(e.message, true);
@@ -338,40 +415,20 @@ function SetupScreen({ onStart }){
         </div>
 
         <div className="surface fade" style={{display:"flex",flexDirection:"column",gap:18}}>
-          {/* Player 1 */}
-          <div>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"var(--living)"}}>Player 1</div>
-            <div style={{marginBottom:10}}>
-              <label>Name</label>
-              <input value={p1Name} onChange={e=>setP1Name(e.target.value)} placeholder="Enter name" />
-            </div>
-            <label>Deck</label>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {DECK_NAMES.map(d => (
-                <div key={d} className={"deck-opt"+(p1Deck===d?" selected":"")} onClick={()=>setP1Deck(d)}>
-                  <div className="deck-opt-name">{d}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DeckPicker label="Player 1" accentColor="var(--living)"
+            name={p1Name} onNameChange={setP1Name}
+            deckOpt={p1DeckOpt} onDeckOpt={setP1DeckOpt}
+            customDecks={p1CustomDecks} />
 
           <div style={{borderTop:"1px solid var(--border)"}}/>
 
-          {/* Player 2 */}
-          <div>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"var(--made)"}}>Player 2</div>
-            <div style={{marginBottom:10}}>
-              <label>Name</label>
-              <input value={p2Name} onChange={e=>setP2Name(e.target.value)} placeholder="Enter name" />
-            </div>
-            <label>Deck</label>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {DECK_NAMES.map(d => (
-                <div key={d} className={"deck-opt"+(p2Deck===d?" selected":"")} onClick={()=>setP2Deck(d)}>
-                  <div className="deck-opt-name">{d}</div>
-                </div>
-              ))}
-            </div>
+          <DeckPicker label="Player 2" accentColor="var(--made)"
+            name={p2Name} onNameChange={setP2Name}
+            deckOpt={p2DeckOpt} onDeckOpt={setP2DeckOpt}
+            customDecks={p2CustomDecks} />
+
+          <div style={{fontSize:11,color:"var(--muted)",textAlign:"center"}}>
+            Build custom decks in the <a href="/lab" style={{color:"var(--accent)"}}>Card Lab</a>
           </div>
 
           <button className="btn btn-primary btn-lg" onClick={handleStart} disabled={loading} style={{width:"100%",marginTop:4}}>

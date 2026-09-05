@@ -9,6 +9,32 @@ const { RULE_SET } = require("../engine2/constants");
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 const PRESET_BY_NAME = Object.fromEntries(PRESETS.map(p => [p.name, p]));
 
+// Resolve a deck reference (deckName or deckId) to an array of card objects
+async function resolveDeck(deckName, deckId, db) {
+  if (deckName) {
+    const preset = PRESET_BY_NAME[deckName];
+    if (!preset) throw new Error(`Unknown preset deck: ${deckName}`);
+    return preset.cards.map(id => {
+      const card = BY_ID[id];
+      if (!card) throw new Error(`Unknown preset card id: ${id}`);
+      return card;
+    });
+  }
+  if (deckId) {
+    const deck = await db.collection("decksv2").findOne({ id: deckId });
+    if (!deck) throw new Error(`Custom deck not found: ${deckId}`);
+    const cards = await db.collection("cardsv2")
+      .find({ id: { $in: deck.cardIds } })
+      .toArray();
+    const byId = Object.fromEntries(cards.map(c => [c.id, c]));
+    return deck.cardIds.map(id => {
+      if (!byId[id]) throw new Error(`Card not found: ${id}`);
+      return byId[id];
+    });
+  }
+  throw new Error("deckName or deckId required");
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -17,7 +43,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { code, p2Name, p2DeckName } = req.body;
+    const { code, p2Name, p2DeckName, p2DeckId } = req.body;
 
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "code required" });
@@ -25,7 +51,10 @@ module.exports = async function handler(req, res) {
     if (!p2Name || typeof p2Name !== "string") {
       return res.status(400).json({ error: "p2Name required" });
     }
-    if (!p2DeckName || !PRESET_NAMES.has(p2DeckName)) {
+    if (!p2DeckName && !p2DeckId) {
+      return res.status(400).json({ error: "p2DeckName or p2DeckId required" });
+    }
+    if (p2DeckName && !PRESET_NAMES.has(p2DeckName)) {
       return res.status(400).json({ error: `p2DeckName must be one of: ${[...PRESET_NAMES].join(", ")}` });
     }
 
@@ -38,20 +67,12 @@ module.exports = async function handler(req, res) {
     }
 
     const p1Id = game.p1.id;
-    const p1DeckName = game.p1.deckName;
     const p2Id = crypto.randomUUID();
 
-    // Build card arrays from preset card ids
-    const deckA = PRESET_BY_NAME[p1DeckName].cards.map(id => {
-      const card = BY_ID[id];
-      if (!card) throw new Error(`Unknown card id: ${id}`);
-      return card;
-    });
-    const deckB = PRESET_BY_NAME[p2DeckName].cards.map(id => {
-      const card = BY_ID[id];
-      if (!card) throw new Error(`Unknown card id: ${id}`);
-      return card;
-    });
+    const [deckA, deckB] = await Promise.all([
+      resolveDeck(game.p1.deckName, game.p1.deckId, db),
+      resolveDeck(p2DeckName, p2DeckId, db),
+    ]);
 
     const matchState = createMatch(game.code, p1Id, deckA, p2Id, deckB, RULE_SET.FAMILY_WHEEL);
 
@@ -59,7 +80,7 @@ module.exports = async function handler(req, res) {
       { _id: game._id },
       {
         $set: {
-          p2: { id: p2Id, name: p2Name, deckName: p2DeckName },
+          p2: { id: p2Id, name: p2Name, ...(p2DeckId ? { deckId: p2DeckId } : { deckName: p2DeckName }) },
           matchState,
           status: "playing",
           updatedAt: new Date(),
