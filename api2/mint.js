@@ -1,67 +1,65 @@
 "use strict";
 
+/**
+ * POST /api2/mint
+ * Mint step: unseal → validate → insert card → return placement info.
+ * Requires a submissionId from the preceding /api2/check call.
+ *
+ * Body: { submissionId, imageUrl }
+ * imageUrl: the final public URL for the card image (moved to public storage at Mint).
+ */
+
 const { getDb } = require("./_db");
-const Anthropic = require("@anthropic-ai/sdk");
-const { validateCard } = require("../engine2/validate");
-const { RULE_SET, TRAITS, FAMILY_OF } = require("../engine2/constants");
+const { getSeal, deleteSeal } = require("./check");
+const { COLLECTION_MAX, ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
 
-// Client is created per-request so Railway env vars are always current
-function getClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY environment variable is not set");
-  return new Anthropic({ apiKey });
-}
+// ── Collection placement helpers (inline from src/collection.js logic) ────────
 
-const LEGAL_SHAPES = [[7,4,1],[7,3,2],[6,5,1],[6,4,2],[6,3,3],[5,5,2],[5,4,3],[4,4,4]];
-
-const SYSTEM_PROMPT = `You are a stat designer for a card game called Third Edge.
-
-Each card has three stats — Power, Speed, and Wits — that must follow these rules:
-1. The three stats must sum to exactly 12.
-2. Each stat must be between 1 and 7 inclusive.
-3. The combination must be one of these 8 legal shapes (any order):
-   7/4/1 · 7/3/2 · 6/5/1 · 6/4/2 · 6/3/3 · 5/5/2 · 5/4/3 · 4/4/4
-
-Stat meanings:
-- Power: physical strength, force, size, raw destructive capability
-- Speed: quickness, agility, reaction time, swiftness
-- Wits: intelligence, cunning, strategy, adaptability, perception
-
-The six Traits and their families:
-- Beast (Living): animals, creatures of nature
-- Titan (Living): giants, monsters, mythic beings
-- Machine (Made): vehicles, tools, engineered objects
-- Icon (Made): legendary humans, cultural figures
-- Element (Raw): forces of nature, raw materials
-- Spirit (Raw): supernatural, abstract, otherworldly
-
-Given a card name, trait, optional image, and description, choose the stat shape that best
-fits the card's nature. Consider: How strong is it physically? How fast? How clever?
-Use the image and description as primary evidence. Look at the subject carefully.
-
-You must respond with ONLY valid JSON in this exact format — no explanation, no markdown:
-{"power": <number>, "speed": <number>, "wits": <number>, "reasoning": "<one sentence>"}`;
-
-function pickBestShape(power, speed, wits) {
-  // Find the legal shape whose sorted values best match the requested sorted values
-  const sorted = [power, speed, wits].slice().sort((a, b) => b - a);
-  let best = LEGAL_SHAPES[0];
-  let bestDist = Infinity;
-  for (const shape of LEGAL_SHAPES) {
-    const dist = shape.reduce((sum, v, i) => sum + Math.abs(v - sorted[i]), 0);
-    if (dist < bestDist) { bestDist = dist; best = shape; }
+function checkComposition(cards) {
+  const fam = {};
+  let sevens = 0;
+  for (const c of cards) {
+    fam[c.family] = (fam[c.family] || 0) + 1;
+    if (c.carriesSeven) sevens++;
   }
-  return best;
+  for (const [f, n] of Object.entries(fam)) {
+    if (n > FAMILY_MAX) return { ok: false, reason: `Too many ${f} cards (${n} of ${FAMILY_MAX} max)` };
+  }
+  if (sevens > SEVEN_ALLOWANCE) return { ok: false, reason: `Too many sevens (${sevens} of ${SEVEN_ALLOWANCE} max)` };
+  return { ok: true };
 }
 
-function assignStats(sortedShape, originalStats) {
-  // Assign shape values back to power/speed/wits, preserving relative ordering
-  const [p, s, w] = originalStats;
-  const indices = [0, 1, 2].sort((a, b) => originalStats[b] - originalStats[a]);
-  const result = [0, 0, 0];
-  sortedShape.forEach((v, rank) => { result[indices[rank]] = v; });
-  return { power: result[0], speed: result[1], wits: result[2] };
+function legalSwapTargets(newCard, activeCards) {
+  return activeCards
+    .filter(existing => {
+      const proposed = activeCards.filter(c => c.id !== existing.id).concat(newCard);
+      return proposed.length === ACTIVE_SIZE && checkComposition(proposed).ok;
+    })
+    .map(c => c.id);
 }
+
+function placeMintedCard(newCard, activeCards, inactiveCount) {
+  if (activeCards.length < ACTIVE_SIZE) {
+    const result = checkComposition([...activeCards, newCard]);
+    if (result.ok) return { placement: "active", activeCount: activeCards.length + 1 };
+  }
+
+  const swapOptions = legalSwapTargets(newCard, activeCards);
+
+  const reasons = [];
+  if (activeCards.length >= ACTIVE_SIZE) reasons.push("Your 12 active cards are full");
+  if (activeCards.filter(c => c.carriesSeven).length >= SEVEN_ALLOWANCE && newCard.carriesSeven)
+    reasons.push("already have 3 sevens");
+  const famCount = activeCards.filter(c => c.family === newCard.family).length;
+  if (famCount >= FAMILY_MAX) reasons.push(`already have 6 ${newCard.family} cards`);
+
+  if (swapOptions.length === 0)
+    return { placement: "inactive", reason: reasons.join(" and ") || "No legal swap available", inactiveCount: inactiveCount + 1 };
+
+  return { placement: "choice", reason: reasons.join(" and "), swapOptions, inactiveCount: inactiveCount + 1 };
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -71,84 +69,81 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { ownerName, cardName, trait, imageUrl, description } = req.body;
+    const { submissionId, imageUrl } = req.body || {};
+    if (!submissionId) return res.status(400).json({ error: "submissionId required" });
 
-    if (!ownerName?.trim()) return res.status(400).json({ error: "ownerName required" });
-    if (!cardName?.trim())  return res.status(400).json({ error: "cardName required" });
-    if (!TRAITS.includes(trait)) return res.status(400).json({ error: `trait must be one of: ${TRAITS.join(", ")}` });
+    const seal = getSeal(submissionId);
+    if (!seal) return res.status(400).json({ error: "Sealed result not found or expired — did Check complete?" });
 
-    // Build user message for Claude
-    const userContent = [];
+    const { ownerId, submission, fingerprint, carriesSeven, sealed } = seal;
+    const db = await getDb();
 
-    if (imageUrl?.trim()) {
-      userContent.push({
-        type: "image",
-        source: { type: "url", url: imageUrl.trim() },
-      });
+    // Defence: re-check duplicate (edge case: two tabs minting at once)
+    const dup = await db.collection("cardsv2").findOne({ ownerId, fingerprint });
+    if (dup) {
+      deleteSeal(submissionId);
+      return res.status(409).json({ error: "already_made", matchedName: dup.name });
     }
 
-    userContent.push({
-      type: "text",
-      text: [
-        `Card name: ${cardName.trim()}`,
-        `Trait: ${trait} (${FAMILY_OF[trait]} family)`,
-        description?.trim() ? `Description: ${description.trim()}` : "",
-      ].filter(Boolean).join("\n"),
-    });
-
-    // Call Claude
-    const message = await getClient().messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 256,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userContent }],
-    });
-
-    const raw = message.content[0].text.trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      // Try to extract JSON from response
-      const match = raw.match(/\{[^}]+\}/);
-      if (!match) throw new Error("Claude returned non-JSON response");
-      parsed = JSON.parse(match[0]);
-    }
-
-    let { power, speed, wits } = parsed;
-    power = Math.round(Number(power));
-    speed = Math.round(Number(speed));
-    wits  = Math.round(Number(wits));
-
-    // Snap to nearest legal shape if needed
-    const errors = validateCard({ power, speed, wits, trait });
-    if (errors.length) {
-      const shape = pickBestShape(power, speed, wits);
-      const snapped = assignStats(shape, [power, speed, wits]);
-      power = snapped.power; speed = snapped.speed; wits = snapped.wits;
-    }
-
-    const carriesSeven = power === 7 || speed === 7 || wits === 7;
-
+    // Build the card
     const card = {
-      id: crypto.randomUUID(),
-      name: cardName.trim(),
-      trait,
-      power,
-      speed,
-      wits,
+      id:           crypto.randomUUID(),
+      ownerId,
+      name:         submission.name,
+      flavorText:   submission.flavorText,
+      imageUrl:     imageUrl?.trim() || submission.imageUrl || null,
+      power:        sealed.power,
+      speed:        sealed.speed,
+      wits:         sealed.wits,
+      family:       sealed.family,
+      kind:         sealed.kind,
       carriesSeven,
-      imageUrl: imageUrl?.trim() || null,
-      description: description?.trim() || null,
-      reasoning: parsed.reasoning || null,
-      ownerName: ownerName.trim(),
-      mintedAt: new Date(),
+      aiReasoning:  sealed.reasoning,
+      aiAnchors:    sealed.anchors,
+      fingerprint,
+      mintedAt:     new Date(),
+      deleted:      false,
     };
 
-    const db = await getDb();
+    // Determine placement: load active + inactive counts
+    const allCards = await db.collection("cardsv2")
+      .find({ ownerId, deleted: { $ne: true } })
+      .toArray();
+
+    // Use Collection doc if it exists, otherwise fall back to all cards as active
+    let collDoc = await db.collection("collectionsv2").findOne({ ownerId });
+    if (!collDoc) {
+      // Auto-create a Collection doc from existing cards
+      const existingIds = allCards.map(c => c.id);
+      const activeIds   = existingIds.slice(0, ACTIVE_SIZE);
+      const inactiveIds = existingIds.slice(ACTIVE_SIZE);
+      collDoc = { ownerId, active: activeIds, inactive: inactiveIds, savedDecks: [] };
+      await db.collection("collectionsv2").insertOne(collDoc);
+    }
+
+    const activeCards   = allCards.filter(c => collDoc.active.includes(c.id));
+    const inactiveCount = collDoc.inactive.length;
+    const placement     = placeMintedCard(card, activeCards, inactiveCount);
+
+    // Persist the card
     await db.collection("cardsv2").insertOne(card);
 
-    return res.status(200).json({ ok: true, card });
+    // Auto-place into active if placement allows
+    if (placement.placement === "active") {
+      await db.collection("collectionsv2").updateOne(
+        { ownerId },
+        { $push: { active: card.id } }
+      );
+    } else {
+      await db.collection("collectionsv2").updateOne(
+        { ownerId },
+        { $push: { inactive: card.id } }
+      );
+    }
+
+    deleteSeal(submissionId);
+
+    return res.status(200).json({ ok: true, card, placement });
   } catch (err) {
     console.error("api2/mint error:", err);
     return res.status(500).json({ error: err.message || "Server error" });

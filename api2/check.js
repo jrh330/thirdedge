@@ -1,0 +1,223 @@
+"use strict";
+
+/**
+ * POST /api2/check
+ * Check step: duplicate check → content gate stub → Claude scoring → sealed result.
+ * Returns { status, submissionId?, checkPayload?, error? }
+ *
+ * Body: { ownerId, name, flavorText, imageUrl? }
+ *
+ * Sealed results are stored in the module-level Map (single-process; move to
+ * MongoDB with TTL index for multi-process / production).
+ */
+
+const { getDb }   = require("./_db");
+const Anthropic   = require("@anthropic-ai/sdk");
+const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX } = require("../engine2/constants");
+
+// ── In-process sealed-result store (replace with MongoDB TTL collection for prod) ──
+const sealedStore = new Map();   // submissionId → sealedResult
+
+function storeSeal(submissionId, result) {
+  sealedStore.set(submissionId, result);
+  // Auto-expire after 30 minutes
+  setTimeout(() => sealedStore.delete(submissionId), 30 * 60 * 1000);
+}
+
+function getSeal(submissionId) {
+  return sealedStore.get(submissionId) || null;
+}
+
+function deleteSeal(submissionId) {
+  sealedStore.delete(submissionId);
+}
+
+module.exports.sealedStore = sealedStore;
+module.exports.getSeal     = getSeal;
+module.exports.deleteSeal  = deleteSeal;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+  return new Anthropic({ apiKey });
+}
+
+const NAME_MAX   = 28;
+const FLAVOR_MAX = 160;
+const MAX_TRIES  = 3;
+
+const LEGAL_SHAPE_STRINGS = new Set(
+  LEGAL_SHAPES.map(s => [...s].sort((a,b)=>b-a).join("/"))
+);
+
+function isLegalShape(p, s, w) {
+  const key = [p, s, w].sort((a, b) => b - a).join("/");
+  return LEGAL_SHAPE_STRINGS.has(key);
+}
+
+function makeFingerprint(name, text) {
+  const norm = str =>
+    str.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  return `${norm(name)}|${norm(text)}`;
+}
+
+function validateLLMResponse(raw) {
+  if (!raw || typeof raw !== "object") return { ok: false, reason: "response is not an object" };
+  const { power, speed, wits, family, kind, readAs, reasoning, anchors } = raw;
+  for (const [k, v] of [["power", power], ["speed", speed], ["wits", wits]]) {
+    if (!Number.isInteger(v)) return { ok: false, reason: `"${k}" must be an integer` };
+    if (v < STAT_MIN || v > STAT_MAX) return { ok: false, reason: `"${k}" out of range (got ${v})` };
+  }
+  if (power + speed + wits !== STAT_BUDGET)
+    return { ok: false, reason: `stats sum to ${power+speed+wits}, expected ${STAT_BUDGET}` };
+  if (!isLegalShape(power, speed, wits))
+    return { ok: false, reason: `[${[power,speed,wits].sort((a,b)=>b-a).join("/")}] is not a legal shape` };
+  if (!FAMILIES.includes(family))
+    return { ok: false, reason: `family must be Vita, Terra or Arte (got "${family}")` };
+  if (!kind || typeof kind !== "string" || !kind.trim())
+    return { ok: false, reason: "kind is required" };
+  if (kind.trim().split(/\s+/).length > 2)
+    return { ok: false, reason: "kind must be 1–2 words" };
+  if (!readAs || typeof readAs !== "string" || !readAs.trim())
+    return { ok: false, reason: "readAs is required" };
+  if (/\b(power|speed|wits)\s*\d/i.test(readAs) || /\b\d+\s*\/\s*\d+/i.test(readAs))
+    return { ok: false, reason: "readAs must not contain stats or numbers" };
+  if (!reasoning || typeof reasoning !== "string" || !reasoning.trim())
+    return { ok: false, reason: "reasoning is required" };
+  if (!Array.isArray(anchors) || anchors.length === 0)
+    return { ok: false, reason: "anchors must be a non-empty array" };
+  return { ok: true };
+}
+
+// The full rubric as the system prompt — read from card-creation-rubric.md.
+// Inline the key instruction so the server doesn't need a file path dependency.
+const SYSTEM_PROMPT = require("fs").readFileSync(
+  require("path").join(__dirname, "../rubric.md"),
+  "utf8"
+);
+
+// ── Handler ───────────────────────────────────────────────────────────────────
+
+module.exports.handler = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  try {
+    const { ownerId, name, flavorText, imageUrl } = req.body || {};
+
+    // ── Basic input validation ────────────────────────────────────────────────
+    if (!ownerId?.trim())    return res.status(400).json({ status: "error", error: "ownerId required" });
+    if (!name?.trim())       return res.status(400).json({ status: "error", error: "name required" });
+    if (!flavorText?.trim()) return res.status(400).json({ status: "error", error: "flavorText required" });
+    if (name.trim().length > NAME_MAX)
+      return res.status(400).json({ status: "error", error: `name must be ${NAME_MAX} characters or fewer` });
+    if (flavorText.trim().length > FLAVOR_MAX)
+      return res.status(400).json({ status: "error", error: `flavorText must be ${FLAVOR_MAX} characters or fewer` });
+
+    const db = await getDb();
+
+    // ── Step 0: collection full? ──────────────────────────────────────────────
+    const total = await db.collection("cardsv2").countDocuments({ ownerId: ownerId.trim() });
+    if (total >= COLLECTION_MAX)
+      return res.status(200).json({ status: "collection_full" });
+
+    // ── Step 2: duplicate check ───────────────────────────────────────────────
+    const fp = makeFingerprint(name.trim(), flavorText.trim());
+    const existing = await db.collection("cardsv2").findOne({
+      ownerId: ownerId.trim(),
+      fingerprint: fp,
+    });
+    if (existing) {
+      return res.status(200).json({
+        status: "already_made",
+        matchedName: existing.name,
+        isDeleted: existing.deleted === true,
+      });
+    }
+
+    // ── Step 3: content gate (stub — always allowed during testing) ───────────
+    // TODO: replace with real gate before opening beyond test group.
+    // The gate must judge picture + name + text together and check against
+    // design/content-policy.md. For testing, all submissions pass.
+    const gateResult = { verdict: "allowed" };
+    if (gateResult.verdict === "declined")
+      return res.status(200).json({ status: "declined", category: gateResult.category, message: gateResult.message });
+    if (gateResult.verdict === "review")
+      return res.status(200).json({ status: "in_review" });
+
+    // ── Steps 4 + 5: LLM scoring with validation retry ───────────────────────
+    const userContent = [];
+    if (imageUrl?.trim()) {
+      userContent.push({ type: "image", source: { type: "url", url: imageUrl.trim() } });
+    }
+    userContent.push({
+      type: "text",
+      text: `Card name: ${name.trim()}\nAbout it: ${flavorText.trim()}`,
+    });
+
+    let llmResponse = null;
+    let lastError = null;
+    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+      let raw;
+      try {
+        const msg = await getClient().messages.create({
+          model: "claude-opus-4-6",
+          max_tokens: 512,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userContent }],
+        });
+        const text = msg.content[0].text.trim();
+        try { raw = JSON.parse(text); }
+        catch { const m = text.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
+      } catch (err) {
+        return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
+      }
+      const v = validateLLMResponse(raw);
+      if (v.ok) { llmResponse = raw; break; }
+      lastError = v.reason;
+    }
+    if (!llmResponse)
+      return res.status(500).json({ status: "error", error: `Scoring failed after ${MAX_TRIES} attempts: ${lastError}` });
+
+    // ── Step 6: build and store sealed result ─────────────────────────────────
+    const submissionId = crypto.randomUUID();
+    const carriesSeven = Math.max(llmResponse.power, llmResponse.speed, llmResponse.wits) === 7;
+
+    const sealedResult = {
+      submissionId,
+      sealedAt: Date.now(),
+      ownerId: ownerId.trim(),
+      submission: { name: name.trim(), flavorText: flavorText.trim(), imageUrl: imageUrl?.trim() || null },
+      fingerprint: fp,
+      carriesSeven,
+      sealed: {
+        power: llmResponse.power, speed: llmResponse.speed, wits: llmResponse.wits,
+        family: llmResponse.family, kind: llmResponse.kind,
+        readAs: llmResponse.readAs, reasoning: llmResponse.reasoning, anchors: llmResponse.anchors,
+      },
+    };
+    storeSeal(submissionId, sealedResult);
+
+    // Return only the safe check-screen fields — never the numbers
+    return res.status(200).json({
+      status: "allowed",
+      submissionId,
+      checkPayload: {
+        readAs:    llmResponse.readAs,
+        family:    llmResponse.family,
+        kind:      llmResponse.kind,
+        reasoning: llmResponse.reasoning,
+        anchors:   llmResponse.anchors,
+      },
+    });
+
+  } catch (err) {
+    console.error("api2/check error:", err);
+    return res.status(500).json({ status: "error", error: err.message || "Server error" });
+  }
+};

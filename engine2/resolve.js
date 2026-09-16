@@ -6,20 +6,14 @@
  * All functions are pure: no mutation of the arguments.
  */
 
-const { RULE_SET, BOND_VALUE, BLOCKS, FAMILY_OF, STAKE_CAP } = require("./constants");
-
-// ── Family helpers ───────────────────────────────────────────────────────────
-
-function familyOf(card) {
-  return FAMILY_OF[card.trait];
-}
+const { RULE_SET, BOND_VALUE, BLOCKS, STAKE_CAP } = require("./constants");
 
 /**
  * Returns true if cardA's family blocks cardB's family.
  * i.e. BLOCKS[family(A)] === family(B)
  */
 function blocks(cardA, cardB) {
-  return BLOCKS[familyOf(cardA)] === familyOf(cardB);
+  return BLOCKS[cardA.family] === cardB.family;
 }
 
 // ── Bond / block computation ─────────────────────────────────────────────────
@@ -34,10 +28,10 @@ function blocks(cardA, cardB) {
 function computeBond(anchor, played, oppPlayed, ruleSet) {
   let wouldBond;
   if (ruleSet === RULE_SET.CREW) {
-    wouldBond = anchor.trait === played.trait;
+    wouldBond = anchor.family === played.family;
   } else {
     // FAMILY_WHEEL
-    wouldBond = familyOf(anchor) === familyOf(played);
+    wouldBond = anchor.family === played.family;
   }
 
   // Blocking only applies in FAMILY_WHEEL.
@@ -182,4 +176,4 @@ function resolveTurn({
   };
 }
 
-module.exports = { familyOf, blocks, computeBond, assertNeverMutualBlock, pairTotals, resolveTurn };
+module.exports = { blocks, computeBond, assertNeverMutualBlock, pairTotals, resolveTurn };

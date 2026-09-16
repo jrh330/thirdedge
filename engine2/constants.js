@@ -18,16 +18,20 @@ const LEGAL_SHAPES = [
 ];
 
 // ── Collection ───────────────────────────────────────────────────────────────
-const SEVEN_ALLOWANCE = 3;  // cards per collection that may carry a 7
+const SEVEN_ALLOWANCE = 3;   // max cards carrying a 7 in the active 12 (deck rule)
+const FAMILY_MAX      = 6;   // max cards of one family in the active 12
+const COLLECTION_MAX  = 20;
+const ACTIVE_SIZE     = 12;
+const INACTIVE_MAX    = 8;
 
 // ── Deck / hand ──────────────────────────────────────────────────────────────
 const DECK_SIZE  = 12;
 const HAND_SIZE  = 4;
 
 // ── Match ────────────────────────────────────────────────────────────────────
-const ROUND_POINTS = 3;     // points to win a round
-const STAKE_CAP    = 3;     // max stake carry
-const MATCH_ROUNDS = 3;     // best-of
+const ROUND_POINTS = 3;
+const STAKE_CAP    = 3;
+const MATCH_ROUNDS = 3;
 
 // ── Turn clock ───────────────────────────────────────────────────────────────
 const TURN_CLOCK_MS = 20000;
@@ -38,9 +42,9 @@ const RULE_SET = {
   CREW:         "CREW",
 };
 
-// Bond bonus per rule set (the single most sensitive knob)
+// Bond bonus — +1 after sim showed +2 makes bond-denied state win 95% of turns
 const BOND_VALUE = {
-  FAMILY_WHEEL: 2,
+  FAMILY_WHEEL: 1,
   CREW:         1,
 };
 
@@ -48,24 +52,20 @@ const BOND_VALUE = {
 const CREW_MIN = 5;
 const CREW_MAX = 7;
 
-// ── Traits & families ────────────────────────────────────────────────────────
-const TRAITS = ["Beast", "Titan", "Machine", "Icon", "Element", "Spirit"];
+// ── Collection management ────────────────────────────────────────────────────
+const SAVED_DECKS_MAX      = 5;
+const DELETE_COOLDOWN_MS   = 300_000;
 
-const FAMILY_OF = {
-  Beast:   "Living",
-  Titan:   "Living",
-  Machine: "Made",
-  Icon:    "Made",
-  Element: "Raw",
-  Spirit:  "Raw",
-};
+// ── Families (replaces Traits) ───────────────────────────────────────────────
+// Cards carry card.family directly — no trait→family lookup needed.
+const FAMILIES = ["Vita", "Terra", "Arte"];
 
-// The blocking wheel: key's family blocks value's family
-// Living → Made → Raw → Living (never mutual)
+// The blocking wheel: key's family blocks value's family.
+// Vita beats Arte · Arte beats Terra · Terra beats Vita  (never mutual)
 const BLOCKS = {
-  Living: "Made",
-  Made:   "Raw",
-  Raw:    "Living",
+  Vita:  "Arte",
+  Arte:  "Terra",
+  Terra: "Vita",
 };
 
 // ── Stats ────────────────────────────────────────────────────────────────────
@@ -77,6 +77,10 @@ module.exports = {
   STAT_MAX,
   LEGAL_SHAPES,
   SEVEN_ALLOWANCE,
+  FAMILY_MAX,
+  COLLECTION_MAX,
+  ACTIVE_SIZE,
+  INACTIVE_MAX,
   DECK_SIZE,
   HAND_SIZE,
   ROUND_POINTS,
@@ -87,8 +91,9 @@ module.exports = {
   BOND_VALUE,
   CREW_MIN,
   CREW_MAX,
-  TRAITS,
-  FAMILY_OF,
+  SAVED_DECKS_MAX,
+  DELETE_COOLDOWN_MS,
+  FAMILIES,
   BLOCKS,
   STATS,
 };

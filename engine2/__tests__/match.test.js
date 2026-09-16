@@ -6,11 +6,13 @@ const {
 const { CARDS, BY_ID } = require("../fixtures");
 const { RULE_SET, ROUND_POINTS } = require("../constants");
 
-// 12-card decks with ≤3 sevens each
+// 12-card decks with ≤3 sevens each and ≤6 of any one family
+// deckA: 6 Vita (cheetah S7, bear P7, elephant P7, fox, wolf, honey-badger) + 4 Arte (kraken, frost-giant, yeti, troll) + 2 Terra (nutmeg, obsidian)
 const deckA = [
-  BY_ID["cheetah"], BY_ID["bear"], BY_ID["elephant"],
-  BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"], BY_ID["alley-cat"],
-  BY_ID["kraken"], BY_ID["frost-giant"], BY_ID["yeti"], BY_ID["troll"], BY_ID["golem"],
+  BY_ID["cheetah"], BY_ID["bear"], BY_ID["elephant"],           // 3 sevens (Vita)
+  BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"],           // 0 sevens (Vita) → 6 Vita total
+  BY_ID["kraken"], BY_ID["frost-giant"], BY_ID["yeti"], BY_ID["troll"], // Arte
+  BY_ID["nutmeg"], BY_ID["obsidian"],                           // Terra
 ];
 const deckB = [
   BY_ID["freight-train"], BY_ID["fighter-jet"], BY_ID["jimi-hendrix"],

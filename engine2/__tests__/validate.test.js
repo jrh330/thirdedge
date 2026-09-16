@@ -5,19 +5,24 @@ const { RULE_SET } = require("../constants");
 
 // Decks with ≤3 sevens for tests
 // Seven-carriers among anchors:
-//   Beast: cheetah(S7), bear(P7), owl(W7), elephant(P7)          → 4 sevens
-//   Titan: hulk(P7), dragon(P7), colossus(P7)                     → 3 sevens
-//   Element: black-hole(P7), lightning-bolt(S7), glacier(P7)      → 3 sevens
-//   Machine: freight-train(P7), fighter-jet(S7), supercomputer(W7), bulldozer(P7), drone(S7) → 5 sevens
-//   Icon: jimi-hendrix(W7), air-force-1s(S7)                      → 2 sevens
-//   Spirit: wise-elder(W7), wanderlust(S7), muse(W7)              → 3 sevens
+//   Vita animals: cheetah(S7), bear(P7), owl(W7), elephant(P7)          → 4 sevens
+//   Arte titans: hulk(P7), dragon(P7), colossus(P7)                     → 3 sevens
+//   Terra: black-hole(P7), lightning-bolt(S7), glacier(P7)              → 3 sevens
+//   Arte machines: freight-train(P7), fighter-jet(S7), supercomputer(W7), bulldozer(P7), drone(S7) → 5 sevens
+//   Vita people: jimi-hendrix(W7)                                        → 1 seven
+//   Vita spirits: wise-elder(W7), wanderlust(S7), muse(W7)              → 3 sevens
 
-// validDeck12: 12 cards with exactly 3 sevens
-// cheetah(S7)+bear(P7)+elephant(P7) = 3 sevens; fox+wolf+honey-badger+alley-cat+kraken+frost-giant+yeti+troll+golem = 9 no-sevens
+// validDeck12: 12 cards with exactly 3 sevens, ≤6 per family
+// cheetah(S7)+bear(P7)+elephant(P7) = 3 sevens (Vita);
+// fox+wolf+honey-badger (Vita, 3 non-sevens) → 6 Vita total (at the cap)
+// kraken+frost-giant+yeti+troll (Arte, 4 non-sevens)
+// nutmeg+obsidian (Terra, 2 non-sevens)
+// Total: 6 Vita + 4 Arte + 2 Terra = 12 cards ✓
 const validDeck12 = [
-  "cheetah","bear","elephant",                    // 3 sevens (Living)
-  "fox","wolf","honey-badger","alley-cat",        // 0 sevens (Living)
-  "kraken","frost-giant","yeti","troll","golem",  // 0 sevens (Living)
+  "cheetah","bear","elephant",                    // 3 sevens (Vita)
+  "fox","wolf","honey-badger",                    // 0 sevens (Vita) → 6 Vita total
+  "kraken","frost-giant","yeti","troll",          // 0 sevens (Arte)
+  "nutmeg","obsidian",                            // 0 sevens (Terra)
 ].map(id => BY_ID[id]);
 
 describe("isLegalShape", () => {
@@ -47,7 +52,7 @@ describe("isLegalShape", () => {
 });
 
 describe("validateCard", () => {
-  test("all 48 fixture cards are valid", () => {
+  test("all fixture cards are valid", () => {
     for (const card of CARDS) {
       const errors = validateCard(card);
       expect(errors).toEqual([]);
@@ -55,23 +60,23 @@ describe("validateCard", () => {
   });
 
   test("rejects wrong budget", () => {
-    const errors = validateCard({ power: 5, speed: 5, wits: 5, trait: "Beast" });
+    const errors = validateCard({ power: 5, speed: 5, wits: 5, family: "Vita" });
     expect(errors.some(e => e.includes("sum"))).toBe(true);
   });
 
   test("rejects out-of-range stat", () => {
-    const errors = validateCard({ power: 8, speed: 3, wits: 1, trait: "Beast" });
+    const errors = validateCard({ power: 8, speed: 3, wits: 1, family: "Vita" });
     expect(errors.some(e => e.includes("power"))).toBe(true);
   });
 
   test("rejects stat below minimum", () => {
-    const errors = validateCard({ power: 6, speed: 6, wits: 0, trait: "Beast" });
+    const errors = validateCard({ power: 6, speed: 6, wits: 0, family: "Vita" });
     expect(errors.some(e => e.includes("wits"))).toBe(true);
   });
 
-  test("rejects unknown trait", () => {
-    const errors = validateCard({ power: 4, speed: 4, wits: 4, trait: "Alien" });
-    expect(errors.some(e => e.includes("trait"))).toBe(true);
+  test("rejects unknown family", () => {
+    const errors = validateCard({ power: 4, speed: 4, wits: 4, family: "Alien" });
+    expect(errors.some(e => e.includes("family"))).toBe(true);
   });
 });
 
@@ -99,40 +104,54 @@ describe("validateDeck", () => {
     expect(result.errors[0]).toMatch(/4 sevens/);
   });
 
-  test("CREW rule: rejects when no trait appears 5–7 times", () => {
-    const mixed = [
-      ...CARDS.filter(c => c.trait === "Beast").slice(0, 3),
-      ...CARDS.filter(c => c.trait === "Titan").slice(0, 3),
-      ...CARDS.filter(c => c.trait === "Element").slice(0, 2),
-      ...CARDS.filter(c => c.trait === "Machine").slice(0, 2),
-      ...CARDS.filter(c => c.trait === "Icon").slice(0, 1),
-      ...CARDS.filter(c => c.trait === "Spirit").slice(0, 1),
+  test("FAMILY_WHEEL rejects deck with too many cards of one family", () => {
+    // Build a deck with 7 Vita cards (exceeds FAMILY_MAX=6)
+    // Vita non-sevens: fox, wolf, honey-badger, alley-cat, jimi-hendrix, teddy-roosevelt,
+    //   muhammad-ali, cleopatra, houdini, babe-ruth, nightmare, grudge, muse
+    // Vita sevens: cheetah(S7), bear(P7), elephant(P7), owl(W7), wise-elder(W7), wanderlust(S7)
+    // Use 7 Vita: fox, wolf, honey-badger, alley-cat, muhammad-ali, cleopatra, houdini (all non-seven)
+    // + 5 Arte: swiss-army-knife, troll, golem, lockpick, ghost
+    const tooManyVita = [
+      BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"], BY_ID["alley-cat"],
+      BY_ID["muhammad-ali"], BY_ID["cleopatra"], BY_ID["houdini"],
+      BY_ID["swiss-army-knife"], BY_ID["troll"], BY_ID["golem"],
+      BY_ID["lockpick"], BY_ID["ghost"],
     ];
-    const result = validateDeck(mixed, RULE_SET.CREW);
+    const result = validateDeck(tooManyVita, RULE_SET.FAMILY_WHEEL);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some(e => e.includes("Vita"))).toBe(true);
+  });
+
+  test("CREW rule: rejects when no family appears 5–7 times", () => {
+    const mixed = [
+      ...CARDS.filter(c => c.family === "Vita").slice(0, 3),
+      ...CARDS.filter(c => c.family === "Arte").slice(0, 3),
+      ...CARDS.filter(c => c.family === "Terra").slice(0, 3),
+      ...CARDS.filter(c => c.family === "Vita").slice(3, 6),  // total 6 but across two slices
+    ];
+    // Build a true mixed deck: 3 Vita + 3 Arte + 3 Terra + 1 Vita + 2 Arte = doesn't reach 5 per family
+    const mixedDeck = [
+      ...CARDS.filter(c => c.family === "Vita").slice(0, 4),
+      ...CARDS.filter(c => c.family === "Arte").slice(0, 4),
+      ...CARDS.filter(c => c.family === "Terra").slice(0, 4),
+    ];
+    const result = validateDeck(mixedDeck, RULE_SET.CREW);
     expect(result.ok).toBe(false);
     expect(result.errors.some(e => e.includes("CREW"))).toBe(true);
   });
 
-  test("CREW rule: valid deck with 6 non-seven Beasts + 6 non-seven others passes", () => {
-    // Use only the 4 no-seven Beasts + 2 no-seven Titans (can't reach 6 unique Beast non-sevens from 8 cards…)
-    // Actually: Beast non-sevens: fox, wolf, honey-badger, alley-cat = 4 only
-    // Can't make 6 Beasts without sevens. Use 6 spirits (all non-seven spirits available):
-    // spirit non-sevens: ghost, poltergeist, nightmare, grudge, echo = 5... wanderlust(S7) is seven
-    // Use 6 spirits: ghost+poltergeist+nightmare+grudge+echo + muse(W7) — but that's a seven
-    // Use 5 spirits + 1 non-seven element:
-    // Actually the CREW rule just needs ONE trait with 5-7 cards. Let's use ghosts+spirits:
-    // Spirits without sevens: ghost(P2S5W5), poltergeist(P4S6W2), nightmare(P5S4W3), grudge(P6S3W3), echo(P4S4W4) = 5 non-seven Spirits + wanderlust(S7) = 1 seven
-    // Make 6-Spirit deck: ghost, poltergeist, nightmare, grudge, echo (5 non-seven) + wanderlust(S7) = 6 Spirits (1 seven)
-    // + 6 non-seven icons: teddy-roosevelt, muhammad-ali, cleopatra, houdini, babe-ruth, sherlock-holmes
-    const spirits6 = [
-      BY_ID["ghost"], BY_ID["poltergeist"], BY_ID["nightmare"],
-      BY_ID["grudge"], BY_ID["echo"], BY_ID["wanderlust"],  // 1 seven
+  test("CREW rule: valid deck with 6 Vita + 6 Arte passes", () => {
+    // 6 Vita non-sevens: fox(V), wolf(V), honey-badger(V), alley-cat(V), muhammad-ali(V), cleopatra(V)
+    // 6 Arte non-sevens: swiss-army-knife(A), troll(A), golem(A), lockpick(A), ghost(A), poltergeist(A)
+    const vita6 = [
+      BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"], BY_ID["alley-cat"],
+      BY_ID["muhammad-ali"], BY_ID["cleopatra"],
     ];
-    const icons6 = [
-      BY_ID["teddy-roosevelt"], BY_ID["muhammad-ali"], BY_ID["cleopatra"],
-      BY_ID["houdini"], BY_ID["babe-ruth"], BY_ID["sherlock-holmes"],
+    const arte6 = [
+      BY_ID["swiss-army-knife"], BY_ID["troll"], BY_ID["golem"],
+      BY_ID["lockpick"], BY_ID["ghost"], BY_ID["poltergeist"],
     ];
-    const deck = [...spirits6, ...icons6];
+    const deck = [...vita6, ...arte6];
     const result = validateDeck(deck, RULE_SET.CREW);
     expect(result.ok).toBe(true);
   });

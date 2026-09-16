@@ -22,6 +22,16 @@ const { getDecks, saveDeck } = require("./api2/decks");
 app.get( "/api2/decks",      getDecks);
 app.post("/api2/decks",      saveDeck);
 
+const { handler: checkHandler } = require("./api2/check");
+app.post("/api2/check", checkHandler);
+// /api2/mint is already registered; it now uses the new sealed-result flow
+
+const { getCollectionState, swapCards, saveDeck: saveNamedDeck, deleteCard: deleteOwnedCard } = require("./api2/collection-manage");
+app.get( "/api2/collection-state",    getCollectionState);
+app.post("/api2/collection/swap",     swapCards);
+app.post("/api2/collection/save-deck", saveNamedDeck);
+app.delete("/api2/cards/:cardId",     deleteOwnedCard);
+
 const { getCards, createCard, deleteCard } = require("./api/cards");
 app.get(   "/api/cards",        getCards);
 app.post(  "/api/cards",        createCard);

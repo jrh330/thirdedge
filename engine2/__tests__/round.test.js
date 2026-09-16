@@ -9,20 +9,21 @@ const cardById = id => {
   return c;
 };
 
-// 12-card decks with ≤3 sevens each
-// Deck A (Living): 3 sevens (cheetah S7, bear P7, elephant P7) + 9 non-sevens
+// 12-card decks with ≤3 sevens each and ≤6 of any one family
+// Deck A: 6 Vita (cheetah S7, bear P7, elephant P7, fox, wolf, honey-badger) + 4 Arte + 2 Terra
 const deckA = [
-  BY_ID["cheetah"], BY_ID["bear"], BY_ID["elephant"],           // 3 sevens
-  BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"], BY_ID["alley-cat"],  // 0 sevens
-  BY_ID["kraken"], BY_ID["frost-giant"], BY_ID["yeti"], BY_ID["troll"], BY_ID["golem"],   // 0 sevens
+  BY_ID["cheetah"], BY_ID["bear"], BY_ID["elephant"],            // 3 sevens (Vita)
+  BY_ID["fox"], BY_ID["wolf"], BY_ID["honey-badger"],            // 0 sevens (Vita) → 6 Vita total
+  BY_ID["kraken"], BY_ID["frost-giant"], BY_ID["yeti"], BY_ID["troll"],  // 0 sevens (Arte)
+  BY_ID["nutmeg"], BY_ID["obsidian"],                            // 0 sevens (Terra)
 ];
 
-// Deck B (Made): 3 sevens (freight-train P7, fighter-jet S7, jimi-hendrix W7) + 9 non-sevens
+// Deck B: 6 Arte (freight-train P7, fighter-jet S7, swiss-army-knife, clockwork-mouse, lockpick, sherlock-holmes) + 6 Vita (jimi-hendrix W7, teddy-roosevelt, muhammad-ali, cleopatra, houdini, babe-ruth)
 const deckB = [
   BY_ID["freight-train"], BY_ID["fighter-jet"], BY_ID["jimi-hendrix"],  // 3 sevens
-  BY_ID["swiss-army-knife"], BY_ID["clockwork-mouse"], BY_ID["lockpick"],  // 0 sevens Machine
+  BY_ID["swiss-army-knife"], BY_ID["clockwork-mouse"], BY_ID["lockpick"],  // 0 sevens Arte
   BY_ID["teddy-roosevelt"], BY_ID["muhammad-ali"], BY_ID["cleopatra"],
-  BY_ID["houdini"], BY_ID["babe-ruth"], BY_ID["sherlock-holmes"],      // 0 sevens Icon
+  BY_ID["houdini"], BY_ID["babe-ruth"], BY_ID["sherlock-holmes"],      // 0 sevens Vita/Arte
 ];
 
 describe("setupRound", () => {

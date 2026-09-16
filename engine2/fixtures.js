@@ -1,74 +1,74 @@
 "use strict";
-// 48 anchor cards from clash-playtest-familywheel.html
-// Format: { id, name, trait, power, speed, wits }
+// Anchor cards — family system (Vita / Terra / Arte)
+// Format: [id, name, family, power, speed, wits]
 // All cards: power+speed+wits === 12, each stat 1–7
 
 const RAW = [
-  // Beast (Living)
-  ["cheetah",       "Cheetah",         "Beast",   1, 7, 4],
-  ["bear",          "Bear",            "Beast",   7, 3, 2],
-  ["owl",           "Owl",             "Beast",   1, 4, 7],
-  ["elephant",      "Elephant",        "Beast",   7, 1, 4],
-  ["fox",           "Fox",             "Beast",   2, 5, 5],
-  ["wolf",          "Wolf",            "Beast",   4, 5, 3],
-  ["honey-badger",  "Honey Badger",    "Beast",   5, 4, 3],
-  ["alley-cat",     "Alley Cat",       "Beast",   4, 4, 4],
+  // Vita — real animals (was Beast)
+  ["cheetah",         "Cheetah",          "Vita",  1, 7, 4],
+  ["bear",            "Bear",             "Vita",  7, 3, 2],
+  ["owl",             "Owl",              "Vita",  1, 4, 7],
+  ["elephant",        "Elephant",         "Vita",  7, 1, 4],
+  ["fox",             "Fox",              "Vita",  2, 5, 5],
+  ["wolf",            "Wolf",             "Vita",  4, 5, 3],
+  ["honey-badger",    "Honey Badger",     "Vita",  5, 4, 3],
+  ["alley-cat",       "Alley Cat",        "Vita",  4, 4, 4],
 
-  // Titan (Living)
-  ["hulk",          "Hulk",            "Titan",   7, 4, 1],
-  ["dragon",        "Dragon",          "Titan",   7, 4, 1],
-  ["kraken",        "Kraken",          "Titan",   6, 3, 3],
-  ["colossus",      "Colossus",        "Titan",   7, 1, 4],
-  ["frost-giant",   "Frost Giant",     "Titan",   6, 5, 1],
-  ["yeti",          "Yeti",            "Titan",   5, 4, 3],
-  ["troll",         "Troll",           "Titan",   4, 4, 4],
-  ["golem",         "Golem",           "Titan",   5, 2, 5],
+  // Vita — real people (was Icon, real people only)
+  ["jimi-hendrix",    "Jimi Hendrix",     "Vita",  1, 4, 7],
+  ["teddy-roosevelt", "Teddy Roosevelt",  "Vita",  4, 2, 6],
+  ["muhammad-ali",    "Muhammad Ali",     "Vita",  4, 6, 2],
+  ["cleopatra",       "Cleopatra",        "Vita",  4, 3, 5],
+  ["houdini",         "Houdini",          "Vita",  2, 6, 4],
+  ["babe-ruth",       "Babe Ruth",        "Vita",  5, 4, 3],
 
-  // Element (Raw)
-  ["black-hole",    "Black Hole",      "Element", 7, 1, 4],
-  ["lightning-bolt","Lightning Bolt",  "Element", 3, 7, 2],
-  ["glacier",       "Glacier",         "Element", 7, 1, 4],
-  ["wildfire",      "Wildfire",        "Element", 6, 5, 1],
-  ["nutmeg",        "Nutmeg",          "Element", 2, 5, 5],
-  ["platinum",      "Platinum",        "Element", 5, 2, 5],
-  ["monsoon",       "Monsoon",         "Element", 5, 5, 2],
-  ["obsidian",      "Obsidian",        "Element", 6, 3, 3],
+  // Vita — felt and undergone (was Spirit, real states)
+  ["wise-elder",      "Wise Elder",       "Vita",  2, 3, 7],
+  ["nightmare",       "Nightmare",        "Vita",  5, 4, 3],
+  ["grudge",          "Grudge",           "Vita",  6, 3, 3],
+  ["wanderlust",      "Wanderlust",       "Vita",  2, 7, 3],
+  ["muse",            "Muse",             "Vita",  1, 4, 7],
 
-  // Machine (Made)
-  ["freight-train", "Freight Train",   "Machine", 7, 4, 1],
-  ["fighter-jet",   "Fighter Jet",     "Machine", 3, 7, 2],
-  ["supercomputer", "Supercomputer",   "Machine", 1, 4, 7],
-  ["swiss-army-knife","Swiss Army Knife","Machine",4, 4, 4],
-  ["bulldozer",     "Bulldozer",       "Machine", 7, 3, 2],
-  ["drone",         "Drone",           "Machine", 2, 7, 3],
-  ["clockwork-mouse","Clockwork Mouse","Machine", 2, 5, 5],
-  ["lockpick",      "Lockpick",        "Machine", 3, 4, 5],
+  // Terra — natural phenomena and materials (was Element + Echo)
+  ["black-hole",      "Black Hole",       "Terra", 7, 1, 4],
+  ["lightning-bolt",  "Lightning Bolt",   "Terra", 3, 7, 2],
+  ["glacier",         "Glacier",          "Terra", 7, 1, 4],
+  ["wildfire",        "Wildfire",         "Terra", 6, 5, 1],
+  ["nutmeg",          "Nutmeg",           "Terra", 2, 5, 5],
+  ["platinum",        "Platinum",         "Terra", 5, 2, 5],
+  ["monsoon",         "Monsoon",          "Terra", 5, 5, 2],
+  ["obsidian",        "Obsidian",         "Terra", 6, 3, 3],
+  ["echo",            "Echo",             "Terra", 4, 4, 4],
 
-  // Icon (Made)
-  ["jimi-hendrix",  "Jimi Hendrix",    "Icon",    1, 4, 7],
-  ["teddy-roosevelt","Teddy Roosevelt","Icon",    4, 2, 6],
-  ["muhammad-ali",  "Muhammad Ali",    "Icon",    4, 6, 2],
-  ["air-force-1s",  "Air Force 1s",   "Icon",    3, 7, 2],
-  ["cleopatra",     "Cleopatra",       "Icon",    4, 3, 5],
-  ["houdini",       "Houdini",         "Icon",    2, 6, 4],
-  ["babe-ruth",     "Babe Ruth",       "Icon",    5, 4, 3],
-  ["sherlock-holmes","Sherlock Holmes","Icon",    2, 5, 5],
+  // Arte — invented beings (was Titan)
+  ["hulk",            "Hulk",             "Arte",  7, 4, 1],
+  ["dragon",          "Dragon",           "Arte",  7, 4, 1],
+  ["kraken",          "Kraken",           "Arte",  6, 3, 3],
+  ["colossus",        "Colossus",         "Arte",  7, 1, 4],
+  ["frost-giant",     "Frost Giant",      "Arte",  6, 5, 1],
+  ["yeti",            "Yeti",             "Arte",  5, 4, 3],
+  ["troll",           "Troll",            "Arte",  4, 4, 4],
+  ["golem",           "Golem",            "Arte",  5, 2, 5],
+  ["ghost",           "Ghost",            "Arte",  2, 5, 5],
+  ["poltergeist",     "Poltergeist",      "Arte",  4, 6, 2],
 
-  // Spirit (Raw)
-  ["ghost",         "Ghost",           "Spirit",  2, 5, 5],
-  ["wise-elder",    "Wise Elder",      "Spirit",  2, 3, 7],
-  ["poltergeist",   "Poltergeist",     "Spirit",  4, 6, 2],
-  ["nightmare",     "Nightmare",       "Spirit",  5, 4, 3],
-  ["grudge",        "Grudge",          "Spirit",  6, 3, 3],
-  ["wanderlust",    "Wanderlust",      "Spirit",  2, 7, 3],
-  ["muse",          "Muse",            "Spirit",  1, 4, 7],
-  ["echo",          "Echo",            "Spirit",  4, 4, 4],
+  // Arte — made objects (was Machine + fictional Icon)
+  ["freight-train",     "Freight Train",    "Arte",  7, 4, 1],
+  ["fighter-jet",       "Fighter Jet",      "Arte",  3, 7, 2],
+  ["supercomputer",     "Supercomputer",    "Arte",  1, 4, 7],
+  ["swiss-army-knife",  "Swiss Army Knife", "Arte",  4, 4, 4],
+  ["bulldozer",         "Bulldozer",        "Arte",  7, 3, 2],
+  ["drone",             "Drone",            "Arte",  2, 7, 3],
+  ["clockwork-mouse",   "Clockwork Mouse",  "Arte",  2, 5, 5],
+  ["lockpick",          "Lockpick",         "Arte",  3, 4, 5],
+  ["air-force-1s",      "Air Force 1s",     "Arte",  3, 7, 2],
+  ["sherlock-holmes",   "Sherlock Holmes",  "Arte",  2, 5, 5],
 ];
 
-const CARDS = RAW.map(([id, name, trait, power, speed, wits]) => ({
+const CARDS = RAW.map(([id, name, family, power, speed, wits]) => ({
   id,
   name,
-  trait,
+  family,
   power,
   speed,
   wits,

@@ -1,9 +1,9 @@
 "use strict";
 const {
   STAT_BUDGET, STAT_MIN, STAT_MAX, LEGAL_SHAPES,
-  DECK_SIZE, SEVEN_ALLOWANCE,
+  DECK_SIZE, SEVEN_ALLOWANCE, FAMILY_MAX,
   RULE_SET, CREW_MIN, CREW_MAX,
-  TRAITS, FAMILY_OF,
+  FAMILIES,
 } = require("./constants");
 
 // ── Card validation ──────────────────────────────────────────────────────────
@@ -15,7 +15,7 @@ function isLegalShape(power, speed, wits) {
 
 function validateCard(card) {
   const errors = [];
-  const { power, speed, wits, trait } = card;
+  const { power, speed, wits, family } = card;
   if (power + speed + wits !== STAT_BUDGET)
     errors.push(`stats sum to ${power + speed + wits}, expected ${STAT_BUDGET}`);
   for (const [k, v] of [["power", power], ["speed", speed], ["wits", wits]]) {
@@ -24,8 +24,8 @@ function validateCard(card) {
   }
   if (!isLegalShape(power, speed, wits))
     errors.push(`[${[power, speed, wits].sort((a, b) => b - a).join("/")}] is not one of the 8 legal shapes`);
-  if (!TRAITS.includes(trait))
-    errors.push(`trait "${trait}" is not one of: ${TRAITS.join(", ")}`);
+  if (!FAMILIES.includes(family))
+    errors.push(`family "${family}" is not one of: ${FAMILIES.join(", ")}`);
   return errors;
 }
 
@@ -47,24 +47,29 @@ function validateDeck(cards, ruleSet = RULE_SET.FAMILY_WHEEL) {
   if (sevens > SEVEN_ALLOWANCE)
     errors.push(`deck carries ${sevens} sevens, max is ${SEVEN_ALLOWANCE}`);
 
-  if (ruleSet === RULE_SET.CREW) {
-    // Count cards per trait
-    const traitCount = {};
-    for (const c of cards) traitCount[c.trait] = (traitCount[c.trait] || 0) + 1;
+  if (ruleSet === RULE_SET.FAMILY_WHEEL) {
+    // At most FAMILY_MAX cards of any one family
+    const familyCount = {};
+    for (const c of cards) familyCount[c.family] = (familyCount[c.family] || 0) + 1;
+    for (const [family, n] of Object.entries(familyCount)) {
+      if (n > FAMILY_MAX)
+        errors.push(`too many ${family} cards (${n}, max ${FAMILY_MAX})`);
+    }
+  }
 
-    // At least one trait must appear CREW_MIN–CREW_MAX times
-    const dominant = Object.entries(traitCount).filter(
+  if (ruleSet === RULE_SET.CREW) {
+    const familyCount = {};
+    for (const c of cards) familyCount[c.family] = (familyCount[c.family] || 0) + 1;
+
+    const dominant = Object.entries(familyCount).filter(
       ([, n]) => n >= CREW_MIN && n <= CREW_MAX
     );
     if (dominant.length === 0)
-      errors.push(
-        `CREW rule: no Trait appears between ${CREW_MIN} and ${CREW_MAX} times`
-      );
+      errors.push(`CREW rule: no family appears between ${CREW_MIN} and ${CREW_MAX} times`);
 
-    // No trait may appear more than CREW_MAX times
-    for (const [trait, n] of Object.entries(traitCount)) {
+    for (const [family, n] of Object.entries(familyCount)) {
       if (n > CREW_MAX)
-        errors.push(`CREW rule: ${trait} appears ${n} times (max ${CREW_MAX})`);
+        errors.push(`CREW rule: ${family} appears ${n} times (max ${CREW_MAX})`);
     }
   }
 

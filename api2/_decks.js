@@ -16,7 +16,7 @@ const PRESETS = [
   },
   {
     name: "The Wall",
-    desc: "Seven Living cards. Bonds fire constantly, and Made decks fear you.",
+    desc: "Seven Vita cards. Bonds fire constantly, and Arte decks fear you.",
     cards: [
       "bear","cheetah","wolf","fox","honey-badger","alley-cat","kraken",
       "swiss-army-knife","lockpick","babe-ruth","monsoon","grudge",
@@ -24,7 +24,7 @@ const PRESETS = [
   },
   {
     name: "Two Camps",
-    desc: "Strong Living + Made core with a few Raw cards to keep opponents guessing.",
+    desc: "Strong Vita + Arte core with a few Terra cards to keep opponents guessing.",
     cards: [
       "wolf","fox","honey-badger","yeti","elephant",
       "swiss-army-knife","clockwork-mouse","muhammad-ali","cleopatra","fighter-jet",
@@ -33,7 +33,7 @@ const PRESETS = [
   },
   {
     name: "Weighted",
-    desc: "Titan-heavy Living with elite Made support. High stats across the board.",
+    desc: "Arte-heavy with elite Vita support. High stats across the board.",
     cards: [
       "troll","golem","yeti","frost-giant","hulk","dragon",
       "sherlock-holmes","teddy-roosevelt","houdini","supercomputer",
