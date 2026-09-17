@@ -9,7 +9,7 @@ import { FAMILY_COLORS } from '../lib/families.jsx';
 export default function CollectionStrip({ collection, highlightFamily }) {
   if (!collection) return null;
 
-  const { total, active, families } = collection;
+  const { total, activeCount, families } = collection;
   const totalMax  = 20;
   const activeMax = 12;
 
@@ -27,7 +27,7 @@ export default function CollectionStrip({ collection, highlightFamily }) {
         fontWeight: 500,
       }}>
         <span>{total ?? 0} of {totalMax} cards</span>
-        <span>{active ?? 0} of {activeMax} active</span>
+        <span>{activeCount ?? 0} of {activeMax} active</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

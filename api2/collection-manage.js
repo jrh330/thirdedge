@@ -76,21 +76,26 @@ async function getCollectionState(req, res) {
     const inactiveCards = collDoc.inactive.map(id => byId[id]).filter(Boolean);
     const legality = checkActiveLegality(activeCards);
 
+    // Family counts across active cards
+    const families = {};
+    for (const c of activeCards) {
+      if (c.family) families[c.family] = (families[c.family] || 0) + 1;
+    }
+
     return res.status(200).json({
-      active:     activeCards,
-      inactive:   inactiveCards,
-      savedDecks: collDoc.savedDecks || [],
+      active:       activeCards,
+      inactive:     inactiveCards,
+      activeCount:  activeCards.length,
+      inactiveCount: inactiveCards.length,
+      total:        allCards.length,
+      families,
+      savedDecks:   collDoc.savedDecks || [],
       loadedDeckId: collDoc.loadedDeckId || null,
       lastDeletedAt: collDoc.lastDeletedAt || null,
       legality,
-      counts: {
-        total: allCards.length,
-        active: activeCards.length,
-        inactive: inactiveCards.length,
-        collectionMax: COLLECTION_MAX,
-        activeSize: ACTIVE_SIZE,
-        inactiveMax: INACTIVE_MAX,
-      },
+      collectionMax: COLLECTION_MAX,
+      activeSize:   ACTIVE_SIZE,
+      inactiveMax:  INACTIVE_MAX,
     });
   } catch (err) {
     console.error("getCollectionState error:", err);
