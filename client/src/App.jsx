@@ -260,6 +260,7 @@ export default function App() {
           <YourCards
             collection={state.collection}
             onMakeAnother={() => dispatch({ type: 'MAKE_ANOTHER' })}
+            onRefresh={() => getCollectionState().then(col => dispatch({ type: 'SET_COLLECTION', payload: col })).catch(() => {})}
           />
         )}
 

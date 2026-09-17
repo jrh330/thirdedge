@@ -44,6 +44,11 @@ export async function mintCard({ submissionId }) {
   return post('/api2/mint', { submissionId, imageUrl: null });
 }
 
+export async function deleteCard(cardId) {
+  const res = await fetch(`/api2/cards/${cardId}`, { method: 'DELETE' });
+  return res.json();
+}
+
 export async function swapCard({ outId, inId }) {
   return post('/api2/collection/swap', { outId, inId });
 }
