@@ -192,6 +192,29 @@ export default function Reveal({ mintResult, croppedBlob, draft, collection, onM
               </div>
             </button>
 
+            {/* Inline confirm — shown when Keep inactive is selected */}
+            {placementChoice === 'inactive' && (
+              <button
+                onClick={handleDone}
+                disabled={swapBusy}
+                style={{
+                  background: 'var(--pink)',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '13px 20px',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: '#fff',
+                  cursor: swapBusy ? 'default' : 'pointer',
+                  opacity: swapBusy ? 0.5 : 1,
+                  fontFamily: 'inherit',
+                  width: '100%',
+                }}
+              >
+                {swapBusy ? 'Saving…' : 'Yes, keep inactive →'}
+              </button>
+            )}
+
             {/* Swap candidates */}
             {placement.swapOptions?.length > 0 && (
               <>
