@@ -238,7 +238,8 @@ module.exports.handler = async function handler(req, res) {
         return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
       }
       const v = validateLLMResponse(raw);
-      console.log("check: attempt", attempt, "valid:", v.ok, v.reason || "");
+      if (!v.ok) console.log("check: attempt", attempt, "failed:", v.reason, "| raw:", JSON.stringify(raw)?.slice(0, 200));
+      else console.log("check: attempt", attempt, "ok");
       if (v.ok) { llmResponse = raw; break; }
       lastError = v.reason;
     }
