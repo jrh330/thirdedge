@@ -10,6 +10,7 @@ import Checking       from './screens/Checking.jsx';
 import CheckResult    from './screens/CheckResult.jsx';
 import Minting        from './screens/Minting.jsx';
 import Reveal         from './screens/Reveal.jsx';
+import YourCards      from './screens/YourCards.jsx';
 
 import { getCollectionState, checkSubmission, mintCard } from './lib/api.js';
 import { loadDraft, saveDraft, clearDraft } from './lib/draft.js';
@@ -65,6 +66,8 @@ function reducer(state, action) {
       return { ...state, screen: 'minting' };
     case 'MINT_RESULT':
       return { ...state, mintResult: action.payload, checkResult: null, screen: 'reveal' };
+    case 'YOUR_CARDS':
+      return { ...state, screen: 'your_cards' };
     case 'MAKE_ANOTHER':
       return { ...initialState, collection: state.collection, screen: 'make' };
     case 'NO_SESSION':
@@ -84,7 +87,7 @@ function screenToStep(screen) {
   if (screen === 'make' || screen === 'crop')             return 1;
   if (screen === 'checking' || screen === 'check_result') return 2;
   if (screen === 'minting') return 3;
-  if (screen === 'reveal')  return 4;
+  if (screen === 'reveal' || screen === 'your_cards') return 4;
   return 1;
 }
 
@@ -249,7 +252,14 @@ export default function App() {
             draft={state.draft}
             collection={state.collection}
             onMakeAnother={() => dispatch({ type: 'MAKE_ANOTHER' })}
-            onYourCards={() => { window.location.href = '/api2/collection-state'; }}
+            onYourCards={() => dispatch({ type: 'YOUR_CARDS' })}
+          />
+        )}
+
+        {screen === 'your_cards' && (
+          <YourCards
+            collection={state.collection}
+            onMakeAnother={() => dispatch({ type: 'MAKE_ANOTHER' })}
           />
         )}
 
