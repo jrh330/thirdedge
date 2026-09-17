@@ -5,6 +5,7 @@ const { PRESETS } = require("./_decks");
 const { BY_ID } = require("../engine2/fixtures");
 const { createMatch } = require("../engine2/match");
 const { RULE_SET } = require("../engine2/constants");
+const { requirePlayer } = require("../auth/player");
 
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 const PRESET_BY_NAME = Object.fromEntries(PRESETS.map(p => [p.name, p]));
@@ -42,14 +43,20 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
+  let player;
   try {
-    const { code, p2Name, p2DeckName, p2DeckId } = req.body;
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
+
+  try {
+    const { code, p2DeckName, p2DeckId } = req.body;
+    const p2Name = player.name;
 
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "code required" });
-    }
-    if (!p2Name || typeof p2Name !== "string") {
-      return res.status(400).json({ error: "p2Name required" });
     }
     if (!p2DeckName && !p2DeckId) {
       return res.status(400).json({ error: "p2DeckName or p2DeckId required" });
@@ -67,7 +74,7 @@ module.exports = async function handler(req, res) {
     }
 
     const p1Id = game.p1.id;
-    const p2Id = crypto.randomUUID();
+    const p2Id = player.id;
 
     const [deckA, deckB] = await Promise.all([
       resolveDeck(game.p1.deckName, game.p1.deckId, db),

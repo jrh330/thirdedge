@@ -1,6 +1,7 @@
 "use strict";
 
 const { getDb } = require("./_db");
+const { requirePlayer } = require("../auth/player");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -9,13 +10,18 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
 
+  let player;
   try {
-    const { owner } = req.query;
-    if (!owner?.trim()) return res.status(400).json({ error: "owner required" });
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
 
+  try {
     const db = await getDb();
     const cards = await db.collection("cardsv2")
-      .find({ ownerName: owner.trim() })
+      .find({ ownerId: player.id, deleted: { $ne: true } })
       .sort({ mintedAt: -1 })
       .toArray();
 

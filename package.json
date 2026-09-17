@@ -5,10 +5,11 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "jest"
+    "test": "node --test game/collection.test.js game/minting.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "mongodb": "^6.3.0"

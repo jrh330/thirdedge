@@ -1,9 +1,12 @@
 require("dotenv").config();
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json());
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/api/create", require("./api/create"));
@@ -36,6 +39,12 @@ const { getCards, createCard, deleteCard } = require("./api/cards");
 app.get(   "/api/cards",        getCards);
 app.post(  "/api/cards",        createCard);
 app.delete("/api/cards/:cardId", deleteCard);
+
+// Invite / auth routes
+app.get("/join/:token", require("./api2/join-invite"));
+const { createInvite, revokeInvite } = require("./api2/admin-invites");
+app.post("/admin/invites",        createInvite);
+app.delete("/admin/invites/:token", revokeInvite);
 
 // OPTIONS preflight for all API routes
 app.options("/api/*", (req, res) => res.sendStatus(200));

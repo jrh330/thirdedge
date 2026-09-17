@@ -3,6 +3,7 @@
 const { getDb } = require("./_db");
 const { genRoomCode } = require("./_utils");
 const { PRESETS } = require("./_decks");
+const { requirePlayer } = require("../auth/player");
 
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 
@@ -13,12 +14,17 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
+  let player;
   try {
-    const { p1Name, p1DeckName, p1DeckId } = req.body;
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
 
-    if (!p1Name || typeof p1Name !== "string") {
-      return res.status(400).json({ error: "p1Name required" });
-    }
+  try {
+    const { p1DeckName, p1DeckId } = req.body;
+    const p1Name = player.name;
 
     let p1DeckRef;
     if (p1DeckId) {
@@ -52,7 +58,7 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: "Could not generate room code" });
     }
 
-    const p1Id = crypto.randomUUID();
+    const p1Id = player.id;
 
     const doc = {
       code,

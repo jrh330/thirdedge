@@ -5,7 +5,7 @@
  * Check step: duplicate check → content gate stub → Claude scoring → sealed result.
  * Returns { status, submissionId?, checkPayload?, error? }
  *
- * Body: { ownerId, name, flavorText, imageUrl? }
+ * Body: { name, flavorText, imageUrl? }  — ownerId comes from the session, not the client
  *
  * Sealed results are stored in the module-level Map (single-process; move to
  * MongoDB with TTL index for multi-process / production).
@@ -14,6 +14,7 @@
 const { getDb }   = require("./_db");
 const Anthropic   = require("@anthropic-ai/sdk");
 const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX } = require("../engine2/constants");
+const { requirePlayer } = require("../auth/player");
 
 // ── In-process sealed-result store (replace with MongoDB TTL collection for prod) ──
 const sealedStore = new Map();   // submissionId → sealedResult
@@ -108,10 +109,19 @@ module.exports.handler = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { ownerId, name, flavorText, imageUrl } = req.body || {};
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    let player;
+    try {
+      player = await requirePlayer(req);
+    } catch (e) {
+      if (e.status && e.body) return res.status(e.status).json(e.body);
+      throw e;
+    }
+
+    const { name, flavorText, imageUrl } = req.body || {};
+    const ownerId = player.id;
 
     // ── Basic input validation ────────────────────────────────────────────────
-    if (!ownerId?.trim())    return res.status(400).json({ status: "error", error: "ownerId required" });
     if (!name?.trim())       return res.status(400).json({ status: "error", error: "name required" });
     if (!flavorText?.trim()) return res.status(400).json({ status: "error", error: "flavorText required" });
     if (name.trim().length > NAME_MAX)
@@ -122,14 +132,14 @@ module.exports.handler = async function handler(req, res) {
     const db = await getDb();
 
     // ── Step 0: collection full? ──────────────────────────────────────────────
-    const total = await db.collection("cardsv2").countDocuments({ ownerId: ownerId.trim() });
+    const total = await db.collection("cardsv2").countDocuments({ ownerId });
     if (total >= COLLECTION_MAX)
       return res.status(200).json({ status: "collection_full" });
 
     // ── Step 2: duplicate check ───────────────────────────────────────────────
     const fp = makeFingerprint(name.trim(), flavorText.trim());
     const existing = await db.collection("cardsv2").findOne({
-      ownerId: ownerId.trim(),
+      ownerId,
       fingerprint: fp,
     });
     if (existing) {
@@ -140,13 +150,33 @@ module.exports.handler = async function handler(req, res) {
       });
     }
 
+    // ── Decline block check ───────────────────────────────────────────────────
+    const now = new Date();
+    if (player.checkBlockedUntil && player.checkBlockedUntil > now) {
+      return res.status(200).json({ status: "rate_limited" });
+    }
+    // Reset stale counter
+    if (player.checkBlockedUntil && player.checkBlockedUntil <= now) {
+      await db.collection("players").updateOne(
+        { id: player.id },
+        { $set: { checkBlockedUntil: null, declineCount: 0 } }
+      );
+      player.declineCount = 0;
+    }
+
     // ── Step 3: content gate (stub — always allowed during testing) ───────────
-    // TODO: replace with real gate before opening beyond test group.
-    // The gate must judge picture + name + text together and check against
-    // design/content-policy.md. For testing, all submissions pass.
     const gateResult = { verdict: "allowed" };
-    if (gateResult.verdict === "declined")
+    if (gateResult.verdict === "declined") {
+      // Increment decline counter
+      const newCount = (player.declineCount || 0) + 1;
+      const update = { $set: { declineCount: newCount } };
+      if (newCount >= 5) {
+        update.$set.checkBlockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        update.$set.declineCount = 0;
+      }
+      await db.collection("players").updateOne({ id: player.id }, update);
       return res.status(200).json({ status: "declined", category: gateResult.category, message: gateResult.message });
+    }
     if (gateResult.verdict === "review")
       return res.status(200).json({ status: "in_review" });
 
@@ -191,7 +221,7 @@ module.exports.handler = async function handler(req, res) {
     const sealedResult = {
       submissionId,
       sealedAt: Date.now(),
-      ownerId: ownerId.trim(),
+      ownerId,
       submission: { name: name.trim(), flavorText: flavorText.trim(), imageUrl: imageUrl?.trim() || null },
       fingerprint: fp,
       carriesSeven,

@@ -15,6 +15,7 @@ const {
   ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE,
   SAVED_DECKS_MAX, COLLECTION_MAX, DELETE_COOLDOWN_MS,
 } = require("../engine2/constants");
+const { requirePlayer } = require("../auth/player");
 
 // Pull in constants that might not be in engine2/constants yet
 const _DELETE_COOLDOWN_MS = typeof DELETE_COOLDOWN_MS !== "undefined"
@@ -45,21 +46,28 @@ function checkActiveLegality(cards) {
 async function getCollectionState(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
-  const { ownerId } = req.query;
-  if (!ownerId?.trim()) return res.status(400).json({ error: "ownerId required" });
+
+  let player;
+  try {
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
+  const ownerId = player.id;
 
   try {
     const db = await getDb();
     const allCards = await db.collection("cardsv2")
-      .find({ ownerId: ownerId.trim(), deleted: { $ne: true } })
+      .find({ ownerId, deleted: { $ne: true } })
       .toArray();
 
-    let collDoc = await db.collection("collectionsv2").findOne({ ownerId: ownerId.trim() });
+    let collDoc = await db.collection("collectionsv2").findOne({ ownerId });
     if (!collDoc) {
       const ids      = allCards.map(c => c.id);
       const active   = ids.slice(0, ACTIVE_SIZE);
       const inactive = ids.slice(ACTIVE_SIZE);
-      collDoc = { ownerId: ownerId.trim(), active, inactive, savedDecks: [], lastDeletedAt: null };
+      collDoc = { ownerId, active, inactive, savedDecks: [], lastDeletedAt: null };
       await db.collection("collectionsv2").insertOne(collDoc);
     }
 
@@ -94,9 +102,19 @@ async function getCollectionState(req, res) {
 async function swapCards(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
-  const { ownerId, outId, inId } = req.body || {};
-  if (!ownerId || !outId || !inId)
-    return res.status(400).json({ error: "ownerId, outId, inId required" });
+
+  let player;
+  try {
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
+  const ownerId = player.id;
+
+  const { outId, inId } = req.body || {};
+  if (!outId || !inId)
+    return res.status(400).json({ error: "outId, inId required" });
 
   try {
     const db   = await getDb();
@@ -138,9 +156,19 @@ async function swapCards(req, res) {
 async function saveDeck(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
-  const { ownerId, name, overwriteId } = req.body || {};
-  if (!ownerId || !name?.trim())
-    return res.status(400).json({ error: "ownerId and name required" });
+
+  let player;
+  try {
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
+  const ownerId = player.id;
+
+  const { name, overwriteId } = req.body || {};
+  if (!name?.trim())
+    return res.status(400).json({ error: "name required" });
   if (name.trim().length > 24)
     return res.status(400).json({ error: "Deck name must be 24 characters or fewer" });
 
@@ -179,10 +207,20 @@ async function saveDeck(req, res) {
 async function deleteCard(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  let player;
+  try {
+    player = await requirePlayer(req);
+  } catch (e) {
+    if (e.status && e.body) return res.status(e.status).json(e.body);
+    throw e;
+  }
+  const ownerId = player.id;
+
   const { cardId } = req.params;
-  const { ownerId, replacementId } = req.body || {};
-  if (!ownerId || !cardId)
-    return res.status(400).json({ error: "ownerId and cardId required" });
+  const { replacementId } = req.body || {};
+  if (!cardId)
+    return res.status(400).json({ error: "cardId required" });
 
   try {
     const db   = await getDb();

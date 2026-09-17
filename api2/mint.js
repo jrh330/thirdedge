@@ -12,6 +12,7 @@
 const { getDb } = require("./_db");
 const { getSeal, deleteSeal } = require("./check");
 const { COLLECTION_MAX, ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
+const { requirePlayer } = require("../auth/player");
 
 // ── Collection placement helpers (inline from src/collection.js logic) ────────
 
@@ -69,11 +70,25 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    let player;
+    try {
+      player = await requirePlayer(req);
+    } catch (e) {
+      if (e.status && e.body) return res.status(e.status).json(e.body);
+      throw e;
+    }
+
     const { submissionId, imageUrl } = req.body || {};
     if (!submissionId) return res.status(400).json({ error: "submissionId required" });
 
     const seal = getSeal(submissionId);
     if (!seal) return res.status(400).json({ error: "Sealed result not found or expired — did Check complete?" });
+
+    // Cross-check: the seal must belong to the authenticated player
+    if (seal.ownerId !== player.id) {
+      return res.status(403).json({ error: "forbidden" });
+    }
 
     const { ownerId, submission, fingerprint, carriesSeven, sealed } = seal;
     const db = await getDb();
