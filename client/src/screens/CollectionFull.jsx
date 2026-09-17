@@ -1,4 +1,6 @@
-export default function CollectionFull() {
+import SecondaryButton from '../components/SecondaryButton.jsx';
+
+export default function CollectionFull({ onYourCards }) {
   return (
     <div style={{
       minHeight: '100vh',
@@ -14,19 +16,11 @@ export default function CollectionFull() {
         Your collection is full.
       </p>
       <p style={{ color: 'var(--muted)', fontSize: 16, maxWidth: 380 }}>
-        Delete a card to make a new one.
+        Delete a card to make room for a new one.
       </p>
-      <a
-        href="/api2/collection-state"
-        style={{
-          color: 'var(--teal)',
-          fontSize: 15,
-          textDecoration: 'underline',
-          marginTop: 4,
-        }}
-      >
-        View your cards
-      </a>
+      <div style={{ marginTop: 8 }}>
+        <SecondaryButton onClick={onYourCards}>Your cards</SecondaryButton>
+      </div>
     </div>
   );
 }

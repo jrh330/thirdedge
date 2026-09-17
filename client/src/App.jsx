@@ -181,7 +181,7 @@ export default function App() {
 
   // Headerless screens
   if (screen === 'no_session')      return <NoSession />;
-  if (screen === 'collection_full') return <CollectionFull />;
+  if (screen === 'collection_full') return <CollectionFull onYourCards={() => dispatch({ type: 'YOUR_CARDS' })} />;
 
   // Crop is full-screen
   if (screen === 'crop') {
