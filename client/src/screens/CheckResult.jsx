@@ -182,9 +182,9 @@ export default function CheckResult({ checkResult, draft, croppedBlob, onMint, o
         <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
           Something went wrong on our side, not with your card. Nothing was saved or scored.
         </p>
-        {checkResult?.reason && (
+        {(checkResult?.reason || checkResult?.error) && (
           <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>
-            {checkResult.reason}
+            {checkResult.reason || checkResult.error}
           </p>
         )}
         <PrimaryButton onClick={onRetry || onEdit}>Try again</PrimaryButton>
