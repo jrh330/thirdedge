@@ -1,0 +1,26 @@
+:root {
+  --bg:          #1B1026;
+  --bg-deep:     #110919;
+  --stock:       #2A1C38;
+  --key:         #F6F0FA;
+  --muted:       #B7AAC6;
+  --pink:        #FF2E93;
+  --pink-dark:   #C4006E;
+  --teal:        #00C2C7;
+  --vita:        #FF5A1F;
+  --terra:       #FFD23F;
+  --arte:        #7B4DFF;
+  --ink:         #1B1026;
+  --win:         #00C44F;
+  --line:        rgba(246,240,250,.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg-deep);
+  color: var(--key);
+  font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

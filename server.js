@@ -8,6 +8,10 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.static(path.join(__dirname, "public")));
+app.use('/mint', express.static(path.join(__dirname, 'public/mint')));
+app.get('/mint/*', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public/mint/index.html'))
+);
 
 app.post("/api/create", require("./api/create"));
 app.post("/api/join",   require("./api/join"));
