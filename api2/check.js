@@ -19,14 +19,9 @@ const Anthropic   = require("@anthropic-ai/sdk");
 const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
 
-// ── In-process sealed-result store (replace with MongoDB TTL collection for prod) ──
 // ── MongoDB-backed sealed-result store ────────────────────────────────────────
 // Survives restarts and multi-process deploys. TTL index expires docs after
-// 30 minutes — create it once:
-//   db.sealedResults.createIndex({ sealedAt: 1 }, { expireAfterSeconds: 1800 })
-// Railway runs this automatically via ensureSealIndex() on first use.
-
-const { getDb } = require("./_db"); // already imported above — safe duplicate
+// 30 minutes — ensureSealIndex() creates it automatically on first use.
 
 let _indexEnsured = false;
 async function ensureSealIndex() {
