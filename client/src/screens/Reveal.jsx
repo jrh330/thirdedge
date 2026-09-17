@@ -15,7 +15,7 @@ import CollectionStrip from '../components/CollectionStrip.jsx';
 export default function Reveal({ mintResult, collection, onMakeAnother, onYourCards }) {
   const [placementChoice, setPlacementChoice] = useState(null);
 
-  if (!mintResult) return null;
+  if (!mintResult?.card) return null;
 
   const { card, placement } = mintResult;
 

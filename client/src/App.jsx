@@ -145,8 +145,8 @@ export default function App() {
 
     mintCard({ submissionId: state.checkResult?.submissionId })
       .then(result => {
-        if (result?.ok === false) {
-          dispatch({ type: 'CHECK_RESULT', payload: { status: 'error', reason: result.reason } });
+        if (!result?.card) {
+          dispatch({ type: 'CHECK_RESULT', payload: { status: 'error', reason: result?.error || result?.reason || 'Mint failed — try checking again.' } });
           return;
         }
         getCollectionState()
