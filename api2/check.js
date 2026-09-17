@@ -111,18 +111,22 @@ module.exports.handler = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
+  console.log("check: request received");
+
   try {
     // ── Auth ──────────────────────────────────────────────────────────────────
     let player;
     try {
       player = await requirePlayer(req);
     } catch (e) {
+      console.log("check: auth failed", e?.body);
       if (e.status && e.body) return res.status(e.status).json(e.body);
       throw e;
     }
 
     const { name, flavorText, imageUrl } = req.body || {};
     const ownerId = player.id;
+    console.log("check: player", ownerId, "name:", name?.slice(0, 20));
 
     // ── Basic input validation ────────────────────────────────────────────────
     if (!name?.trim())       return res.status(400).json({ status: "error", error: "name required" });
