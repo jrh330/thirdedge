@@ -204,25 +204,30 @@ export default function Card({
               }}
             />
           ) : (
-            /* Empty slot: pink Ben-Day dots */
+            /* Empty slot — no dots on card face */
             <div style={{
               position: 'absolute', inset: 0,
-              background: `
-                radial-gradient(circle, rgba(255,46,147,.55) 1.0px, transparent 1.5px) 0 0 / 5px 5px,
-                radial-gradient(circle, rgba(255,46,147,.55) 1.0px, transparent 1.5px) 2.5px 2.5px / 5px 5px,
-                var(--stock)
-              `,
+              background: 'var(--stock)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{
-                fontSize: Math.round(14 * scale),
-                color: 'var(--muted)',
-                fontWeight: 600,
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-              }}>
-                Add a picture
-              </span>
+              {state === 'draft' ? (
+                <span style={{
+                  fontSize: Math.round(14 * scale),
+                  color: 'var(--muted)',
+                  fontWeight: 600,
+                  letterSpacing: '.06em',
+                  textTransform: 'uppercase',
+                }}>
+                  Add a picture
+                </span>
+              ) : (
+                /* Burst mark placeholder for sealed / revealed / dimmed / grey */
+                <img
+                  src="/mint/logo/svg/allagaroo-mark-small.svg"
+                  alt=""
+                  style={{ width: '30%', height: '30%', objectFit: 'contain', opacity: 0.2, filter: 'brightness(3)' }}
+                />
+              )}
             </div>
           )}
 

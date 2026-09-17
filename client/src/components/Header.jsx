@@ -74,7 +74,7 @@ function BackArrow() {
   );
 }
 
-const PHONE_TITLES = ['Make a card', 'It checked out', 'Minted'];
+const PHONE_TITLES = ['Make a card', 'It checked out', 'Minting…', 'Minted'];
 
 export default function Header({ step = 1, onBack, backLabel }) {
   const phoneTitle = PHONE_TITLES[step - 1] || '';
@@ -169,7 +169,7 @@ export default function Header({ step = 1, onBack, backLabel }) {
           fontWeight: 600,
           fontFamily: "'Rubik', sans-serif",
         }}>
-          {step}/3
+          {Math.min(step, 3)}/3
         </span>
       </div>
 

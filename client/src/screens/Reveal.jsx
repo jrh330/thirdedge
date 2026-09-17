@@ -3,18 +3,15 @@ import Card from '../components/Card.jsx';
 import PrimaryButton from '../components/PrimaryButton.jsx';
 import SecondaryButton from '../components/SecondaryButton.jsx';
 import CollectionStrip from '../components/CollectionStrip.jsx';
+import { FAMILY_COLORS, FamilyIcon } from '../lib/families.jsx';
+import { swapCard } from '../lib/api.js';
 
-/**
- * Reveal screen — shows the minted card after Mint succeeds.
- * Props:
- *   mintResult    — { card, placement }
- *   collection    — collection state
- *   onMakeAnother — fn()
- *   onYourCards   — fn()
- */
 export default function Reveal({ mintResult, croppedBlob, draft, collection, onMakeAnother, onYourCards }) {
-  const [placementChoice, setPlacementChoice] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
+  const [placementChoice, setPlacementChoice] = useState('inactive');
+  const [swapDone, setSwapDone] = useState(false);
+  const [swapError, setSwapError] = useState(null);
+  const [swapBusy, setSwapBusy] = useState(false);
 
   useEffect(() => {
     if (mintResult?.card?.imageUrl) {
@@ -33,144 +30,259 @@ export default function Reveal({ mintResult, croppedBlob, draft, collection, onM
 
   const { card, placement } = mintResult;
 
-  // Placement messaging
+  const showSheet = placement?.placement === 'choice' && !swapDone;
+
+  const handleDone = async () => {
+    if (placementChoice === 'inactive') {
+      setSwapDone(true);
+      return;
+    }
+    setSwapBusy(true);
+    setSwapError(null);
+    try {
+      const result = await swapCard({ outId: placementChoice, inId: card.id });
+      if (result.ok) {
+        setSwapDone(true);
+      } else {
+        setSwapError(result.error || 'Swap failed — try from Your cards.');
+      }
+    } catch (e) {
+      setSwapError(e.message || 'Network error');
+    } finally {
+      setSwapBusy(false);
+    }
+  };
+
+  // Placement message for the text column
   let placementMsg = null;
   if (placement?.placement === 'active') {
     placementMsg = `Added to your active cards (${placement.activeCount} of 12).`;
   } else if (placement?.placement === 'inactive') {
-    placementMsg = `Added to your inactive cards. ${placement.reason || ''}`;
-  } else if (placement?.placement === 'choice') {
-    placementMsg = `${placement.reason} — choose where it goes.`;
+    placementMsg = `Added to your inactive cards. ${placement.reason || ''}`.trim();
+  } else if (placement?.placement === 'choice' && swapDone) {
+    placementMsg = placementChoice === 'inactive'
+      ? 'Kept in your inactive cards.'
+      : 'Swapped in — good pick.';
   }
 
   return (
-    <div style={{
-      maxWidth: 1100,
-      margin: '0 auto',
-      padding: '32px 24px',
-      display: 'flex',
-      gap: 48,
-      alignItems: 'flex-start',
-    }}>
-      {/* Left: revealed card */}
-      <div className="reveal-card-col" style={{ flexShrink: 0 }}>
-        <Card
-          card={card}
-          state="revealed"
-          size="lg"
-          imageSrc={imageSrc}
-        />
-      </div>
-
-      {/* Right: details */}
-      <div style={{ flex: 1, maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <p style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          Minted
-        </p>
-        <h1 style={{ fontSize: 32, fontFamily: "'Bagel Fat One', sans-serif", color: 'var(--key)', lineHeight: 1.1 }}>
-          Here it is.
-        </h1>
-
-        {/* Stats — big Rubik */}
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
-          {[
-            { label: 'PWR', val: card.power },
-            { label: 'SPD', val: card.speed },
-            { label: 'WIT', val: card.wits  },
-          ].map(({ label, val }) => (
-            <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: 'var(--muted)', fontFamily: "'Rubik', sans-serif", fontWeight: 500 }}>
-                {label}
-              </span>
-              <span style={{ fontSize: 40, fontFamily: "'Rubik', sans-serif", fontWeight: 700, lineHeight: 1, color: 'var(--key)' }}>
-                {val}
-              </span>
-            </div>
-          ))}
-          <div style={{ marginLeft: 8, marginBottom: 4, color: 'var(--muted)', fontSize: 14, fontStyle: 'italic' }}>
-            {card.family} · {card.kind}
-          </div>
+    <>
+      {/* ── Main reveal ── */}
+      <div style={{
+        maxWidth: 1100,
+        margin: '0 auto',
+        padding: '32px 24px',
+        display: 'flex',
+        gap: 48,
+        alignItems: 'flex-start',
+      }}>
+        {/* Left: card */}
+        <div className="reveal-card-col" style={{ flexShrink: 0 }}>
+          <Card card={card} state="revealed" size="lg" imageSrc={imageSrc} />
         </div>
 
-        {/* AI reasoning */}
-        {card.aiReasoning && (
-          <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            "{card.aiReasoning}"
+        {/* Right: details */}
+        <div style={{ flex: 1, maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Minted
           </p>
-        )}
+          <h1 style={{ fontSize: 32, fontFamily: "'Bagel Fat One', sans-serif", color: 'var(--key)', lineHeight: 1.1 }}>
+            {card.name}
+          </h1>
 
-        {/* Placement */}
-        {placementMsg && (
-          <p style={{ fontSize: 14, color: 'var(--key)', fontWeight: 500 }}>
-            {placementMsg}
+          {/* Stat line */}
+          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
+            Power {card.power} · Speed {card.speed} · Wits {card.wits}
+            {'  '}
+            <span style={{ opacity: 0.7 }}>{card.family} · {card.kind}</span>
           </p>
-        )}
 
-        {/* Placement choice sheet */}
-        {placement?.placement === 'choice' && (
+          {/* AI reasoning */}
+          {card.aiReasoning && (
+            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5, fontStyle: 'italic' }}>
+              "{card.aiReasoning}"
+            </p>
+          )}
+
+          {/* Scored against chips */}
+          {card.aiAnchors?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                Scored against
+              </span>
+              {card.aiAnchors.map(a => (
+                <span key={a} style={{
+                  fontSize: 13,
+                  padding: '3px 10px',
+                  borderRadius: 6,
+                  background: 'var(--stock)',
+                  color: 'var(--key)',
+                  border: '1px solid var(--line)',
+                }}>
+                  {a}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Placement result */}
+          {placementMsg && (
+            <p style={{ fontSize: 14, color: placement?.placement === 'active' ? 'var(--key)' : 'var(--muted)', fontWeight: 500 }}>
+              {placementMsg}
+            </p>
+          )}
+
+          {/* Collection strip */}
+          <CollectionStrip collection={collection} highlightFamily={card.family} />
+
+          <PrimaryButton onClick={onMakeAnother}>Make another</PrimaryButton>
+          <SecondaryButton onClick={onYourCards}>Your cards</SecondaryButton>
+        </div>
+      </div>
+
+      {/* ── Placement sheet overlay ── */}
+      {showSheet && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 200,
+          background: 'rgba(17,9,25,0.72)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        }}>
           <div style={{
-            background: 'var(--stock)',
-            borderRadius: 12,
-            padding: '16px',
+            background: 'var(--bg)',
+            borderTop: '1px solid var(--line)',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px 24px 48px',
+            width: '100%',
+            maxWidth: 600,
+            maxHeight: '78vh',
+            overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: 8,
+            gap: 12,
           }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Choose a slot:</p>
-            {placement.swapOptions?.map(targetId => (
-              <button
-                key={targetId}
-                onClick={() => setPlacementChoice(targetId)}
-                style={{
-                  background: placementChoice === targetId ? 'var(--pink)' : 'var(--bg)',
-                  color: placementChoice === targetId ? '#fff' : 'var(--key)',
-                  border: '1.5px solid var(--line)',
-                  borderRadius: 8,
-                  padding: '10px 14px',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  textAlign: 'left',
-                }}
-              >
-                Swap for {targetId}
-              </button>
-            ))}
+            <h2 style={{ fontSize: 22, fontFamily: "'Bagel Fat One', sans-serif", color: 'var(--key)', margin: 0 }}>
+              Where does it go?
+            </h2>
+            {placement.reason && (
+              <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>{placement.reason}</p>
+            )}
+
+            {/* Keep inactive row */}
             <button
               onClick={() => setPlacementChoice('inactive')}
               style={{
                 background: placementChoice === 'inactive' ? 'var(--stock)' : 'transparent',
-                color: 'var(--muted)',
-                border: '1.5px solid var(--line)',
-                borderRadius: 8,
-                padding: '10px 14px',
-                fontSize: 14,
+                border: `2px solid ${placementChoice === 'inactive' ? 'var(--pink)' : 'var(--line)'}`,
+                borderRadius: 12,
+                padding: '14px 16px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
+                color: 'var(--key)',
                 textAlign: 'left',
               }}
             >
-              Keep it inactive
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Keep it inactive</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>
+                {placement.inactiveCount} of 8 inactive. Swap it in later.
+              </div>
             </button>
+
+            {/* Swap candidates */}
+            {placement.swapOptions?.length > 0 && (
+              <>
+                <p style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', margin: '4px 0 0' }}>
+                  Or swap it in for…
+                </p>
+                {placement.swapOptions.map(target => {
+                  const famColors = FAMILY_COLORS[target.family] || {};
+                  const selected = placementChoice === target.id;
+                  return (
+                    <button
+                      key={target.id}
+                      onClick={() => setPlacementChoice(target.id)}
+                      style={{
+                        background: selected ? 'var(--stock)' : 'transparent',
+                        border: `2px solid ${selected ? 'var(--pink)' : 'var(--line)'}`,
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                        display: 'flex',
+                        gap: 12,
+                        alignItems: 'center',
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      <div style={{
+                        width: 42, height: 59,
+                        borderRadius: 6,
+                        background: 'var(--stock)',
+                        border: '1px solid var(--line)',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {target.imageUrl ? (
+                          <img src={target.imageUrl} alt={target.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <img src="/mint/logo/svg/allagaroo-mark-small.svg" alt="" style={{ width: '60%', opacity: 0.25, filter: 'brightness(3)' }} />
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--key)' }}>{target.name}</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '2px 8px 2px 6px',
+                            borderRadius: 999,
+                            background: famColors.bg || 'var(--stock)',
+                            color: famColors.text || 'var(--key)',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: '.08em',
+                            textTransform: 'uppercase',
+                          }}>
+                            <FamilyIcon family={target.family} size={11} />
+                            {target.family}
+                          </span>
+                          <span style={{ fontSize: 13, color: 'var(--muted)', fontFamily: "'Rubik', sans-serif", fontWeight: 600 }}>
+                            {target.power}/{target.speed}/{target.wits}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>Becomes inactive</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+
+            {swapError && (
+              <p style={{ color: '#ff4444', fontSize: 13, margin: 0 }}>{swapError}</p>
+            )}
+
+            <PrimaryButton onClick={handleDone} disabled={swapBusy}>
+              {swapBusy ? 'Saving…' : 'Done'}
+            </PrimaryButton>
           </div>
-        )}
-
-        {/* Collection strip — highlight new card's family */}
-        <CollectionStrip collection={collection} highlightFamily={card.family} />
-
-        <PrimaryButton onClick={onMakeAnother}>
-          Make another
-        </PrimaryButton>
-        <SecondaryButton onClick={onYourCards}>
-          Your cards
-        </SecondaryButton>
-      </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 640px) {
           .reveal-card-col { display: none; }
         }
       `}</style>
-    </div>
+    </>
   );
 }

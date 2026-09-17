@@ -83,7 +83,8 @@ function reducer(state, action) {
 function screenToStep(screen) {
   if (screen === 'make' || screen === 'crop')             return 1;
   if (screen === 'checking' || screen === 'check_result') return 2;
-  if (screen === 'minting'  || screen === 'reveal')       return 3;
+  if (screen === 'minting') return 3;
+  if (screen === 'reveal')  return 4;
   return 1;
 }
 

@@ -36,7 +36,15 @@ function legalSwapTargets(newCard, activeCards) {
       const proposed = activeCards.filter(c => c.id !== existing.id).concat(newCard);
       return proposed.length === ACTIVE_SIZE && checkComposition(proposed).ok;
     })
-    .map(c => c.id);
+    .map(c => ({
+      id:      c.id,
+      name:    c.name,
+      family:  c.family,
+      power:   c.power,
+      speed:   c.speed,
+      wits:    c.wits,
+      imageUrl: c.imageUrl || null,
+    }));
 }
 
 function placeMintedCard(newCard, activeCards, inactiveCount) {
