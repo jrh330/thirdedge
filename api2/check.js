@@ -5,17 +5,17 @@
  * Check step: duplicate check → content gate stub → Claude scoring → sealed result.
  * Returns { status, submissionId?, checkPayload?, error? }
  *
- * Body: multipart/form-data — fields: name, flavorText; file field: image (optional for now).
+ * Body: multipart/form-data — fields: name, flavorText; file field: image.
  * ownerId comes from the session cookie, never from the client.
- * req.file is populated by multer (memory storage). The real upload pipeline
- * (GPS strip, HEIC→JPEG, resize, private hold) is the next step — for now req.file is ignored.
- *
- * Sealed results are stored in the module-level Map (single-process; move to
- * MongoDB with TTL index for multi-process / production).
+ * req.file is populated by multer (memory storage).
+ * Image pipeline: sharp strips EXIF/GPS + converts to JPEG + resizes,
+ * then uploads to Cloudinary pending/ folder. Final URL stored in seal.
  */
 
 const { getDb }   = require("./_db");
 const Anthropic   = require("@anthropic-ai/sdk");
+const sharp       = require("sharp");
+const { uploadBuffer } = require("./_cloudinary");
 const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
 
@@ -209,10 +209,34 @@ module.exports.handler = async function handler(req, res) {
       return res.status(200).json({ status: "in_review" });
 
     console.log("check: passed duplicate/gate checks, calling LLM");
+
+    // ── Image pipeline: strip EXIF, convert, resize, upload to Cloudinary ────
+    let pendingImagePublicId = null;
+    let pendingImageUrl      = null;
+    if (req.file?.buffer) {
+      try {
+        const processed = await sharp(req.file.buffer)
+          .rotate()                                            // auto-orient, strips EXIF orientation
+          .jpeg({ quality: 88 })                             // convert to JPEG (handles HEIC via libvips)
+          .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+          .toBuffer();
+        const upload = await uploadBuffer(processed, {
+          folder:        "allagaroo/pending",
+          resource_type: "image",
+          format:        "jpg",
+        });
+        pendingImagePublicId = upload.public_id;
+        pendingImageUrl      = upload.secure_url;
+        console.log("check: image uploaded to Cloudinary:", pendingImagePublicId);
+      } catch (imgErr) {
+        console.error("check: image upload failed (non-fatal):", imgErr.message);
+      }
+    }
+
     // ── Steps 4 + 5: LLM scoring with validation retry ───────────────────────
     const userContent = [];
-    if (imageUrl?.trim()) {
-      userContent.push({ type: "image", source: { type: "url", url: imageUrl.trim() } });
+    if (pendingImageUrl) {
+      userContent.push({ type: "image", source: { type: "url", url: pendingImageUrl } });
     }
     userContent.push({
       type: "text",
@@ -257,7 +281,8 @@ module.exports.handler = async function handler(req, res) {
       submissionId,
       sealedAt: Date.now(),
       ownerId,
-      submission: { name: name.trim(), flavorText: flavorText.trim(), imageUrl: imageUrl?.trim() || null },
+      submission: { name: name.trim(), flavorText: flavorText.trim(), imageUrl: pendingImageUrl },
+      pendingImagePublicId,
       fingerprint: fp,
       carriesSeven,
       sealed: {

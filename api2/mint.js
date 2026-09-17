@@ -5,12 +5,14 @@
  * Mint step: unseal → validate → insert card → return placement info.
  * Requires a submissionId from the preceding /api2/check call.
  *
- * Body: { submissionId, imageUrl }
- * imageUrl: the final public URL for the card image (moved to public storage at Mint).
+ * Body: { submissionId }
+ * Image: if a pending Cloudinary image exists in the seal, it is renamed
+ * from allagaroo/pending/… to allagaroo/cards/{cardId} at mint time.
  */
 
 const { getDb } = require("./_db");
 const { getSeal, deleteSeal } = require("./check");
+const { cloudinary } = require("./_cloudinary");
 const { COLLECTION_MAX, ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
 
@@ -98,7 +100,7 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ error: "forbidden" });
     }
 
-    const { ownerId, submission, fingerprint, carriesSeven, sealed } = seal;
+    const { ownerId, submission, fingerprint, carriesSeven, sealed, pendingImagePublicId } = seal;
     const db = await getDb();
 
     // Defence: re-check duplicate (edge case: two tabs minting at once)
@@ -108,13 +110,27 @@ module.exports = async function handler(req, res) {
       return res.status(409).json({ error: "already_made", matchedName: dup.name });
     }
 
+    // Move image from pending/ to cards/ in Cloudinary
+    const cardId = crypto.randomUUID();
+    let finalImageUrl = null;
+    if (pendingImagePublicId) {
+      try {
+        const finalPublicId = `allagaroo/cards/${cardId}`;
+        const renamed = await cloudinary.uploader.rename(pendingImagePublicId, finalPublicId);
+        finalImageUrl = renamed.secure_url;
+        console.log("mint: image moved to", finalPublicId);
+      } catch (imgErr) {
+        console.error("mint: image rename failed (non-fatal):", imgErr.message);
+      }
+    }
+
     // Build the card
     const card = {
-      id:           crypto.randomUUID(),
+      id:           cardId,
       ownerId,
       name:         submission.name,
       flavorText:   submission.flavorText,
-      imageUrl:     imageUrl?.trim() || submission.imageUrl || null,
+      imageUrl:     finalImageUrl,
       power:        sealed.power,
       speed:        sealed.speed,
       wits:         sealed.wits,
