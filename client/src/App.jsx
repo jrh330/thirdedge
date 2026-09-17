@@ -245,6 +245,7 @@ export default function App() {
           <Reveal
             mintResult={state.mintResult}
             croppedBlob={state.croppedBlob}
+            draft={state.draft}
             collection={state.collection}
             onMakeAnother={() => dispatch({ type: 'MAKE_ANOTHER' })}
             onYourCards={() => { window.location.href = '/api2/collection-state'; }}

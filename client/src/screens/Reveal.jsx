@@ -12,7 +12,7 @@ import CollectionStrip from '../components/CollectionStrip.jsx';
  *   onMakeAnother — fn()
  *   onYourCards   — fn()
  */
-export default function Reveal({ mintResult, croppedBlob, collection, onMakeAnother, onYourCards }) {
+export default function Reveal({ mintResult, croppedBlob, draft, collection, onMakeAnother, onYourCards }) {
   const [placementChoice, setPlacementChoice] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
 
@@ -21,12 +21,13 @@ export default function Reveal({ mintResult, croppedBlob, collection, onMakeAnot
       setImageSrc(mintResult.card.imageUrl);
       return;
     }
-    if (croppedBlob) {
-      const url = URL.createObjectURL(croppedBlob);
+    const blob = croppedBlob || draft?.imageBlob;
+    if (blob) {
+      const url = URL.createObjectURL(blob);
       setImageSrc(url);
       return () => URL.revokeObjectURL(url);
     }
-  }, [mintResult, croppedBlob]);
+  }, [mintResult, croppedBlob, draft?.imageBlob]);
 
   if (!mintResult?.card) return null;
 
