@@ -171,6 +171,24 @@ export default function CheckResult({ checkResult, draft, croppedBlob, onMint, o
     );
   }
 
+  if (status === 'collection_full') {
+    return (
+      <div style={layoutStyle}>
+        <div className="result-card-col" style={{ flexShrink: 0 }}>
+          <Card card={cardData} state="grey" stamp="error" size="lg" imageSrc={imageSrc} />
+        </div>
+        <div style={formColStyle}>
+          <h1 style={h1Style}>Collection full</h1>
+          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
+            You've reached 20 cards. Delete a card from Your Cards to make room.
+          </p>
+          <SecondaryButton onClick={onEdit}>Your cards</SecondaryButton>
+        </div>
+        <style>{MOBILE_HIDE_CARD_CSS}</style>
+      </div>
+    );
+  }
+
   // error / fallback
   return (
     <div style={layoutStyle}>

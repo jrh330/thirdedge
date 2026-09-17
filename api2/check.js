@@ -160,7 +160,7 @@ module.exports.handler = async function handler(req, res) {
     console.log("check: db connected");
 
     // ── Step 0: collection full? ──────────────────────────────────────────────
-    const total = await db.collection("cardsv2").countDocuments({ ownerId });
+    const total = await db.collection("cardsv2").countDocuments({ ownerId, deleted: { $ne: true } });
     console.log("check: total cards:", total);
     if (total >= COLLECTION_MAX)
       return res.status(200).json({ status: "collection_full" });
