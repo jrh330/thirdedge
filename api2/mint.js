@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
     const { submissionId, imageUrl } = req.body || {};
     if (!submissionId) return res.status(400).json({ error: "submissionId required" });
 
-    const seal = getSeal(submissionId);
+    const seal = await getSeal(submissionId);
     if (!seal) return res.status(400).json({ error: "Sealed result not found or expired — did Check complete?" });
 
     // Cross-check: the seal must belong to the authenticated player
@@ -96,7 +96,7 @@ module.exports = async function handler(req, res) {
     // Defence: re-check duplicate (edge case: two tabs minting at once)
     const dup = await db.collection("cardsv2").findOne({ ownerId, fingerprint });
     if (dup) {
-      deleteSeal(submissionId);
+      await deleteSeal(submissionId);
       return res.status(409).json({ error: "already_made", matchedName: dup.name });
     }
 
@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
       );
     }
 
-    deleteSeal(submissionId);
+    await deleteSeal(submissionId);
 
     return res.status(200).json({ ok: true, card, placement });
   } catch (err) {

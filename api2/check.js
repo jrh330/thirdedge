@@ -20,23 +20,47 @@ const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX 
 const { requirePlayer } = require("../auth/player");
 
 // ── In-process sealed-result store (replace with MongoDB TTL collection for prod) ──
-const sealedStore = new Map();   // submissionId → sealedResult
+// ── MongoDB-backed sealed-result store ────────────────────────────────────────
+// Survives restarts and multi-process deploys. TTL index expires docs after
+// 30 minutes — create it once:
+//   db.sealedResults.createIndex({ sealedAt: 1 }, { expireAfterSeconds: 1800 })
+// Railway runs this automatically via ensureSealIndex() on first use.
 
-function storeSeal(submissionId, result) {
-  sealedStore.set(submissionId, result);
-  // Auto-expire after 30 minutes
-  setTimeout(() => sealedStore.delete(submissionId), 30 * 60 * 1000);
+const { getDb } = require("./_db"); // already imported above — safe duplicate
+
+let _indexEnsured = false;
+async function ensureSealIndex() {
+  if (_indexEnsured) return;
+  _indexEnsured = true;
+  try {
+    const db = await getDb();
+    await db.collection("sealedResults").createIndex(
+      { sealedAt: 1 },
+      { expireAfterSeconds: 1800, background: true }
+    );
+  } catch (_) { /* non-fatal */ }
 }
 
-function getSeal(submissionId) {
-  return sealedStore.get(submissionId) || null;
+async function storeSeal(submissionId, result) {
+  ensureSealIndex();
+  const db = await getDb();
+  await db.collection("sealedResults").replaceOne(
+    { submissionId },
+    { ...result, sealedAt: new Date(result.sealedAt) },
+    { upsert: true }
+  );
 }
 
-function deleteSeal(submissionId) {
-  sealedStore.delete(submissionId);
+async function getSeal(submissionId) {
+  const db = await getDb();
+  return db.collection("sealedResults").findOne({ submissionId }) || null;
 }
 
-module.exports.sealedStore = sealedStore;
+async function deleteSeal(submissionId) {
+  const db = await getDb();
+  await db.collection("sealedResults").deleteOne({ submissionId });
+}
+
 module.exports.getSeal     = getSeal;
 module.exports.deleteSeal  = deleteSeal;
 
@@ -243,7 +267,7 @@ module.exports.handler = async function handler(req, res) {
         readAs: llmResponse.readAs, reasoning: llmResponse.reasoning, anchors: llmResponse.anchors,
       },
     };
-    storeSeal(submissionId, sealedResult);
+    await storeSeal(submissionId, sealedResult);
 
     // Return only the safe check-screen fields — never the numbers
     return res.status(200).json({
