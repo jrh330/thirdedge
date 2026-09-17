@@ -15,7 +15,7 @@ import { FAMILY_COLORS } from '../lib/families.jsx';
  *   onEdit        — fn() — user wants to Edit
  *   collection    — collection state
  */
-export default function CheckResult({ checkResult, draft, croppedBlob, onMint, onEdit, collection }) {
+export default function CheckResult({ checkResult, draft, croppedBlob, onMint, onEdit, onRetry, collection }) {
   const [imageSrc, setImageSrc] = useState(null);
 
   useEffect(() => {
@@ -182,7 +182,12 @@ export default function CheckResult({ checkResult, draft, croppedBlob, onMint, o
         <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
           Something went wrong on our side, not with your card. Nothing was saved or scored.
         </p>
-        <PrimaryButton onClick={onMint}>Try again</PrimaryButton>
+        {checkResult?.reason && (
+          <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>
+            {checkResult.reason}
+          </p>
+        )}
+        <PrimaryButton onClick={onRetry || onEdit}>Try again</PrimaryButton>
         <SecondaryButton onClick={onEdit}>Edit</SecondaryButton>
       </div>
       <style>{MOBILE_HIDE_CARD_CSS}</style>

@@ -225,6 +225,7 @@ export default function App() {
             croppedBlob={state.croppedBlob}
             onMint={() => dispatch({ type: 'MINT' })}
             onEdit={handleEdit}
+            onRetry={() => dispatch({ type: 'SUBMIT_DRAFT', payload: state.draft })}
             collection={state.collection}
           />
         )}
