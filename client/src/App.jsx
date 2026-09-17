@@ -95,6 +95,13 @@ export default function App() {
   // Track in-flight check so we can ignore the response if user abandons
   const checkAbortRef = useRef(false);
 
+  // Keep Railway container warm — ping every 4 minutes to prevent cold starts
+  useEffect(() => {
+    const ping = () => fetch('/_env').catch(() => {});
+    const id = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // On mount: fetch collection state + load draft
   useEffect(() => {
     getCollectionState()
