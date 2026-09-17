@@ -15,15 +15,29 @@ async function post(url, body) {
 /**
  * Upload image + submission for Check step.
  *
- * DEV_MODE: if window.__DEV_FAKE_UPLOAD is set, skip upload and return a fake imageRef.
+ * Sends multipart/form-data so the server receives the actual image bytes.
+ * The server is responsible for stripping metadata (GPS etc.), converting HEIC,
+ * resizing to 1200² and 400², and moving to private holding until Mint.
  *
- * TODO: replace FormData upload with real endpoint when image upload is built.
- * For now, skip the upload and pass imageUrl: null.
+ * Until the real upload endpoint exists, the server ignores the image field and
+ * proceeds with imageUrl: null — this is the "fake stand-in" described in the
+ * minting build brief. The FormData wiring is real; only the server-side handler
+ * is still a stub.
  */
 export async function checkSubmission({ name, flavorText, imageBlob }) {
-  // TODO: wire up real image upload via FormData when endpoint exists
-  const data = await post('/api2/check', { name, flavorText, imageUrl: null });
-  return data;
+  const form = new FormData();
+  form.append('name', name);
+  form.append('flavorText', flavorText);
+  if (imageBlob) {
+    form.append('image', imageBlob, 'card.jpg');
+  }
+
+  const res = await fetch('/api2/check', {
+    method: 'POST',
+    body: form,
+    // No Content-Type header — browser sets it with the boundary automatically
+  });
+  return res.json();
 }
 
 export async function mintCard({ submissionId }) {

@@ -29,8 +29,14 @@ const { getDecks, saveDeck } = require("./api2/decks");
 app.get( "/api2/decks",      getDecks);
 app.post("/api2/decks",      saveDeck);
 
+const multer = require("multer");
+// Memory storage — image bytes land in req.file.buffer.
+// The real pipeline (GPS strip, HEIC→JPEG, resize, private hold) is the next step;
+// until then the handler ignores the file and proceeds with imageUrl: null.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 12 * 1024 * 1024 } });
+
 const { handler: checkHandler } = require("./api2/check");
-app.post("/api2/check", checkHandler);
+app.post("/api2/check", upload.single("image"), checkHandler);
 // /api2/mint is already registered; it now uses the new sealed-result flow
 
 const { getCollectionState, swapCards, saveDeck: saveNamedDeck, deleteCard: deleteOwnedCard } = require("./api2/collection-manage");

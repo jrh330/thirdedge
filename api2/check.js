@@ -5,7 +5,10 @@
  * Check step: duplicate check → content gate stub → Claude scoring → sealed result.
  * Returns { status, submissionId?, checkPayload?, error? }
  *
- * Body: { name, flavorText, imageUrl? }  — ownerId comes from the session, not the client
+ * Body: multipart/form-data — fields: name, flavorText; file field: image (optional for now).
+ * ownerId comes from the session cookie, never from the client.
+ * req.file is populated by multer (memory storage). The real upload pipeline
+ * (GPS strip, HEIC→JPEG, resize, private hold) is the next step — for now req.file is ignored.
  *
  * Sealed results are stored in the module-level Map (single-process; move to
  * MongoDB with TTL index for multi-process / production).
