@@ -37,7 +37,8 @@ const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 12 * 1024 * 1024 } });
 
 const { handler: checkHandler } = require("./api2/check");
-app.post("/api2/check", upload.single("image"), checkHandler);
+app.post("/api2/check",         upload.single("image"), checkHandler);
+app.post("/api2/convert-image", upload.single("image"), require("./api2/convert-image"));
 // /api2/mint is already registered; it now uses the new sealed-result flow
 
 const { getCollectionState, swapCards, saveDeck: saveNamedDeck, deleteCard: deleteOwnedCard } = require("./api2/collection-manage");

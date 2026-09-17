@@ -44,6 +44,17 @@ export async function mintCard({ submissionId }) {
   return post('/api2/mint', { submissionId, imageUrl: null });
 }
 
+export async function convertImage(file) {
+  const form = new FormData();
+  form.append('image', file, file.name);
+  const res = await fetch('/api2/convert-image', { method: 'POST', body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Could not convert that image');
+  }
+  return res.blob(); // JPEG blob
+}
+
 export async function deleteCard(cardId) {
   const res = await fetch(`/api2/cards/${cardId}`, { method: 'DELETE' });
   return res.json();

@@ -36,6 +36,11 @@ export default function Crop({ imageFile, onConfirm, onCancel }) {
       setOffset({ x: 0, y: 0 });
       setReady(true);
     };
+    img.onerror = () => {
+      // Browser can't decode this format — go back so the user can try again
+      URL.revokeObjectURL(url);
+      onCancel();
+    };
     img.src = url;
     return () => URL.revokeObjectURL(url);
   }, [imageFile, BOX]);

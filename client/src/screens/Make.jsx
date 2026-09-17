@@ -6,7 +6,7 @@ import PrimaryButton from '../components/PrimaryButton.jsx';
 import SecondaryButton from '../components/SecondaryButton.jsx';
 import { validateSubmission, NAME_MAX, FLAVOR_MAX } from '../lib/game.js';
 import { saveDraft } from '../lib/draft.js';
-import { fetchImagePreview } from '../lib/api.js';
+import { fetchImagePreview, convertImage } from '../lib/api.js';
 
 /**
  * Make screen — Step 1.
@@ -28,6 +28,7 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
   const [linkFetching, setLinkFetching] = useState(false);
   const [linkError, setLinkError]   = useState(null);
   const [imageSource, setImageSource] = useState(null); // 'upload' | 'link'
+  const [converting, setConverting]   = useState(false);
   const [linkConsent, setLinkConsent] = useState(false);
   const fileInputRef = useRef(null);
   const saveTimer    = useRef(null);
@@ -75,9 +76,29 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
     scheduleSave(name, val, imageBlob);
   };
 
-  const handleFileChange = e => {
+  const handleFileChange = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const isHeic = /^image\/(heic|heif)$/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+
+    if (isHeic) {
+      setConverting(true);
+      setLinkError(null);
+      try {
+        const blob = await convertImage(file);
+        const jpeg = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+        setImageSource('upload');
+        setLinkConsent(false);
+        onImageSelect?.(jpeg);
+      } catch (err) {
+        setLinkError(err.message);
+      } finally {
+        setConverting(false);
+      }
+      return;
+    }
+
     setImageSource('upload');
     setLinkConsent(false);
     onImageSelect?.(file);
@@ -164,12 +185,13 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
         {/* Picture button */}
         <button
           onClick={handlePictureClick}
+          disabled={converting}
           style={{
-            background: imageBlob ? 'var(--stock)' : 'var(--stock)',
+            background: 'var(--stock)',
             border: '2px dashed rgba(246,240,250,.25)',
             borderRadius: 12,
             padding: imageSrc ? 0 : '24px 20px',
-            cursor: 'pointer',
+            cursor: converting ? 'default' : 'pointer',
             color: 'var(--muted)',
             fontSize: 15,
             fontFamily: 'inherit',
@@ -178,9 +200,12 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
             alignItems: 'center',
             justifyContent: 'center',
             minHeight: 80,
+            opacity: converting ? 0.6 : 1,
           }}
         >
-          {imageSrc ? (
+          {converting ? (
+            <span>Converting…</span>
+          ) : imageSrc ? (
             <img
               src={imageSrc}
               alt="Card picture"
