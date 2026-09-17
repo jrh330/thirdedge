@@ -225,7 +225,7 @@ module.exports.handler = async function handler(req, res) {
       let raw;
       try {
         const msg = await getClient().messages.create({
-          model: "claude-sonnet-4-6",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 512,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userContent }],
