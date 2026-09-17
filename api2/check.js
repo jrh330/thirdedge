@@ -187,6 +187,7 @@ module.exports.handler = async function handler(req, res) {
     if (gateResult.verdict === "review")
       return res.status(200).json({ status: "in_review" });
 
+    console.log("check: passed duplicate/gate checks, calling LLM");
     // ── Steps 4 + 5: LLM scoring with validation retry ───────────────────────
     const userContent = [];
     if (imageUrl?.trim()) {
@@ -212,9 +213,11 @@ module.exports.handler = async function handler(req, res) {
         try { raw = JSON.parse(text); }
         catch { const m = text.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
       } catch (err) {
+        console.log("check: LLM call error:", err.message);
         return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
       }
       const v = validateLLMResponse(raw);
+      console.log("check: attempt", attempt, "valid:", v.ok, v.reason || "");
       if (v.ok) { llmResponse = raw; break; }
       lastError = v.reason;
     }
