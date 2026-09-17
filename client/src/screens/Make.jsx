@@ -6,6 +6,7 @@ import PrimaryButton from '../components/PrimaryButton.jsx';
 import SecondaryButton from '../components/SecondaryButton.jsx';
 import { validateSubmission, NAME_MAX, FLAVOR_MAX } from '../lib/game.js';
 import { saveDraft } from '../lib/draft.js';
+import { fetchImagePreview } from '../lib/api.js';
 
 /**
  * Make screen — Step 1.
@@ -23,6 +24,11 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
   const [imageBlob, setImageBlob]   = useState(draft?.imageBlob || null);
   const [imageSrc, setImageSrc]     = useState(null);
   const [errors, setErrors]         = useState({});
+  const [linkUrl, setLinkUrl]       = useState('');
+  const [linkFetching, setLinkFetching] = useState(false);
+  const [linkError, setLinkError]   = useState(null);
+  const [imageSource, setImageSource] = useState(null); // 'upload' | 'link'
+  const [linkConsent, setLinkConsent] = useState(false);
   const fileInputRef = useRef(null);
   const saveTimer    = useRef(null);
 
@@ -72,16 +78,37 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
   const handleFileChange = e => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImageSource('upload');
+    setLinkConsent(false);
     onImageSelect?.(file);
   };
+
+  const handleLinkFetch = useCallback(async (url) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setLinkFetching(true);
+    setLinkError(null);
+    try {
+      const blob = await fetchImagePreview(trimmed);
+      const file = new File([blob], 'card.jpg', { type: blob.type });
+      setImageSource('link');
+      setLinkConsent(false);
+      onImageSelect?.(file);
+    } catch (err) {
+      setLinkError(err.message);
+    } finally {
+      setLinkFetching(false);
+    }
+  }, [onImageSelect]);
 
   const handlePictureClick = () => {
     fileInputRef.current?.click();
   };
 
   const allFilled = name.trim() && flavorText.trim() && imageBlob;
+  const consentOk = imageSource !== 'link' || linkConsent;
   const validation = validateSubmission({ name, flavorText });
-  const canSubmit = allFilled && validation.ok;
+  const canSubmit = allFilled && validation.ok && consentOk;
 
   const handleSubmit = () => {
     const v = validateSubmission({ name, flavorText });
@@ -170,6 +197,74 @@ export default function Make({ draft, onDraftChange, onImageSelect, onSubmit, co
           style={{ display: 'none' }}
           onChange={handleFileChange}
         />
+
+        {/* Link input */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 500 }}>
+            Or paste an image link
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={e => { setLinkUrl(e.target.value); setLinkError(null); }}
+              onPaste={e => {
+                const pasted = e.clipboardData.getData('text').trim();
+                if (pasted.startsWith('http')) {
+                  e.preventDefault();
+                  setLinkUrl(pasted);
+                  handleLinkFetch(pasted);
+                }
+              }}
+              placeholder="https://…"
+              style={{
+                flex: 1,
+                background: 'var(--stock)',
+                border: `1.5px solid ${linkError ? '#ff4444' : 'var(--line)'}`,
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 14,
+                color: 'var(--key)',
+                fontFamily: 'inherit',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => handleLinkFetch(linkUrl)}
+              disabled={!linkUrl.trim() || linkFetching}
+              style={{
+                background: 'var(--stock)',
+                border: '1.5px solid var(--line)',
+                borderRadius: 8,
+                padding: '10px 16px',
+                fontSize: 14,
+                color: 'var(--key)',
+                cursor: linkUrl.trim() && !linkFetching ? 'pointer' : 'default',
+                opacity: linkUrl.trim() && !linkFetching ? 1 : 0.4,
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {linkFetching ? 'Fetching…' : 'Use this'}
+            </button>
+          </div>
+          {linkError && (
+            <span style={{ fontSize: 13, color: '#ff4444' }}>{linkError}</span>
+          )}
+        </div>
+
+        {/* Copyright consent — shown only for link images */}
+        {imageSource === 'link' && imageBlob && (
+          <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>
+            <input
+              type="checkbox"
+              checked={linkConsent}
+              onChange={e => setLinkConsent(e.target.checked)}
+              style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--pink)' }}
+            />
+            This picture is mine or free to use.
+          </label>
+        )}
 
         {/* Name input */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

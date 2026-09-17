@@ -52,3 +52,20 @@ export async function getCollectionState() {
   const res = await fetch('/api2/collection-state');
   return res.json();
 }
+
+/**
+ * Fetch an image by URL via the server-side proxy (SSRF-guarded).
+ * Returns a Blob on success, or throws with a user-facing message.
+ */
+export async function fetchImagePreview(url) {
+  const res = await fetch('/api2/fetch-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Could not fetch that image');
+  }
+  return res.blob();
+}
