@@ -100,7 +100,7 @@ export default function Header({ step = 1, onBack, backLabel }) {
       }}>
         {/* Logo */}
         <img
-          src="/mint/logo/allagaroo-logo.svg"
+          src="/mint/logo/svg/allagaroo-logo.svg"
           alt="Allagaroo"
           style={{ height: 28 }}
           onError={e => {
