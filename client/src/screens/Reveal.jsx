@@ -87,13 +87,6 @@ export default function Reveal({ mintResult, collection, onMakeAnother, onYourCa
           </p>
         )}
 
-        {/* Anchors */}
-        {card.aiAnchors?.length > 0 && (
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-            Scored against: {card.aiAnchors.join(', ')}
-          </p>
-        )}
-
         {/* Placement */}
         {placementMsg && (
           <p style={{ fontSize: 14, color: 'var(--key)', fontWeight: 500 }}>
