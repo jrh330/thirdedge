@@ -129,27 +129,28 @@ module.exports.handler = async function handler(req, res) {
     console.log("check: player", ownerId, "name:", name?.slice(0, 20));
 
     // ── Basic input validation ────────────────────────────────────────────────
-    if (!name?.trim())       return res.status(400).json({ status: "error", error: "name required" });
-    if (!flavorText?.trim()) return res.status(400).json({ status: "error", error: "flavorText required" });
+    if (!name?.trim())       { console.log("check: missing name"); return res.status(400).json({ status: "error", error: "name required" }); }
+    if (!flavorText?.trim()) { console.log("check: missing flavorText"); return res.status(400).json({ status: "error", error: "flavorText required" }); }
     if (name.trim().length > NAME_MAX)
       return res.status(400).json({ status: "error", error: `name must be ${NAME_MAX} characters or fewer` });
     if (flavorText.trim().length > FLAVOR_MAX)
       return res.status(400).json({ status: "error", error: `flavorText must be ${FLAVOR_MAX} characters or fewer` });
 
+    console.log("check: connecting to db");
     const db = await getDb();
+    console.log("check: db connected");
 
     // ── Step 0: collection full? ──────────────────────────────────────────────
     const total = await db.collection("cardsv2").countDocuments({ ownerId });
+    console.log("check: total cards:", total);
     if (total >= COLLECTION_MAX)
       return res.status(200).json({ status: "collection_full" });
 
     // ── Step 2: duplicate check ───────────────────────────────────────────────
     const fp = makeFingerprint(name.trim(), flavorText.trim());
-    const existing = await db.collection("cardsv2").findOne({
-      ownerId,
-      fingerprint: fp,
-    });
+    const existing = await db.collection("cardsv2").findOne({ ownerId, fingerprint: fp });
     if (existing) {
+      console.log("check: duplicate found");
       return res.status(200).json({
         status: "already_made",
         matchedName: existing.name,
@@ -160,6 +161,7 @@ module.exports.handler = async function handler(req, res) {
     // ── Decline block check ───────────────────────────────────────────────────
     const now = new Date();
     if (player.checkBlockedUntil && player.checkBlockedUntil > now) {
+      console.log("check: rate limited");
       return res.status(200).json({ status: "rate_limited" });
     }
     // Reset stale counter
