@@ -236,6 +236,7 @@ export default function App() {
             onMint={() => dispatch({ type: 'MINT' })}
             onEdit={handleEdit}
             onRetry={() => dispatch({ type: 'SUBMIT_DRAFT', payload: state.draft })}
+            onYourCards={() => dispatch({ type: 'YOUR_CARDS' })}
             collection={state.collection}
           />
         )}

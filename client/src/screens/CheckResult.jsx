@@ -15,7 +15,7 @@ import { FAMILY_COLORS } from '../lib/families.jsx';
  *   onEdit        — fn() — user wants to Edit
  *   collection    — collection state
  */
-export default function CheckResult({ checkResult, draft, croppedBlob, onMint, onEdit, onRetry, collection }) {
+export default function CheckResult({ checkResult, draft, croppedBlob, onMint, onEdit, onRetry, onYourCards, collection }) {
   const [imageSrc, setImageSrc] = useState(null);
 
   useEffect(() => {
@@ -182,7 +182,7 @@ export default function CheckResult({ checkResult, draft, croppedBlob, onMint, o
           <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
             You've reached 20 cards. Delete a card from Your Cards to make room.
           </p>
-          <SecondaryButton onClick={onEdit}>Your cards</SecondaryButton>
+          <SecondaryButton onClick={onYourCards || onEdit}>Your cards</SecondaryButton>
         </div>
         <style>{MOBILE_HIDE_CARD_CSS}</style>
       </div>
