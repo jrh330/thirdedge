@@ -231,8 +231,11 @@ module.exports.handler = async function handler(req, res) {
           messages: [{ role: "user", content: userContent }],
         });
         const text = msg.content[0].text.trim();
-        try { raw = JSON.parse(text); }
-        catch { const m = text.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
+        console.log("check: raw LLM text:", text.slice(0, 300));
+        // Strip markdown code fences if present, then extract JSON object
+        const stripped = text.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/im, '').trim();
+        try { raw = JSON.parse(stripped); }
+        catch { const m = stripped.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
       } catch (err) {
         console.log("check: LLM call error:", err.message);
         return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
