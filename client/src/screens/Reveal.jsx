@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../components/Card.jsx';
 import PrimaryButton from '../components/PrimaryButton.jsx';
 import SecondaryButton from '../components/SecondaryButton.jsx';
@@ -12,14 +12,25 @@ import CollectionStrip from '../components/CollectionStrip.jsx';
  *   onMakeAnother — fn()
  *   onYourCards   — fn()
  */
-export default function Reveal({ mintResult, collection, onMakeAnother, onYourCards }) {
+export default function Reveal({ mintResult, croppedBlob, collection, onMakeAnother, onYourCards }) {
   const [placementChoice, setPlacementChoice] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null);
+
+  useEffect(() => {
+    if (mintResult?.card?.imageUrl) {
+      setImageSrc(mintResult.card.imageUrl);
+      return;
+    }
+    if (croppedBlob) {
+      const url = URL.createObjectURL(croppedBlob);
+      setImageSrc(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [mintResult, croppedBlob]);
 
   if (!mintResult?.card) return null;
 
   const { card, placement } = mintResult;
-
-  const imageSrc = card?.imageUrl || null;
 
   // Placement messaging
   let placementMsg = null;
