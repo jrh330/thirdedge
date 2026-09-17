@@ -64,7 +64,7 @@ module.exports.deleteSeal  = deleteSeal;
 function getClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY environment variable is not set");
-  return new Anthropic({ apiKey });
+  return new Anthropic({ apiKey, timeout: 90_000 });
 }
 
 const NAME_MAX   = 28;
@@ -229,7 +229,7 @@ module.exports.handler = async function handler(req, res) {
           max_tokens: 1500,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userContent }],
-        }, { timeout: 25000 });
+        });
         const text = msg.content[0].text.trim();
         console.log("check: raw LLM text:", text.slice(0, 300));
         // Strip markdown code fences if present, then extract JSON object
