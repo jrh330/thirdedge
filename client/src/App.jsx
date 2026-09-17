@@ -114,11 +114,10 @@ export default function App() {
           dispatch({ type: 'NO_SESSION' });
           return;
         }
+        dispatch({ type: 'SET_COLLECTION', payload: data });
         if ((data?.total ?? 0) >= 20) {
           dispatch({ type: 'COLLECTION_FULL' });
-          return;
         }
-        dispatch({ type: 'SET_COLLECTION', payload: data });
       })
       .catch(() => {
         // Network error — let user continue, collection strip will be empty

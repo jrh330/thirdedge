@@ -93,7 +93,7 @@ export default function Header({ step = 1, onBack, backLabel }) {
         maxWidth: 1100,
         margin: '0 auto',
         padding: '0 24px',
-        height: 60,
+        height: 55,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -102,7 +102,7 @@ export default function Header({ step = 1, onBack, backLabel }) {
         <img
           src="/mint/logo/svg/allagaroo-logo.svg"
           alt="Allagaroo"
-          style={{ height: 28 }}
+          style={{ height: 44 }}
           onError={e => {
             e.target.style.display = 'none';
             e.target.nextSibling.style.display = 'block';
@@ -133,7 +133,7 @@ export default function Header({ step = 1, onBack, backLabel }) {
       {/* Phone layout */}
       <div className="header-phone" style={{
         padding: '0 16px',
-        height: 56,
+        height: 51,
         display: 'none',
         alignItems: 'center',
         justifyContent: 'space-between',
