@@ -226,10 +226,10 @@ module.exports.handler = async function handler(req, res) {
       try {
         const msg = await getClient().messages.create({
           model: "claude-sonnet-4-6",
-          max_tokens: 512,
+          max_tokens: 1500,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userContent }],
-        });
+        }, { timeout: 25000 });
         const text = msg.content[0].text.trim();
         console.log("check: raw LLM text:", text.slice(0, 300));
         // Strip markdown code fences if present, then extract JSON object
