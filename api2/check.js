@@ -218,13 +218,15 @@ module.exports.handler = async function handler(req, res) {
     if (gateResult.verdict === "review")
       return res.status(200).json({ status: "in_review" });
 
-    // ── LLM rate limit: max 10 scoring calls per player per hour ─────────────
+    // ── LLM rate limit: max 3 scoring calls per minute per player ────────────
+    // Targets automated abuse (a script can fire hundreds/min); a real user
+    // photographing + naming a card can't exceed ~1/min in normal use.
     const nowMs      = Date.now();
-    const windowMs   = 60 * 60 * 1000; // 1 hour
-    const LLM_LIMIT  = 10;
+    const windowMs   = 60 * 1000; // 1 minute
+    const LLM_LIMIT  = 3;
     const recentAttempts = (player.llmAttempts || []).filter(t => nowMs - t < windowMs);
     if (recentAttempts.length >= LLM_LIMIT) {
-      return res.status(429).json({ status: "rate_limited", error: "Too many card checks this hour. Try again later." });
+      return res.status(429).json({ status: "rate_limited", error: "Too many requests — wait a moment and try again." });
     }
     // Record this attempt before the LLM call (prevents racing around the limit)
     await db.collection("players").updateOne(
