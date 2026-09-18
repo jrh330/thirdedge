@@ -288,19 +288,16 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
           </span>
         </div>
 
-        {/* Their anchor */}
-        {!isOpening && theirSlot?.anchor && (
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--g-muted)', fontWeight: 600, marginBottom: 4 }}>
-              {theirName}'s Anchor
-            </div>
-            <AnchorArea cardId={theirSlot.anchor} cards={cards} label={theirName} />
+        {/* Anchors — side by side when both exist */}
+        {!isOpening && (theirSlot?.anchor || mySlot?.anchor) && (
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {mySlot?.anchor && (
+              <AnchorArea cardId={mySlot.anchor} cards={cards} label="Your Anchor" />
+            )}
+            {theirSlot?.anchor && (
+              <AnchorArea cardId={theirSlot.anchor} cards={cards} label={`${theirName}'s Anchor`} />
+            )}
           </div>
-        )}
-
-        {/* My anchor */}
-        {!isOpening && mySlot?.anchor && (
-          <AnchorArea cardId={mySlot.anchor} cards={cards} label="Your Anchor" />
         )}
 
         {/* Hand */}

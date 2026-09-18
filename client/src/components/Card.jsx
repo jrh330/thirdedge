@@ -16,6 +16,12 @@ const SIZES = {
     famPadY: 4, famPadX: 10.7, famGap: 5.3, famRadius: 999,
     stampFont: 22.7, stampPad: [6.7, 12], stampRadius: 6.7, stampBorder: 3.3,
   },
+  sm: {
+    w: 160, h: 224, border: 6, radius: 14, picH: 147,
+    nameSize: 15, kindSize: 8, statLabel: 8, statNum: 20, famSize: 7,
+    famPadY: 3, famPadX: 8, famGap: 4, famRadius: 999,
+    stampFont: 18, stampPad: [5, 10], stampRadius: 5, stampBorder: 3,
+  },
   'sm-back': { w: 62,  h: 87  },
   'xs-back': { w: 46,  h: 64  },
 };

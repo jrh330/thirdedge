@@ -233,7 +233,7 @@
 .game-root .deck-opt-desc { font-size: 11px; color: var(--g-muted); }
 
 /* Hand grid */
-.game-root .g-hand-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.game-root .g-hand-grid { display: grid; grid-template-columns: repeat(2, 160px); gap: 10px; justify-content: center; }
 
 /* Cat buttons */
 .game-root .cat-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -323,6 +323,6 @@
 .game-root .g-toast.err { border-color: rgba(239,68,68,.4); color: #EF4444; }
 
 /* Responsive */
-@media (max-width: 480px) {
-  .game-root .g-hand-grid { grid-template-columns: 1fr 1fr; }
+@media (max-width: 380px) {
+  .game-root .g-hand-grid { grid-template-columns: repeat(2, 148px); gap: 8px; }
 }
