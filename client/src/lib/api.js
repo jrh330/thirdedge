@@ -83,6 +83,16 @@ export async function removeTestCards() {
   return res.json();
 }
 
+export async function repairCollection() {
+  const res = await fetch('/api2/collection/repair', { method: 'POST' });
+  return res.json();
+}
+
+export async function deleteNoImageCards() {
+  const res = await fetch('/api2/collection/no-image', { method: 'DELETE' });
+  return res.json();
+}
+
 /**
  * Fetch an image by URL via the server-side proxy (SSRF-guarded).
  * Returns a Blob on success, or throws with a user-facing message.

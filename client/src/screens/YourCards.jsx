@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Card from '../components/Card.jsx';
 import PrimaryButton from '../components/PrimaryButton.jsx';
 import { FAMILY_COLORS } from '../lib/families.jsx';
-import { deleteCard, fillTestCards, removeTestCards, swapCard } from '../lib/api.js';
+import { deleteCard, fillTestCards, removeTestCards, swapCard, repairCollection, deleteNoImageCards } from '../lib/api.js';
 
 function TrashIcon() {
   return (
@@ -287,6 +287,10 @@ function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwa
 export default function YourCards({ collection, onMakeAnother, onRefresh }) {
   const [testBusy, setTestBusy] = useState(false);
   const [testError, setTestError] = useState(null);
+  const [repairBusy, setRepairBusy] = useState(false);
+  const [repairMsg, setRepairMsg] = useState(null);
+  const [noImageBusy, setNoImageBusy] = useState(false);
+  const [noImageMsg, setNoImageMsg] = useState(null);
 
   if (!collection) {
     return (
@@ -317,6 +321,26 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
     const result = await removeTestCards().catch(e => ({ error: e.message }));
     setTestBusy(false);
     if (result?.error) { setTestError(result.error); return; }
+    onRefresh?.();
+  };
+
+  const handleRepair = async () => {
+    setRepairBusy(true);
+    setRepairMsg(null);
+    const result = await repairCollection().catch(e => ({ error: e.message }));
+    setRepairBusy(false);
+    if (result?.error) { setRepairMsg({ ok: false, text: result.error }); return; }
+    setRepairMsg({ ok: true, text: result.message });
+    onRefresh?.();
+  };
+
+  const handleDeleteNoImage = async () => {
+    setNoImageBusy(true);
+    setNoImageMsg(null);
+    const result = await deleteNoImageCards().catch(e => ({ error: e.message }));
+    setNoImageBusy(false);
+    if (result?.error) { setNoImageMsg({ ok: false, text: result.error }); return; }
+    setNoImageMsg({ ok: true, text: result.message });
     onRefresh?.();
   };
 
@@ -394,6 +418,41 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
           )}
           {testError && (
             <span style={{ fontSize: 12, color: '#ff4444', textAlign: 'right' }}>{testError}</span>
+          )}
+          {/* Collection repair tools */}
+          <button
+            onClick={handleRepair}
+            disabled={repairBusy}
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              fontSize: 12, color: 'var(--muted)', cursor: repairBusy ? 'default' : 'pointer',
+              fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3,
+              opacity: repairBusy ? 0.5 : 1,
+            }}
+          >
+            {repairBusy ? '…' : 'Find missing cards'}
+          </button>
+          {repairMsg && (
+            <span style={{ fontSize: 12, color: repairMsg.ok ? 'var(--muted)' : '#ff4444', textAlign: 'right' }}>
+              {repairMsg.text}
+            </span>
+          )}
+          <button
+            onClick={handleDeleteNoImage}
+            disabled={noImageBusy}
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              fontSize: 12, color: 'var(--muted)', cursor: noImageBusy ? 'default' : 'pointer',
+              fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3,
+              opacity: noImageBusy ? 0.5 : 1,
+            }}
+          >
+            {noImageBusy ? '…' : 'Delete cards without images'}
+          </button>
+          {noImageMsg && (
+            <span style={{ fontSize: 12, color: noImageMsg.ok ? 'var(--muted)' : '#ff4444', textAlign: 'right' }}>
+              {noImageMsg.text}
+            </span>
           )}
         </div>
       </div>

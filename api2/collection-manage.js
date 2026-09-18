@@ -297,4 +297,149 @@ async function deleteCard(req, res) {
   }
 }
 
-module.exports = { getCollectionState, swapCards, saveDeck, deleteCard };
+// ── POST /api2/collection/repair ─────────────────────────────────────────────
+// Finds cards in cardsv2 not referenced in collectionsv2 and adds them to
+// inactive (pushing out no-image cards first to make room if needed).
+async function repairCollection(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  let player;
+  try { player = await requirePlayer(req); }
+  catch (e) { if (e.status && e.body) return res.status(e.status).json(e.body); throw e; }
+
+  try {
+    const db       = await getDb();
+    const cardsCol = db.collection("cardsv2");
+    const collCol  = db.collection("collectionsv2");
+
+    // All real minted cards (not test cards, not deleted)
+    const allCards = await cardsCol
+      .find({ ownerId: player.id, deleted: { $ne: true }, isTestCard: { $ne: true } })
+      .sort({ mintedAt: 1 })
+      .toArray();
+
+    let collDoc = await collCol.findOne({ ownerId: player.id });
+    if (!collDoc) {
+      collDoc = { ownerId: player.id, active: [], inactive: [], savedDecks: [] };
+      await collCol.insertOne(collDoc);
+    }
+
+    const knownIds  = new Set([...collDoc.active, ...collDoc.inactive]);
+    const orphans   = allCards.filter(c => !knownIds.has(c.id));
+
+    if (orphans.length === 0) {
+      return res.status(200).json({ added: 0, message: "Collection is already up to date." });
+    }
+
+    // Current totals
+    let active   = [...collDoc.active];
+    let inactive = [...collDoc.inactive];
+
+    // To make room for orphans: evict no-image cards from inactive first, then active
+    const noImageInactive = inactive.filter(id => {
+      const c = allCards.find(x => x.id === id);
+      return c && !c.imageUrl;
+    });
+    const noImageActive = active.filter(id => {
+      const c = allCards.find(x => x.id === id);
+      return c && !c.imageUrl;
+    });
+
+    let added = 0;
+    const evicted = [];
+
+    for (const orphan of orphans) {
+      const totalSlots = active.length + inactive.length;
+      const hasInactiveRoom = inactive.length < INACTIVE_MAX;
+      const hasRoom = active.length < ACTIVE_SIZE || hasInactiveRoom;
+
+      if (hasRoom) {
+        // Just add to inactive (or active if < 12)
+        if (active.length < ACTIVE_SIZE) active.push(orphan.id);
+        else inactive.push(orphan.id);
+        added++;
+      } else if (noImageInactive.length > 0) {
+        // Evict a no-image inactive card
+        const evictId = noImageInactive.shift();
+        inactive = inactive.filter(id => id !== evictId);
+        evicted.push(evictId);
+        inactive.push(orphan.id);
+        added++;
+      } else if (noImageActive.length > 0) {
+        // Evict a no-image active card to inactive, add orphan to inactive
+        const evictId = noImageActive.shift();
+        active = active.filter(id => id !== evictId);
+        inactive.push(evictId);   // demote to inactive
+        inactive.push(orphan.id); // add orphan to inactive too (above INACTIVE_MAX temporarily)
+        added++;
+      } else {
+        break; // No room and nothing to evict — stop
+      }
+    }
+
+    await collCol.updateOne(
+      { ownerId: player.id },
+      { $set: { active, inactive, updatedAt: new Date() } }
+    );
+
+    return res.status(200).json({
+      added,
+      orphansFound: orphans.length,
+      evicted: evicted.length,
+      message: `Added ${added} missing card${added !== 1 ? "s" : ""} to your collection.${evicted.length ? ` Moved ${evicted.length} no-image card${evicted.length !== 1 ? "s" : ""} out to make room.` : ""}`,
+    });
+  } catch (err) {
+    console.error("repairCollection error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// ── DELETE /api2/collection/no-image ─────────────────────────────────────────
+// Hard-deletes all minted cards that have no imageUrl.
+async function deleteNoImageCards(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "DELETE") return res.status(405).json({ error: "DELETE only" });
+
+  let player;
+  try { player = await requirePlayer(req); }
+  catch (e) { if (e.status && e.body) return res.status(e.status).json(e.body); throw e; }
+
+  try {
+    const db       = await getDb();
+    const cardsCol = db.collection("cardsv2");
+    const collCol  = db.collection("collectionsv2");
+
+    const noImage = await cardsCol
+      .find({ ownerId: player.id, deleted: { $ne: true }, isTestCard: { $ne: true }, imageUrl: { $in: [null, ""] } })
+      .toArray();
+
+    if (noImage.length === 0) {
+      return res.status(200).json({ removed: 0, message: "No cards without images found." });
+    }
+
+    const noImageIds = new Set(noImage.map(c => c.id));
+    await cardsCol.deleteMany({ ownerId: player.id, imageUrl: { $in: [null, ""] }, isTestCard: { $ne: true } });
+
+    // Remove from collection
+    const collDoc = await collCol.findOne({ ownerId: player.id });
+    if (collDoc) {
+      const active   = (collDoc.active   || []).filter(id => !noImageIds.has(id));
+      const inactive = (collDoc.inactive || []).filter(id => !noImageIds.has(id));
+      await collCol.updateOne({ ownerId: player.id }, { $set: { active, inactive, updatedAt: new Date() } });
+    }
+
+    return res.status(200).json({ removed: noImage.length, message: `Deleted ${noImage.length} card${noImage.length !== 1 ? "s" : ""} without images.` });
+  } catch (err) {
+    console.error("deleteNoImageCards error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getCollectionState, swapCards, saveDeck, deleteCard, repairCollection, deleteNoImageCards };

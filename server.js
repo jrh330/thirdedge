@@ -41,11 +41,13 @@ app.post("/api2/check",         upload.single("image"), checkHandler);
 app.post("/api2/convert-image", upload.single("image"), require("./api2/convert-image"));
 // /api2/mint is already registered; it now uses the new sealed-result flow
 
-const { getCollectionState, swapCards, saveDeck: saveNamedDeck, deleteCard: deleteOwnedCard } = require("./api2/collection-manage");
+const { getCollectionState, swapCards, saveDeck: saveNamedDeck, deleteCard: deleteOwnedCard, repairCollection, deleteNoImageCards } = require("./api2/collection-manage");
 app.get( "/api2/collection-state",    getCollectionState);
 app.post("/api2/collection/swap",     swapCards);
 app.post("/api2/collection/save-deck", saveNamedDeck);
 app.delete("/api2/cards/:cardId",     deleteOwnedCard);
+app.post("/api2/collection/repair",   repairCollection);
+app.delete("/api2/collection/no-image", deleteNoImageCards);
 
 const { fill: fillTest, remove: removeTest } = require("./api2/fill-test");
 app.post("/api2/collection/fill-test",   fillTest);
