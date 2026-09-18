@@ -55,8 +55,12 @@ export async function convertImage(file) {
   return res.blob(); // JPEG blob
 }
 
-export async function deleteCard(cardId) {
-  const res = await fetch(`/api2/cards/${cardId}`, { method: 'DELETE' });
+export async function deleteCard(cardId, replacementId) {
+  const res = await fetch(`/api2/cards/${cardId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(replacementId ? { replacementId } : {}),
+  });
   return res.json();
 }
 

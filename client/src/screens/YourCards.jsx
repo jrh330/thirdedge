@@ -16,22 +16,28 @@ function TrashIcon() {
   );
 }
 
-function CardTile({ card, onDeleted }) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy]             = useState(false);
-  const [error, setError]           = useState(null);
+function CardTile({ card, isActive, inactiveCards, onDeleted }) {
+  const [confirming, setConfirming]     = useState(false);
+  const [replacementId, setReplacementId] = useState(null);
+  const [busy, setBusy]                 = useState(false);
+  const [error, setError]               = useState(null);
 
   const handleDelete = async () => {
     setBusy(true);
     setError(null);
-    const result = await deleteCard(card.id).catch(e => ({ error: e.message }));
+    const result = await deleteCard(card.id, replacementId || undefined).catch(e => ({ error: e.message }));
     setBusy(false);
     if (result?.ok) {
       onDeleted(card.id);
     } else {
-      setConfirming(false);
       setError(result?.error || 'Delete failed');
     }
+  };
+
+  const handleCancel = () => {
+    setConfirming(false);
+    setReplacementId(null);
+    setError(null);
   };
 
   return (
@@ -58,9 +64,46 @@ function CardTile({ card, onDeleted }) {
           <TrashIcon /> Delete
         </button>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', width: '100%' }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>Delete "{card.name}"?</span>
-          <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+            Delete "{card.name}"?
+          </span>
+
+          {/* Replacement picker — only for active cards that have inactive ones available */}
+          {isActive && inactiveCards?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
+                Activate instead
+              </span>
+              {inactiveCards.map(ic => (
+                <button
+                  key={ic.id}
+                  onClick={() => setReplacementId(prev => prev === ic.id ? null : ic.id)}
+                  style={{
+                    background: replacementId === ic.id ? 'var(--stock)' : 'transparent',
+                    border: `1.5px solid ${replacementId === ic.id ? 'var(--pink)' : 'rgba(246,240,250,.15)'}`,
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    textAlign: 'left',
+                  }}
+                >
+                  {ic.imageUrl && (
+                    <img src={ic.imageUrl} alt={ic.name} style={{ width: 28, height: 39, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
+                  )}
+                  <span style={{ fontSize: 12, color: 'var(--key)', fontWeight: 600, lineHeight: 1.3 }}>
+                    {ic.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
             <button
               onClick={handleDelete}
               disabled={busy}
@@ -80,7 +123,7 @@ function CardTile({ card, onDeleted }) {
               {busy ? '…' : 'Yes, delete'}
             </button>
             <button
-              onClick={() => { setConfirming(false); setError(null); }}
+              onClick={handleCancel}
               style={{
                 background: 'none',
                 border: '1px solid rgba(246,240,250,.2)',
@@ -163,7 +206,7 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
             gap: 24,
           }}>
             {active.map(card => (
-              <CardTile key={card.id} card={card} onDeleted={handleDeleted} />
+              <CardTile key={card.id} card={card} isActive inactiveCards={inactive} onDeleted={handleDeleted} />
             ))}
           </div>
         </section>
