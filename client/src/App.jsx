@@ -93,6 +93,19 @@ function screenToStep(screen) {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
+// Fade out the splash overlay, enforcing a minimum visible time.
+const splashShownAt = Date.now();
+function dismissSplash() {
+  const el = document.getElementById('splash');
+  if (!el || el.classList.contains('fade-out')) return;
+  const elapsed = Date.now() - splashShownAt;
+  const delay = Math.max(0, 500 - elapsed);
+  setTimeout(() => {
+    el.classList.add('fade-out');
+    el.addEventListener('transitionend', () => el.classList.add('gone'), { once: true });
+  }, delay);
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -121,6 +134,9 @@ export default function App() {
       })
       .catch(() => {
         // Network error — let user continue, collection strip will be empty
+      })
+      .finally(() => {
+        dismissSplash();
       });
 
     loadDraft()
