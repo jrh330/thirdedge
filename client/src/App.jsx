@@ -326,6 +326,7 @@ export default function App() {
         step={step}
         onBack={canGoBack ? handleEdit : null}
         backLabel="Edit"
+        onPlay={() => dispatch({ type: 'PLAY' })}
       />
 
       <main style={{ flex: 1 }}>

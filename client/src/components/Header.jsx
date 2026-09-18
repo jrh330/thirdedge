@@ -154,7 +154,7 @@ function BackArrow() {
 
 const PHONE_TITLES = ['Make a card', 'It checked out', 'Minting…', 'Minted'];
 
-export default function Header({ step = 1, onBack, backLabel }) {
+export default function Header({ step = 1, onBack, backLabel, onPlay }) {
   const [showFamilies, setShowFamilies] = useState(false);
   const phoneTitle = PHONE_TITLES[step - 1] || '';
 
@@ -193,20 +193,41 @@ export default function Header({ step = 1, onBack, backLabel }) {
 
         <Stepper step={step} />
 
-        <button
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--muted)',
-            fontSize: 14,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontWeight: 500,
-          }}
-          onClick={() => setShowFamilies(true)}
-        >
-          How families work
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--muted)',
+              fontSize: 14,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontWeight: 500,
+            }}
+            onClick={() => setShowFamilies(true)}
+          >
+            How families work
+          </button>
+          {onPlay && (
+            <button
+              style={{
+                background: 'var(--pink)',
+                border: 'none',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                padding: '7px 16px',
+                letterSpacing: '.3px',
+              }}
+              onClick={onPlay}
+            >
+              Play →
+            </button>
+          )}
+        </div>
       </div>
 
       {showFamilies && <FamiliesModal onClose={() => setShowFamilies(false)} />}
@@ -244,14 +265,32 @@ export default function Header({ step = 1, onBack, backLabel }) {
 
         <span style={{ fontSize: 16, fontWeight: 600 }}>{phoneTitle}</span>
 
-        <span style={{
-          fontSize: 14,
-          color: 'var(--muted)',
-          fontWeight: 600,
-          fontFamily: "'Rubik', sans-serif",
-        }}>
-          {Math.min(step, 3)}/3
-        </span>
+        {onPlay ? (
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--pink)',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              padding: '4px 0',
+            }}
+            onClick={onPlay}
+          >
+            Play →
+          </button>
+        ) : (
+          <span style={{
+            fontSize: 14,
+            color: 'var(--muted)',
+            fontWeight: 600,
+            fontFamily: "'Rubik', sans-serif",
+          }}>
+            {Math.min(step, 3)}/3
+          </span>
+        )}
       </div>
 
       <style>{`
