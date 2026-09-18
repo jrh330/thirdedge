@@ -77,6 +77,6 @@ app.get("/_env", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Third Edge running at http://localhost:${PORT}`);
+  console.log(`Allagaroo running at http://localhost:${PORT}`);
   console.log(`ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET"}`);
 });
