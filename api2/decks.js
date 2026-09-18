@@ -3,6 +3,7 @@
 const { getDb } = require("./_db");
 const { validateDeck } = require("../engine2/validate");
 const { RULE_SET } = require("../engine2/constants");
+const { requirePlayer } = require("../auth/player");
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -16,11 +17,28 @@ async function getDecks(req, res) {
 
   try {
     const { owner } = req.query;
-    if (!owner?.trim()) return res.status(400).json({ error: "owner required" });
-
     const db = await getDb();
+
+    if (owner?.trim()) {
+      // Legacy name-based lookup — used by the Card Lab
+      const decks = await db.collection("decksv2")
+        .find({ ownerName: owner.trim() })
+        .sort({ createdAt: -1 })
+        .toArray();
+      return res.status(200).json({ decks });
+    }
+
+    // Session-based lookup — no owner param, return authenticated player's decks
+    let player;
+    try {
+      player = await requirePlayer(req);
+    } catch (e) {
+      if (e.status && e.body) return res.status(e.status).json(e.body);
+      throw e;
+    }
+
     const decks = await db.collection("decksv2")
-      .find({ ownerName: owner.trim() })
+      .find({ ownerName: player.name })
       .sort({ createdAt: -1 })
       .toArray();
 
