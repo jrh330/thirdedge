@@ -47,6 +47,11 @@ module.exports = async function handler(req, res) {
     if (!gamePlayerIds.includes(playerId)) {
       return res.status(403).json({ error: "Invalid playerId for this game" });
     }
+    // Verify the authenticated player is acting as themselves, not their opponent.
+    // advanceTurn is exempt — it advances shared state and either player can trigger it.
+    if (action !== "advanceTurn" && player.id !== playerId) {
+      return res.status(403).json({ error: "You can only act as yourself" });
+    }
 
     if (!game.matchState) {
       return res.status(400).json({ error: "Match not started yet" });
