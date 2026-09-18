@@ -37,32 +37,38 @@ async function resolvePlayerCollection(playerId, db) {
   return resolved;
 }
 
-// Resolve a deck reference (deckName or deckId) to an array of card objects.
+// Resolve a deck reference (deckName or deckId) to a validated array of card objects.
 // If neither is provided, falls back to the player's active collection.
 async function resolveDeck(deckName, deckId, playerId, db) {
+  let cards;
+
   if (deckName) {
     const preset = PRESET_BY_NAME[deckName];
     if (!preset) throw new Error(`Unknown preset deck: ${deckName}`);
-    return preset.cards.map(id => {
+    cards = preset.cards.map(id => {
       const card = BY_ID[id];
       if (!card) throw new Error(`Unknown preset card id: ${id}`);
       return card;
     });
-  }
-  if (deckId) {
+  } else if (deckId) {
     const deck = await db.collection("decksv2").findOne({ id: deckId });
     if (!deck) throw new Error(`Custom deck not found: ${deckId}`);
-    const cards = await db.collection("cardsv2")
-      .find({ id: { $in: deck.cardIds } })
+    const fetched = await db.collection("cardsv2")
+      .find({ id: { $in: deck.cardIds }, deleted: { $ne: true } })
       .toArray();
-    const byId = Object.fromEntries(cards.map(c => [c.id, c]));
-    return deck.cardIds.map(id => {
-      if (!byId[id]) throw new Error(`Card not found: ${id}`);
+    const byId = Object.fromEntries(fetched.map(c => [c.id, c]));
+    cards = deck.cardIds.map(id => {
+      if (!byId[id]) throw new Error(`Card "${id}" no longer exists — update your deck before playing`);
       return byId[id];
     });
+  } else {
+    // No deck specified — use the player's active minted collection (already validates)
+    return resolvePlayerCollection(playerId, db);
   }
-  // No deck specified — use the player's active minted collection
-  return resolvePlayerCollection(playerId, db);
+
+  const v = validateDeck(cards, RULE_SET.FAMILY_WHEEL);
+  if (!v.ok) throw new Error(`Deck is not legal: ${v.errors.join("; ")}`);
+  return cards;
 }
 
 module.exports = async function handler(req, res) {
@@ -102,10 +108,15 @@ module.exports = async function handler(req, res) {
     const p1Id = game.p1.id;
     const p2Id = player.id;
 
-    const [deckA, deckB] = await Promise.all([
-      resolveDeck(game.p1.deckName, game.p1.deckId, p1Id, db),
-      resolveDeck(p2DeckName, p2DeckId, p2Id, db),
-    ]);
+    let deckA, deckB;
+    try {
+      [deckA, deckB] = await Promise.all([
+        resolveDeck(game.p1.deckName, game.p1.deckId, p1Id, db),
+        resolveDeck(p2DeckName, p2DeckId, p2Id, db),
+      ]);
+    } catch (deckErr) {
+      return res.status(400).json({ error: deckErr.message });
+    }
 
     const matchState = createMatch(game.code, p1Id, deckA, p2Id, deckB, RULE_SET.FAMILY_WHEEL);
 
