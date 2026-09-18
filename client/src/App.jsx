@@ -1,5 +1,6 @@
 import { useReducer, useEffect, useRef } from 'react';
 import './tokens.css';
+import './game.css';
 
 import Header         from './components/Header.jsx';
 import NoSession      from './screens/NoSession.jsx';
@@ -11,6 +12,10 @@ import CheckResult    from './screens/CheckResult.jsx';
 import Minting        from './screens/Minting.jsx';
 import Reveal         from './screens/Reveal.jsx';
 import YourCards      from './screens/YourCards.jsx';
+import GameCreate     from './screens/GameCreate.jsx';
+import GameWait       from './screens/GameWait.jsx';
+import GameJoin       from './screens/GameJoin.jsx';
+import Game           from './screens/Game.jsx';
 
 import { getCollectionState, checkSubmission, mintCard } from './lib/api.js';
 import { loadDraft, saveDraft, clearDraft } from './lib/draft.js';
@@ -26,6 +31,12 @@ const initialState = {
   mintResult:  null,            // { card, placement }
   collection:  null,            // from /api2/collection-state
   error:       null,
+  // Game state
+  gameCode:    null,
+  gameRole:    null,
+  myPlayerId:  null,
+  gameP1:      null,
+  gameP2:      null,
 };
 
 function reducer(state, action) {
@@ -76,6 +87,46 @@ function reducer(state, action) {
       return { ...state, screen: 'collection_full' };
     case 'ERROR':
       return { ...state, error: action.payload, screen: 'error' };
+    // Game actions
+    case 'PLAY':
+      return { ...state, screen: 'game_create' };
+    case 'JOIN_VIA_URL':
+      return { ...state, screen: 'game_join', gameCode: action.payload.code };
+    case 'GAME_CREATED':
+      return {
+        ...state,
+        screen: 'game_wait',
+        gameCode: action.payload.code,
+        myPlayerId: action.payload.myPlayerId,
+        gameRole: action.payload.myRole,
+      };
+    case 'GAME_JOINED':
+      return {
+        ...state,
+        screen: 'game',
+        gameCode: action.payload.code,
+        myPlayerId: action.payload.myPlayerId,
+        gameRole: action.payload.myRole,
+        gameP1: { id: action.payload.p1Id, name: action.payload.p1Name },
+        gameP2: { id: action.payload.p2Id, name: action.payload.p2Name },
+      };
+    case 'GAME_OPPONENT_JOINED':
+      return {
+        ...state,
+        screen: 'game',
+        gameP1: { id: action.payload.p1Id, name: action.payload.p1Name },
+        gameP2: { id: action.payload.p2Id, name: action.payload.p2Name },
+      };
+    case 'GAME_END':
+      return {
+        ...state,
+        screen: 'your_cards',
+        gameCode: null,
+        gameRole: null,
+        myPlayerId: null,
+        gameP1: null,
+        gameP2: null,
+      };
     default:
       return state;
   }
@@ -119,8 +170,11 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  // On mount: fetch collection state + load draft
+  // On mount: fetch collection state + load draft + check for join code
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('code');
+
     getCollectionState()
       .then(data => {
         if (data?.status === 401 || data?.error === 'no_session') {
@@ -128,6 +182,14 @@ export default function App() {
           return;
         }
         dispatch({ type: 'SET_COLLECTION', payload: data });
+
+        // Check for ?code= join param only after successful auth
+        if (joinCode) {
+          window.history.replaceState({}, '', window.location.pathname);
+          dispatch({ type: 'JOIN_VIA_URL', payload: { code: joinCode.toUpperCase() } });
+          return;
+        }
+
         if ((data?.total ?? 0) >= 20) {
           dispatch({ type: 'COLLECTION_FULL' });
         }
@@ -209,6 +271,52 @@ export default function App() {
     );
   }
 
+  // Game screens — full-screen, no minting header/layout
+  if (screen === 'game_create') {
+    return (
+      <GameCreate
+        collection={state.collection}
+        onCreated={payload => dispatch({ type: 'GAME_CREATED', payload })}
+        onBack={() => dispatch({ type: 'YOUR_CARDS' })}
+      />
+    );
+  }
+
+  if (screen === 'game_wait') {
+    return (
+      <GameWait
+        code={state.gameCode}
+        onOpponentJoined={payload => dispatch({ type: 'GAME_OPPONENT_JOINED', payload })}
+        onBack={() => dispatch({ type: 'YOUR_CARDS' })}
+      />
+    );
+  }
+
+  if (screen === 'game_join') {
+    return (
+      <GameJoin
+        initialCode={state.gameCode}
+        collection={state.collection}
+        onJoined={payload => dispatch({ type: 'GAME_JOINED', payload })}
+        onBack={() => dispatch({ type: 'YOUR_CARDS' })}
+      />
+    );
+  }
+
+  if (screen === 'game') {
+    return (
+      <Game
+        code={state.gameCode}
+        myPlayerId={state.myPlayerId}
+        myRole={state.gameRole}
+        p1={state.gameP1}
+        p2={state.gameP2}
+        onNewGame={() => dispatch({ type: 'GAME_END' })}
+        onBackToCards={() => dispatch({ type: 'GAME_END' })}
+      />
+    );
+  }
+
   const step = screenToStep(screen);
   const canGoBack = screen === 'check_result' || screen === 'checking';
 
@@ -277,6 +385,7 @@ export default function App() {
             collection={state.collection}
             onMakeAnother={() => dispatch({ type: 'MAKE_ANOTHER' })}
             onRefresh={() => getCollectionState().then(col => dispatch({ type: 'SET_COLLECTION', payload: col })).catch(() => {})}
+            onPlay={() => dispatch({ type: 'PLAY' })}
           />
         )}
 

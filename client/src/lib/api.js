@@ -93,6 +93,50 @@ export async function deleteNoImageCards() {
   return res.json();
 }
 
+// ── Game API ──────────────────────────────────────────────────────────────────
+
+export async function createGame(body = {}) {
+  const res = await fetch('/api2/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export async function joinGame(body = {}) {
+  const res = await fetch('/api2/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export async function pollGame(code) {
+  const res = await fetch(`/api2/poll?code=${encodeURIComponent(code)}`, {
+    credentials: 'include',
+  });
+  return res.json();
+}
+
+export async function gameAction(body = {}) {
+  const res = await fetch('/api2/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export async function fetchMyDecks() {
+  const res = await fetch('/api2/decks', { credentials: 'include' });
+  return res.json();
+}
+
 /**
  * Fetch an image by URL via the server-side proxy (SSRF-guarded).
  * Returns a Blob on success, or throws with a user-facing message.

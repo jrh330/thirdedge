@@ -284,7 +284,7 @@ function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwa
   );
 }
 
-export default function YourCards({ collection, onMakeAnother, onRefresh }) {
+export default function YourCards({ collection, onMakeAnother, onRefresh, onPlay }) {
   const [testBusy, setTestBusy] = useState(false);
   const [testError, setTestError] = useState(null);
   const [repairBusy, setRepairBusy] = useState(false);
@@ -374,9 +374,16 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-          <PrimaryButton onClick={onMakeAnother} style={{ flexShrink: 0 }}>
-            Make another
-          </PrimaryButton>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <PrimaryButton onClick={onMakeAnother} style={{ flexShrink: 0 }}>
+              Make another
+            </PrimaryButton>
+            {onPlay && (
+              <PrimaryButton onClick={onPlay} style={{ flexShrink: 0 }}>
+                Play
+              </PrimaryButton>
+            )}
+          </div>
           {needsTestCards && (
             <button
               onClick={handleFill}
