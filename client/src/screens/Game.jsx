@@ -5,6 +5,7 @@ import GameHud from '../components/GameHud.jsx';
 import RevealResult from '../components/RevealResult.jsx';
 import AnchorArea from '../components/AnchorArea.jsx';
 import GameCardTile from '../components/GameCardTile.jsx';
+import Card from '../components/Card.jsx';
 import { useGameToast } from '../components/GameToast.jsx';
 
 export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBackToCards }) {
@@ -263,10 +264,20 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
         <div className="g-game-wrap g-fade">
           {ToastEl}
           <GameHud ms={ms} p1={p1} p2={p2} />
+          <div className="g-surface" style={{ padding: '10px 14px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
+              {theirName}
+            </div>
+            <div className="g-opp-backs">
+              {Array.from({ length: theirSlot?.handCount ?? 0 }).map((_, i) => (
+                <Card key={i} state="back" size="sm-back" owner="opp" />
+              ))}
+            </div>
+          </div>
           <div className="g-surface" style={{ textAlign: 'center', padding: 32 }}>
             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Move locked in</div>
             <div style={{ color: 'var(--g-muted)', fontSize: 13, marginBottom: 16 }}>
-              Waiting for opponent…
+              Waiting for {theirName}…
             </div>
             <div className="g-spinner" style={{ margin: '0 auto' }} />
           </div>
@@ -280,6 +291,21 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
       <div className="g-game-wrap g-fade">
         {ToastEl}
         <GameHud ms={ms} p1={p1} p2={p2} />
+
+        {/* Opponent zone */}
+        <div className="g-surface" style={{ padding: '10px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
+            {theirName}
+          </div>
+          <div className="g-opp-backs">
+            {Array.from({ length: theirSlot?.handCount ?? 0 }).map((_, i) => (
+              <Card key={i} state="back" size="sm-back" owner="opp" />
+            ))}
+            {(theirSlot?.handCount ?? 0) === 0 && (
+              <span style={{ fontSize: 12, color: 'var(--g-muted)' }}>No cards in hand</span>
+            )}
+          </div>
+        </div>
 
         {/* Active player banner */}
         <div style={{ textAlign: 'center', padding: '6px 0' }}>

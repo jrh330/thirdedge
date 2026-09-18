@@ -28,9 +28,9 @@ export default function GameHud({ ms, p1, p2 }) {
     }}>
       {/* Logo */}
       <img
-        src="/mint/logo/svg/allagaroo-mark-small.svg"
+        src="/mint/logo/svg/allagaroo-wordmark-small.svg"
         alt="Allagaroo"
-        style={{ height: 28, width: 28, flexShrink: 0 }}
+        style={{ height: 22, width: 'auto', flexShrink: 0 }}
       />
 
       {/* Players + pips */}

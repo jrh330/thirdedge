@@ -232,8 +232,27 @@
 .game-root .deck-opt-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
 .game-root .deck-opt-desc { font-size: 11px; color: var(--g-muted); }
 
-/* Hand grid */
-.game-root .g-hand-grid { display: grid; grid-template-columns: repeat(2, 160px); gap: 10px; justify-content: center; }
+/* Hand grid — horizontal scroll row */
+.game-root .g-hand-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.game-root .g-hand-grid::-webkit-scrollbar { display: none; }
+
+/* Opponent card backs row */
+.game-root .g-opp-backs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.game-root .g-opp-backs::-webkit-scrollbar { display: none; }
 
 /* Cat buttons */
 .game-root .cat-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -324,5 +343,5 @@
 
 /* Responsive */
 @media (max-width: 380px) {
-  .game-root .g-hand-grid { grid-template-columns: repeat(2, 148px); gap: 8px; }
+  .game-root .g-hand-grid { gap: 8px; }
 }
