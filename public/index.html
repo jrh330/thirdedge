@@ -129,6 +129,17 @@ function familyOf(trait){ return FAMILIES[trait] || "?"; }
 function famClass(trait){ return "fam-" + (FAMILY_COLOR[familyOf(trait)] || ""); }
 function badgeClass(trait){ return "badge badge-" + (FAMILY_COLOR[familyOf(trait)] || ""); }
 
+// Resolve display family from either minted cards (c.family = "Vita"/"Terra"/"Arte")
+// or fixture cards (c.trait = "Beast"/"Titan"/etc.)
+function cardFamily(c) {
+  if (!c) return "?";
+  if (c.family === "Vita")  return "Living";
+  if (c.family === "Arte")  return "Made";
+  if (c.family === "Terra") return "Raw";
+  return familyOf(c.trait);
+}
+function cardBadgeClass(c) { return "badge badge-" + (FAMILY_COLOR[cardFamily(c)] || ""); }
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function api(method, path, body){
   const opts = { method, headers:{ "Content-Type":"application/json" } };
@@ -163,15 +174,19 @@ function CardTile({ cardId, cards, selected, onClick, disabled, showFull=true })
   if (!c) return <div className="card-tile disabled"><span style={{color:"var(--muted)",fontSize:11}}>{cardId}</span></div>;
   const stats = [["POW",c.power],["SPD",c.speed],["WIT",c.wits]];
   const maxVal = Math.max(c.power, c.speed, c.wits);
-  const fam = familyOf(c.trait);
+  const fam = cardFamily(c);
   return (
     <div
       className={"card-tile" + (selected?" selected":"") + (disabled?" disabled":"")}
       onClick={!disabled ? onClick : undefined}
     >
+      {c.imageUrl && (
+        <img src={c.imageUrl} alt={c.name}
+          style={{width:"100%",height:80,objectFit:"cover",borderRadius:6,marginBottom:6,display:"block"}} />
+      )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
         <span className="card-name">{c.name}</span>
-        <span className={badgeClass(c.trait)}>{fam}</span>
+        <span className={cardBadgeClass(c)}>{fam}</span>
       </div>
       {showFull && (
         <div className="card-stats">
@@ -194,7 +209,7 @@ function AnchorArea({ cardId, cards, label }){
     <div className="anchor-area">
       <div className="anchor-label">{label || "Anchor"}</div>
       {c
-        ? <div style={{fontWeight:700,fontSize:13}}>{c.name} <span style={{fontSize:11,color:"var(--muted)"}}>{familyOf(c.trait)}</span></div>
+        ? <div style={{fontWeight:700,fontSize:13}}>{c.name} <span style={{fontSize:11,color:"var(--muted)"}}>{cardFamily(c)}</span></div>
         : <div style={{color:"var(--muted)",fontSize:12}}>—</div>
       }
     </div>
@@ -313,14 +328,20 @@ const PRESET_DECKS = [
   { type:"preset", name:"Weighted" },
 ];
 
+const COLLECTION_OPT = { type:"collection", name:"My Collection" };
+
 function DeckPicker({ label, accentColor, name, onNameChange, deckOpt, onDeckOpt, customDecks }){
   const allOpts = [
+    COLLECTION_OPT,
     ...customDecks.map(d => ({ type:"custom", id:d.id, name:d.name })),
     ...PRESET_DECKS,
   ];
   // If current selection no longer exists in options, reset to first
-  const selected = allOpts.find(o => o.type === deckOpt.type && (o.type === "preset" ? o.name === deckOpt.name : o.id === deckOpt.id))
-    || allOpts[0];
+  const selected = allOpts.find(o => {
+    if (o.type === "collection") return deckOpt.type === "collection";
+    if (o.type === "preset") return deckOpt.type === "preset" && o.name === deckOpt.name;
+    return deckOpt.type === "custom" && o.id === deckOpt.id;
+  }) || allOpts[0];
 
   return (
     <div>
@@ -343,6 +364,7 @@ function DeckPicker({ label, accentColor, name, onNameChange, deckOpt, onDeckOpt
             <div key={key} className={"deck-opt"+(isSel?" selected":"")} onClick={()=>onDeckOpt(opt)}
               style={opt.type==="custom" ? {borderColor:"rgba(99,102,241,.35)"} : {}}>
               <div className="deck-opt-name">{opt.name}</div>
+              {opt.type==="collection" && <div style={{fontSize:9,color:"var(--green)",fontWeight:700,textTransform:"uppercase",letterSpacing:".3px",marginTop:2}}>Minted cards</div>}
               {opt.type==="custom" && <div style={{fontSize:9,color:"var(--accent)",fontWeight:700,textTransform:"uppercase",letterSpacing:".3px",marginTop:2}}>Custom</div>}
             </div>
           );
@@ -355,8 +377,8 @@ function DeckPicker({ label, accentColor, name, onNameChange, deckOpt, onDeckOpt
 function SetupScreen({ onStart }){
   const [p1Name, setP1Name] = useState("");
   const [p2Name, setP2Name] = useState("");
-  const [p1DeckOpt, setP1DeckOpt] = useState(PRESET_DECKS[0]);
-  const [p2DeckOpt, setP2DeckOpt] = useState(PRESET_DECKS[1]);
+  const [p1DeckOpt, setP1DeckOpt] = useState(COLLECTION_OPT);
+  const [p2DeckOpt, setP2DeckOpt] = useState(COLLECTION_OPT);
   const [p1CustomDecks, setP1CustomDecks] = useState([]);
   const [p2CustomDecks, setP2CustomDecks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -391,11 +413,11 @@ function SetupScreen({ onStart }){
     if (!p1Name.trim() || !p2Name.trim()) { showToast("Both players need a name", true); return; }
     setLoading(true);
     try {
-      const p1Body = p1DeckOpt.type === "preset"
-        ? { p1DeckName: p1DeckOpt.name }
+      const p1Body = p1DeckOpt.type === "collection" ? {}
+        : p1DeckOpt.type === "preset" ? { p1DeckName: p1DeckOpt.name }
         : { p1DeckId: p1DeckOpt.id };
-      const p2Body = p2DeckOpt.type === "preset"
-        ? { p2DeckName: p2DeckOpt.name }
+      const p2Body = p2DeckOpt.type === "collection" ? {}
+        : p2DeckOpt.type === "preset" ? { p2DeckName: p2DeckOpt.name }
         : { p2DeckId: p2DeckOpt.id };
       const cr = await api("POST", "/api2/create", { p1Name: p1Name.trim(), ...p1Body });
       const jr = await api("POST", "/api2/join",   { code: cr.code, p2Name: p2Name.trim(), ...p2Body });
@@ -571,7 +593,7 @@ function GameScreen({ gameInfo, onNewGame }){
             <div key={cid} className={"trade-card-opt"+(selGiveCard===cid?" selected":"")}
               onClick={()=>setSelGiveCard(cid===selGiveCard?null:cid)}>
               <span style={{fontWeight:600}}>{cards[cid]?.name || cid}</span>
-              <span style={{fontSize:11,color:"var(--muted)"}}>{familyOf(cards[cid]?.trait)}</span>
+              <span style={{fontSize:11,color:"var(--muted)"}}>{cardFamily(cards[cid])}</span>
             </div>
           ))}
 
