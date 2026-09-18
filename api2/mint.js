@@ -100,9 +100,9 @@ module.exports = async function handler(req, res) {
     const db = await getDb();
 
     // Defence: re-check duplicate (edge case: two tabs minting at once)
+    // Seal is already consumed by consumeSeal above — no need to delete it here.
     const dup = await db.collection("cardsv2").findOne({ ownerId, fingerprint });
     if (dup) {
-      await deleteSeal(submissionId);
       return res.status(409).json({ error: "already_made", matchedName: dup.name });
     }
 

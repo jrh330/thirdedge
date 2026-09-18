@@ -17,12 +17,11 @@ function checkAdminAuth(req, res) {
     res.status(401).json({ error: 'unauthorized' });
     return false;
   }
-  const provided = req.headers['x-admin-secret'] || '';
-  // Timing-safe comparison prevents timing-attack secret enumeration
+  const provided    = req.headers['x-admin-secret'] || '';
   const secretBuf   = Buffer.from(secret);
-  const providedBuf = Buffer.alloc(secretBuf.length);
-  Buffer.from(provided).copy(providedBuf);
-  if (!crypto.timingSafeEqual(secretBuf, providedBuf)) {
+  const providedBuf = Buffer.from(provided);
+  // timingSafeEqual requires equal-length buffers; check length first then compare
+  if (secretBuf.length !== providedBuf.length || !crypto.timingSafeEqual(secretBuf, providedBuf)) {
     res.status(401).json({ error: 'unauthorized' });
     return false;
   }

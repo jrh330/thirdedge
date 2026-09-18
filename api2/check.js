@@ -37,7 +37,7 @@ async function ensureSealIndex() {
 }
 
 async function storeSeal(submissionId, result) {
-  ensureSealIndex();
+  await ensureSealIndex();
   const db = await getDb();
   await db.collection("sealedResults").replaceOne(
     { submissionId },
