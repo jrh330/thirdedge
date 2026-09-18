@@ -67,15 +67,17 @@ app.delete("/admin/invites/:token", revokeInvite);
 // OPTIONS preflight for all API routes
 app.options("/api/*", (req, res) => res.sendStatus(200));
 
-// Temporary debug endpoint — remove after confirming env vars
-app.get("/_env", (req, res) => {
-  res.json({
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? `set (${process.env.ANTHROPIC_API_KEY.length} chars)` : "NOT SET",
-    MONGODB_URI: process.env.MONGODB_URI ? "set" : "NOT SET",
-    NODE_ENV: process.env.NODE_ENV || "not set",
-    PORT: process.env.PORT || "not set",
+// Debug endpoint — only available outside production
+if (process.env.NODE_ENV !== "production") {
+  app.get("/_env", (req, res) => {
+    res.json({
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? `set (${process.env.ANTHROPIC_API_KEY.length} chars)` : "NOT SET",
+      MONGODB_URI: process.env.MONGODB_URI ? "set" : "NOT SET",
+      NODE_ENV: process.env.NODE_ENV || "not set",
+      PORT: process.env.PORT || "not set",
+    });
   });
-});
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

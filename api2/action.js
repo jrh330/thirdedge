@@ -1,6 +1,7 @@
 "use strict";
 
 const { getDb } = require("./_db");
+const { requirePlayer } = require("../auth/player");
 const {
   submitPlayerMove,
   advanceMatchTurn,
@@ -17,6 +18,15 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    let player;
+    try {
+      player = await requirePlayer(req);
+    } catch (e) {
+      if (e.status && e.body) return res.status(e.status).json(e.body);
+      throw e;
+    }
+
     const { code, playerId, action, cardId, category, giveCardId, swapIndex } = req.body;
 
     if (!code || !playerId || !action) {
@@ -27,6 +37,16 @@ module.exports = async function handler(req, res) {
     const games = db.collection("gamesv2");
     const game = await games.findOne({ code: code.toUpperCase() });
     if (!game) return res.status(404).json({ error: "Game not found" });
+
+    // Verify the authenticated player is a participant in this game
+    const gamePlayerIds = [game.p1?.id, game.p2?.id].filter(Boolean);
+    if (!gamePlayerIds.includes(player.id)) {
+      return res.status(403).json({ error: "You are not a player in this game" });
+    }
+    // Verify the submitted playerId is one of the seats in this game
+    if (!gamePlayerIds.includes(playerId)) {
+      return res.status(403).json({ error: "Invalid playerId for this game" });
+    }
 
     if (!game.matchState) {
       return res.status(400).json({ error: "Match not started yet" });

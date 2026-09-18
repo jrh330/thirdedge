@@ -56,8 +56,18 @@ async function deleteSeal(submissionId) {
   await db.collection("sealedResults").deleteOne({ submissionId });
 }
 
+// Atomically find-and-delete the seal in one operation.
+// Returns the seal doc if found and owned by ownerId, null otherwise.
+// Prevents two concurrent mint calls from both consuming the same seal.
+async function consumeSeal(submissionId, ownerId) {
+  const db = await getDb();
+  const result = await db.collection("sealedResults").findOneAndDelete({ submissionId, ownerId });
+  return result ?? null;
+}
+
 module.exports.getSeal     = getSeal;
 module.exports.deleteSeal  = deleteSeal;
+module.exports.consumeSeal = consumeSeal;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -207,6 +217,20 @@ module.exports.handler = async function handler(req, res) {
     }
     if (gateResult.verdict === "review")
       return res.status(200).json({ status: "in_review" });
+
+    // ── LLM rate limit: max 10 scoring calls per player per hour ─────────────
+    const nowMs      = Date.now();
+    const windowMs   = 60 * 60 * 1000; // 1 hour
+    const LLM_LIMIT  = 10;
+    const recentAttempts = (player.llmAttempts || []).filter(t => nowMs - t < windowMs);
+    if (recentAttempts.length >= LLM_LIMIT) {
+      return res.status(429).json({ status: "rate_limited", error: "Too many card checks this hour. Try again later." });
+    }
+    // Record this attempt before the LLM call (prevents racing around the limit)
+    await db.collection("players").updateOne(
+      { id: ownerId },
+      { $set: { llmAttempts: [...recentAttempts, nowMs] } }
+    );
 
     console.log("check: passed duplicate/gate checks, calling LLM");
 

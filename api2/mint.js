@@ -11,7 +11,7 @@
  */
 
 const { getDb } = require("./_db");
-const { getSeal, deleteSeal } = require("./check");
+const { consumeSeal } = require("./check");
 const { cloudinary } = require("./_cloudinary");
 const { COLLECTION_MAX, ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
@@ -92,13 +92,9 @@ module.exports = async function handler(req, res) {
     const { submissionId, imageUrl } = req.body || {};
     if (!submissionId) return res.status(400).json({ error: "submissionId required" });
 
-    const seal = await getSeal(submissionId);
+    // consumeSeal atomically deletes the seal, preventing duplicate mints from two tabs racing
+    const seal = await consumeSeal(submissionId, player.id);
     if (!seal) return res.status(400).json({ error: "Sealed result not found or expired — did Check complete?" });
-
-    // Cross-check: the seal must belong to the authenticated player
-    if (seal.ownerId !== player.id) {
-      return res.status(403).json({ error: "forbidden" });
-    }
 
     const { ownerId, submission, fingerprint, carriesSeven, sealed, pendingImagePublicId } = seal;
     const db = await getDb();
@@ -179,8 +175,6 @@ module.exports = async function handler(req, res) {
         { $push: { inactive: card.id } }
       );
     }
-
-    await deleteSeal(submissionId);
 
     return res.status(200).json({ ok: true, card, placement });
   } catch (err) {
