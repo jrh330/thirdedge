@@ -34,14 +34,74 @@ const FAMILIES = [
   },
 ];
 
+function FamilyTriangle() {
+  // Equilateral triangle: Vita top, Arte bottom-left, Terra bottom-right
+  const cx = 160, cy = 130, R = 90;
+  const pts = [
+    { angle: -90,  fam: FAMILIES[0] }, // Vita — top
+    { angle: 150,  fam: FAMILIES[1] }, // Arte — bottom-left
+    { angle: 30,   fam: FAMILIES[2] }, // Terra — bottom-right
+  ].map(p => ({
+    ...p,
+    x: cx + R * Math.cos(p.angle * Math.PI / 180),
+    y: cy + R * Math.sin(p.angle * Math.PI / 180),
+  }));
+
+  const triPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <svg viewBox="0 0 320 200" style={{ width: '100%', maxWidth: 320, display: 'block', margin: '0 auto' }}>
+      {/* connecting lines */}
+      <polygon points={triPoints} fill="none" stroke="rgba(246,240,250,.12)" strokeWidth="1.5" />
+
+      {/* glow dots at vertices */}
+      {pts.map(p => (
+        <circle key={p.fam.name} cx={p.x} cy={p.y} r={5} fill={p.fam.color} opacity={0.9} />
+      ))}
+
+      {/* labels */}
+      {pts.map(p => {
+        // nudge labels outward from centre
+        const dx = (p.x - cx) * 0.32;
+        const dy = (p.y - cy) * 0.32;
+        return (
+          <g key={p.fam.name} transform={`translate(${p.x + dx},${p.y + dy})`}>
+            <text
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={p.fam.color}
+              fontSize="13"
+              fontWeight="800"
+              fontFamily="'Instrument Sans', system-ui, sans-serif"
+            >
+              {p.fam.name}
+            </text>
+            <text
+              textAnchor="middle"
+              dominantBaseline="middle"
+              y="16"
+              fill="rgba(246,240,250,.5)"
+              fontSize="10"
+              fontFamily="'Instrument Sans', system-ui, sans-serif"
+            >
+              {p.fam.traits.join(' · ')}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function FamiliesModal({ onClose }) {
   return (
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(17,9,25,.82)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 20,
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        padding: '20px 20px 40px',
+        overflowY: 'auto',
       }}
       onClick={onClose}
     >
@@ -49,6 +109,7 @@ function FamiliesModal({ onClose }) {
         style={{
           background: '#2A1C38', border: '1px solid rgba(246,240,250,.12)',
           borderRadius: 18, padding: 28, maxWidth: 420, width: '100%',
+          marginTop: 'max(20px, 10vh)',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -63,6 +124,11 @@ function FamiliesModal({ onClose }) {
         <p style={{ fontSize: 13, color: '#B7AAC6', marginBottom: 20, lineHeight: 1.6 }}>
           Every card belongs to one of three families based on its trait. Families don't affect gameplay stats — they're part of your card's identity and collection makeup.
         </p>
+
+        {/* Triangle diagram */}
+        <div style={{ background: 'rgba(0,0,0,.2)', borderRadius: 12, padding: '16px 8px', marginBottom: 20 }}>
+          <FamilyTriangle />
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {FAMILIES.map(f => (
