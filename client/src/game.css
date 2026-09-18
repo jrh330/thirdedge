@@ -1,23 +1,23 @@
 /* game.css — all game board styles, scoped under .game-root */
 
 .game-root {
-  --g-bg: #0B0F1A;
-  --g-surface: #131929;
-  --g-surface2: #1A2236;
-  --g-border: rgba(255,255,255,.08);
-  --g-accent: #6366F1;
-  --g-green: #10B981;
+  --g-bg: #1B1026;
+  --g-surface: #2A1C38;
+  --g-surface2: #341F46;
+  --g-border: rgba(246,240,250,.12);
+  --g-accent: #FF2E93;
+  --g-green: #00C44F;
   --g-red: #EF4444;
-  --g-gold: #D4AF37;
-  --g-text: #E2E8F0;
-  --g-muted: #64748B;
+  --g-gold: #FFD23F;
+  --g-text: #F6F0FA;
+  --g-muted: #B7AAC6;
   --g-vita: #FF5A1F;
   --g-arte: #7B4DFF;
   --g-terra: #FFD23F;
   background: var(--g-bg);
   color: var(--g-text);
   min-height: 100vh;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
 }
 
 .game-root * {
@@ -54,10 +54,10 @@
 .game-root .g-btn:active:not(:disabled) { transform: translateY(0); }
 .game-root .g-btn:disabled { opacity: .35; cursor: default; transform: none !important; }
 
-.game-root .g-btn-primary  { background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff; }
+.game-root .g-btn-primary  { background: linear-gradient(135deg, #FF2E93, #C4006E); color: #fff; }
 .game-root .g-btn-danger   { background: rgba(239,68,68,.15); color: #EF4444; border: 1px solid rgba(239,68,68,.25); }
 .game-root .g-btn-success  { background: rgba(16,185,129,.15); color: #10B981; border: 1px solid rgba(16,185,129,.25); }
-.game-root .g-btn-ghost    { background: rgba(255,255,255,.06); color: var(--g-text); border: 1px solid var(--g-border); }
+.game-root .g-btn-ghost    { background: rgba(246,240,250,.06); color: var(--g-text); border: 1px solid var(--g-border); }
 .game-root .g-btn-gold     { background: rgba(212,175,55,.15); color: var(--g-gold); border: 1px solid rgba(212,175,55,.3); }
 .game-root .g-btn-sm       { padding: 6px 14px; font-size: 11px; border-radius: 7px; }
 .game-root .g-btn-lg       { padding: 14px 32px; font-size: 15px; }
@@ -151,8 +151,8 @@
   user-select: none;
   position: relative;
 }
-.game-root .g-card-tile:hover   { border-color: rgba(99,102,241,.5); background: #1e2a3d; }
-.game-root .g-card-tile.selected { border-color: var(--g-accent); background: rgba(99,102,241,.1); }
+.game-root .g-card-tile:hover   { border-color: rgba(255,46,147,.4); background: #3a2050; }
+.game-root .g-card-tile.selected { border-color: var(--g-accent); background: rgba(255,46,147,.1); }
 .game-root .g-card-tile.disabled { opacity: .4; cursor: default; pointer-events: none; }
 
 .game-root .card-name  { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
@@ -205,9 +205,9 @@
 
 /* Phase banner */
 .game-root .phase-banner    { text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 5px 12px; border-radius: 8px; }
-.game-root .phase-opening   { background: rgba(99,102,241,.12);  color: var(--g-accent); }
+.game-root .phase-opening   { background: rgba(255,46,147,.12);  color: var(--g-accent); }
 .game-root .phase-commit    { background: rgba(212,175,55,.12);  color: var(--g-gold); }
-.game-root .phase-reveal    { background: rgba(16,185,129,.12);  color: var(--g-green); }
+.game-root .phase-reveal    { background: rgba(0,196,79,.12);    color: var(--g-green); }
 .game-root .phase-over      { background: rgba(239,68,68,.12);   color: var(--g-red); }
 .game-root .phase-trade     { background: rgba(255,210,63,.12);  color: var(--g-terra); }
 
@@ -227,8 +227,8 @@
 
 /* Deck picker */
 .game-root .deck-opt { background: var(--g-surface2); border: 2px solid var(--g-border); border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: all .15s; }
-.game-root .deck-opt:hover    { border-color: rgba(99,102,241,.4); }
-.game-root .deck-opt.selected { border-color: var(--g-accent); background: rgba(99,102,241,.08); }
+.game-root .deck-opt:hover    { border-color: rgba(255,46,147,.4); }
+.game-root .deck-opt.selected { border-color: var(--g-accent); background: rgba(255,46,147,.1); }
 .game-root .deck-opt-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
 .game-root .deck-opt-desc { font-size: 11px; color: var(--g-muted); }
 
@@ -245,7 +245,7 @@
   border-radius: 8px;
   padding: 8px 10px;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: var(--g-text);
@@ -253,8 +253,8 @@
   letter-spacing: .4px;
   transition: all .15s;
 }
-.game-root .cat-btn:hover    { background: rgba(99,102,241,.15); border-color: var(--g-accent); }
-.game-root .cat-btn.selected { background: rgba(99,102,241,.2);  border-color: var(--g-accent); color: var(--g-accent); }
+.game-root .cat-btn:hover    { background: rgba(255,46,147,.15); border-color: var(--g-accent); }
+.game-root .cat-btn.selected { background: rgba(255,46,147,.2);  border-color: var(--g-accent); color: var(--g-accent); }
 
 /* Trade card list */
 .game-root .g-trade-card-opt {
@@ -269,8 +269,8 @@
   transition: all .15s;
   margin-bottom: 6px;
 }
-.game-root .g-trade-card-opt:hover    { border-color: rgba(99,102,241,.4); }
-.game-root .g-trade-card-opt.selected { border-color: var(--g-accent); background: rgba(99,102,241,.08); }
+.game-root .g-trade-card-opt:hover    { border-color: rgba(255,46,147,.4); }
+.game-root .g-trade-card-opt.selected { border-color: var(--g-accent); background: rgba(255,46,147,.1); }
 
 /* Rounds won pips */
 .game-root .pips { display: flex; gap: 6px; align-items: center; }
@@ -295,7 +295,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(11,15,26,.92);
+  background: rgba(27,16,38,.92);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--g-border);
   padding: 12px 16px;
@@ -311,7 +311,7 @@
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: #1e293b;
+  background: var(--g-surface);
   border: 1px solid var(--g-border);
   border-radius: 10px;
   padding: 9px 18px;
