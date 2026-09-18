@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Third Edge</title>
+<title>Allagaroo</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -11,7 +11,7 @@
   --bg:#0B0F1A;--surface:#131929;--surface2:#1A2236;--border:rgba(255,255,255,.08);
   --accent:#6366F1;--green:#10B981;--red:#EF4444;--yellow:#F59E0B;--gold:#D4AF37;
   --text:#E2E8F0;--muted:#64748B;
-  --living:#4ADE80;--made:#60A5FA;--raw:#FB923C;
+  --vita:#FF5A1F;--arte:#7B4DFF;--terra:#FFD23F;
 }
 body{background:var(--bg);font-family:'Outfit',sans-serif;color:var(--text);min-height:100vh}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -38,13 +38,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-trans
 /* Spinner */
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 /* Family colors */
-.fam-living{color:var(--living)}
-.fam-made{color:var(--made)}
-.fam-raw{color:var(--raw)}
+.fam-vita{color:var(--vita)}
+.fam-arte{color:var(--arte)}
+.fam-terra{color:var(--terra)}
 .badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
-.badge-living{background:rgba(74,222,128,.12);color:var(--living);border:1px solid rgba(74,222,128,.2)}
-.badge-made{background:rgba(96,165,250,.12);color:var(--made);border:1px solid rgba(96,165,250,.2)}
-.badge-raw{background:rgba(251,146,60,.12);color:var(--raw);border:1px solid rgba(251,146,60,.2)}
+.badge-vita{background:rgba(255,90,31,.15);color:var(--vita);border:1px solid rgba(255,90,31,.3)}
+.badge-arte{background:rgba(123,77,255,.15);color:var(--arte);border:1px solid rgba(123,77,255,.3)}
+.badge-terra{background:rgba(255,210,63,.15);color:var(--terra);border:1px solid rgba(255,210,63,.3)}
 /* Card Tile */
 .card-tile{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none;position:relative}
 .card-tile:hover{border-color:rgba(99,102,241,.5);background:#1e2a3d}
@@ -122,8 +122,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-trans
 const { useState, useEffect, useCallback, useRef } = React;
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const FAMILIES = { Beast:"Living",Titan:"Living",Machine:"Made",Icon:"Made",Element:"Raw",Spirit:"Raw" };
-const FAMILY_COLOR = { Living:"living", Made:"made", Raw:"raw" };
+const FAMILIES = { Beast:"Vita",Titan:"Vita",Machine:"Arte",Icon:"Arte",Element:"Terra",Spirit:"Terra" };
+const FAMILY_COLOR = { Vita:"vita", Arte:"arte", Terra:"terra" };
 
 function familyOf(trait){ return FAMILIES[trait] || "?"; }
 function famClass(trait){ return "fam-" + (FAMILY_COLOR[familyOf(trait)] || ""); }
@@ -133,9 +133,7 @@ function badgeClass(trait){ return "badge badge-" + (FAMILY_COLOR[familyOf(trait
 // or fixture cards (c.trait = "Beast"/"Titan"/etc.)
 function cardFamily(c) {
   if (!c) return "?";
-  if (c.family === "Vita")  return "Living";
-  if (c.family === "Arte")  return "Made";
-  if (c.family === "Terra") return "Raw";
+  if (c.family === "Vita"  || c.family === "Terra" || c.family === "Arte") return c.family;
   return familyOf(c.trait);
 }
 function cardBadgeClass(c) { return "badge badge-" + (FAMILY_COLOR[cardFamily(c)] || ""); }
@@ -473,7 +471,7 @@ function SetupScreen({ onStart }){
       {ToastEl}
       <div style={{width:"100%",maxWidth:520}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:28,fontWeight:900,letterSpacing:-1}}>Third Edge</div>
+          <div style={{fontSize:28,fontWeight:900,letterSpacing:-1}}>Allagaroo</div>
           <div style={{color:"var(--muted)",fontSize:13,marginTop:4}}>Hot-seat · 2 players · 1 device</div>
         </div>
 
@@ -568,6 +566,13 @@ function GameScreen({ gameInfo, onNewGame }){
   const r = ms.round;
   const cards = ms.cards;
   const phase = r.phase;
+
+  // Image diagnostic — logs once when the game screen first mounts
+  if (typeof window !== "undefined" && !window._imgDiagDone) {
+    window._imgDiagDone = true;
+    const sample = Object.values(cards).slice(0, 3);
+    console.log("[Allagaroo] card image check:", sample.map(c => ({ name: c.name, imageUrl: c.imageUrl || "NULL" })));
+  }
 
   // Find player slots in round
   const rp = (pid) => r.players.find(p => p.playerId === pid);
