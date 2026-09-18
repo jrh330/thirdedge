@@ -47,6 +47,10 @@ app.post("/api2/collection/swap",     swapCards);
 app.post("/api2/collection/save-deck", saveNamedDeck);
 app.delete("/api2/cards/:cardId",     deleteOwnedCard);
 
+const { fill: fillTest, remove: removeTest } = require("./api2/fill-test");
+app.post("/api2/collection/fill-test",   fillTest);
+app.delete("/api2/collection/fill-test", removeTest);
+
 const { getCards, createCard, deleteCard } = require("./api/cards");
 app.get(   "/api/cards",        getCards);
 app.post(  "/api/cards",        createCard);

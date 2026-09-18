@@ -73,6 +73,16 @@ export async function getCollectionState() {
   return res.json();
 }
 
+export async function fillTestCards() {
+  const res = await fetch('/api2/collection/fill-test', { method: 'POST' });
+  return res.json();
+}
+
+export async function removeTestCards() {
+  const res = await fetch('/api2/collection/fill-test', { method: 'DELETE' });
+  return res.json();
+}
+
 /**
  * Fetch an image by URL via the server-side proxy (SSRF-guarded).
  * Returns a Blob on success, or throws with a user-facing message.

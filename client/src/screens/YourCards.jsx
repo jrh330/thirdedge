@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Card from '../components/Card.jsx';
 import PrimaryButton from '../components/PrimaryButton.jsx';
 import { FAMILY_COLORS } from '../lib/families.jsx';
-import { deleteCard } from '../lib/api.js';
+import { deleteCard, fillTestCards, removeTestCards } from '../lib/api.js';
 
 function TrashIcon() {
   return (
@@ -42,7 +42,21 @@ function CardTile({ card, isActive, inactiveCards, onDeleted }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-      <Card card={card} state="revealed" size="md" imageSrc={card.imageUrl || null} />
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <Card card={card} state="revealed" size="md" imageSrc={card.imageUrl || null} />
+        {card.isTestCard && (
+          <div style={{
+            position: 'absolute', top: 6, right: 6,
+            background: 'rgba(27,16,38,0.82)', color: 'var(--terra)',
+            fontSize: 9, fontWeight: 700, letterSpacing: '.14em',
+            padding: '2px 7px', borderRadius: 4,
+            textTransform: 'uppercase', pointerEvents: 'none',
+            border: '1px solid var(--terra)',
+          }}>
+            Test
+          </div>
+        )}
+      </div>
 
       {!confirming ? (
         <button
@@ -146,6 +160,9 @@ function CardTile({ card, isActive, inactiveCards, onDeleted }) {
 }
 
 export default function YourCards({ collection, onMakeAnother, onRefresh }) {
+  const [testBusy, setTestBusy] = useState(false);
+  const [testError, setTestError] = useState(null);
+
   if (!collection) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>
@@ -155,8 +172,26 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
   }
 
   const { active = [], inactive = [], total = 0, families = {} } = collection;
+  const needsTestCards = active.length < 12;
+  const hasTestCards   = [...active, ...inactive].some(c => c.isTestCard);
 
-  const handleDeleted = () => {
+  const handleDeleted = () => { onRefresh?.(); };
+
+  const handleFill = async () => {
+    setTestBusy(true);
+    setTestError(null);
+    const result = await fillTestCards().catch(e => ({ error: e.message }));
+    setTestBusy(false);
+    if (result?.error) { setTestError(result.error); return; }
+    onRefresh?.();
+  };
+
+  const handleRemoveTest = async () => {
+    setTestBusy(true);
+    setTestError(null);
+    const result = await removeTestCards().catch(e => ({ error: e.message }));
+    setTestBusy(false);
+    if (result?.error) { setTestError(result.error); return; }
     onRefresh?.();
   };
 
@@ -189,9 +224,53 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
             })}
           </div>
         </div>
-        <PrimaryButton onClick={onMakeAnother} style={{ flexShrink: 0 }}>
-          Make another
-        </PrimaryButton>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+          <PrimaryButton onClick={onMakeAnother} style={{ flexShrink: 0 }}>
+            Make another
+          </PrimaryButton>
+          {needsTestCards && (
+            <button
+              onClick={handleFill}
+              disabled={testBusy}
+              style={{
+                background: 'transparent',
+                border: `1.5px solid var(--terra)`,
+                borderRadius: 8,
+                padding: '7px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--terra)',
+                cursor: testBusy ? 'default' : 'pointer',
+                opacity: testBusy ? 0.6 : 1,
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {testBusy ? '…' : `Fill ${12 - active.length} test card${12 - active.length !== 1 ? 's' : ''}`}
+            </button>
+          )}
+          {hasTestCards && !testBusy && (
+            <button
+              onClick={handleRemoveTest}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                fontSize: 12,
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+              }}
+            >
+              Remove test cards
+            </button>
+          )}
+          {testError && (
+            <span style={{ fontSize: 12, color: '#ff4444', textAlign: 'right' }}>{testError}</span>
+          )}
+        </div>
       </div>
 
       {/* Active section */}
