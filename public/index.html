@@ -77,7 +77,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-trans
 .phase-commit{background:rgba(212,175,55,.12);color:var(--gold)}
 .phase-reveal{background:rgba(16,185,129,.12);color:var(--green)}
 .phase-over{background:rgba(239,68,68,.12);color:var(--red)}
-.phase-trade{background:rgba(251,146,60,.12);color:var(--raw)}
+.phase-trade{background:rgba(255,210,63,.12);color:var(--terra)}
 /* Cover screen */
 .cover{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px}
 /* Deck picker cards */
@@ -328,7 +328,7 @@ function RevealResult({ ms, p1, p2, cards }){
         <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{c?.name || played}</div>
         {c?.kind && <div style={{fontSize:10,color:"var(--muted)",marginBottom:4}}>{c.kind}</div>}
         {cat && <div style={{fontSize:11,color:"var(--accent)",marginBottom:4}}>[ {cat.toUpperCase()} ]</div>}
-        {side.bonded && <div style={{fontSize:11,color:"var(--living)"}}>Bond +2</div>}
+        {side.bonded && <div style={{fontSize:11,color:"var(--vita)"}}>Bond +1</div>}
         {side.blocked && <div style={{fontSize:11,color:"var(--red)"}}>Blocked</div>}
         <div style={{fontSize:11,color:"var(--muted)",marginTop:4}}>
           Total {cat}: <span style={{color:"var(--text)",fontWeight:700}}>{total}</span>
@@ -476,14 +476,14 @@ function SetupScreen({ onStart }){
         </div>
 
         <div className="surface fade" style={{display:"flex",flexDirection:"column",gap:18}}>
-          <DeckPicker label="Player 1" accentColor="var(--living)"
+          <DeckPicker label="Player 1" accentColor="var(--vita)"
             name={p1Name} onNameChange={setP1Name}
             deckOpt={p1DeckOpt} onDeckOpt={setP1DeckOpt}
             customDecks={p1CustomDecks} />
 
           <div style={{borderTop:"1px solid var(--border)"}}/>
 
-          <DeckPicker label="Player 2" accentColor="var(--made)"
+          <DeckPicker label="Player 2" accentColor="var(--arte)"
             name={p2Name} onNameChange={setP2Name}
             deckOpt={p2DeckOpt} onDeckOpt={setP2DeckOpt}
             customDecks={p2CustomDecks} />

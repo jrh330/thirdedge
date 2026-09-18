@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Card from '../components/Card.jsx';
 import PrimaryButton from '../components/PrimaryButton.jsx';
 import { FAMILY_COLORS } from '../lib/families.jsx';
-import { deleteCard, fillTestCards, removeTestCards } from '../lib/api.js';
+import { deleteCard, fillTestCards, removeTestCards, swapCard } from '../lib/api.js';
 
 function TrashIcon() {
   return (
@@ -16,11 +16,31 @@ function TrashIcon() {
   );
 }
 
-function CardTile({ card, isActive, inactiveCards, onDeleted }) {
+function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwapped }) {
   const [confirming, setConfirming]     = useState(false);
+  const [swapping, setSwapping]         = useState(false);   // inactive: pick which active to bench
+  const [swapTarget, setSwapTarget]     = useState(null);    // active card id to bench
   const [replacementId, setReplacementId] = useState(null);
   const [busy, setBusy]                 = useState(false);
   const [error, setError]               = useState(null);
+
+  const handleSwapConfirm = async () => {
+    if (!swapTarget && isActive) return;
+    setBusy(true);
+    setError(null);
+    // inactive card moves in, swapTarget moves out (or for active→bench, card moves out, pick one to bring in)
+    const outId = isActive ? card.id : swapTarget;
+    const inId  = isActive ? swapTarget : card.id;
+    const result = await swapCard({ outId, inId }).catch(e => ({ error: e.message }));
+    setBusy(false);
+    if (result?.ok) {
+      setSwapping(false);
+      setSwapTarget(null);
+      onSwapped?.();
+    } else {
+      setError(result?.error || 'Swap failed');
+    }
+  };
 
   const handleDelete = async () => {
     setBusy(true);
@@ -58,25 +78,130 @@ function CardTile({ card, isActive, inactiveCards, onDeleted }) {
         )}
       </div>
 
-      {!confirming ? (
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            background: 'none',
-            border: '1px solid rgba(246,240,250,.15)',
-            borderRadius: 6,
-            padding: '5px 12px',
-            fontSize: 12,
-            color: 'var(--muted)',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-          }}
-        >
-          <TrashIcon /> Delete
-        </button>
+      {!confirming && !swapping ? (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Swap button */}
+          {!isActive && activeCards?.length > 0 && (
+            <button
+              onClick={() => setSwapping(true)}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(246,240,250,.3)',
+                borderRadius: 6,
+                padding: '5px 12px',
+                fontSize: 12,
+                color: 'var(--key)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontWeight: 600,
+              }}
+            >
+              Make active
+            </button>
+          )}
+          {isActive && inactiveCards?.length > 0 && (
+            <button
+              onClick={() => setSwapping(true)}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(246,240,250,.15)',
+                borderRadius: 6,
+                padding: '5px 12px',
+                fontSize: 12,
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Bench
+            </button>
+          )}
+          <button
+            onClick={() => setConfirming(true)}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(246,240,250,.15)',
+              borderRadius: 6,
+              padding: '5px 12px',
+              fontSize: 12,
+              color: 'var(--muted)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            <TrashIcon /> Delete
+          </button>
+        </div>
+      ) : swapping ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+            {isActive ? `Bench "${card.name}" — activate which?` : `Activate "${card.name}" — bench which?`}
+          </span>
+          {(isActive ? inactiveCards : activeCards)?.map(other => (
+            <button
+              key={other.id}
+              onClick={() => setSwapTarget(prev => prev === other.id ? null : other.id)}
+              style={{
+                background: swapTarget === other.id ? 'var(--stock)' : 'transparent',
+                border: `1.5px solid ${swapTarget === other.id ? 'var(--pink)' : 'rgba(246,240,250,.15)'}`,
+                borderRadius: 8,
+                padding: '6px 10px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                textAlign: 'left',
+              }}
+            >
+              {other.imageUrl && (
+                <img src={other.imageUrl} alt={other.name} style={{ width: 28, height: 39, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
+              )}
+              <span style={{ fontSize: 12, color: 'var(--key)', fontWeight: 600, lineHeight: 1.3 }}>
+                {other.name}
+              </span>
+            </button>
+          ))}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <button
+              onClick={handleSwapConfirm}
+              disabled={busy || !swapTarget}
+              style={{
+                background: 'var(--pink)',
+                border: 'none',
+                borderRadius: 6,
+                padding: '5px 12px',
+                fontSize: 12,
+                color: 'var(--ink)',
+                cursor: busy || !swapTarget ? 'default' : 'pointer',
+                opacity: busy || !swapTarget ? 0.5 : 1,
+                fontFamily: 'inherit',
+                fontWeight: 600,
+              }}
+            >
+              {busy ? '…' : 'Swap'}
+            </button>
+            <button
+              onClick={() => { setSwapping(false); setSwapTarget(null); setError(null); }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(246,240,250,.2)',
+                borderRadius: 6,
+                padding: '5px 12px',
+                fontSize: 12,
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <span style={{ fontSize: 12, color: '#ff4444', textAlign: 'center' }}>{error}</span>}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
@@ -285,7 +410,7 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
             gap: 24,
           }}>
             {active.map(card => (
-              <CardTile key={card.id} card={card} isActive inactiveCards={inactive} onDeleted={handleDeleted} />
+              <CardTile key={card.id} card={card} isActive inactiveCards={inactive} activeCards={active} onDeleted={handleDeleted} onSwapped={handleDeleted} />
             ))}
           </div>
         </section>
@@ -303,7 +428,7 @@ export default function YourCards({ collection, onMakeAnother, onRefresh }) {
             gap: 24,
           }}>
             {inactive.map(card => (
-              <CardTile key={card.id} card={card} onDeleted={handleDeleted} />
+              <CardTile key={card.id} card={card} activeCards={active} inactiveCards={inactive} onDeleted={handleDeleted} onSwapped={handleDeleted} />
             ))}
           </div>
         </section>
