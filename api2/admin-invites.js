@@ -7,12 +7,22 @@
  * DELETE /admin/invites/:token — revoke an invite
  */
 
+const crypto = require('crypto');
 const { getDb } = require('./_db');
 const { generateToken, hashToken } = require('../auth/player');
 
 function checkAdminAuth(req, res) {
   const secret = process.env.ADMIN_SECRET;
-  if (!secret || req.headers['x-admin-secret'] !== secret) {
+  if (!secret) {
+    res.status(401).json({ error: 'unauthorized' });
+    return false;
+  }
+  const provided = req.headers['x-admin-secret'] || '';
+  // Timing-safe comparison prevents timing-attack secret enumeration
+  const secretBuf   = Buffer.from(secret);
+  const providedBuf = Buffer.alloc(secretBuf.length);
+  Buffer.from(provided).copy(providedBuf);
+  if (!crypto.timingSafeEqual(secretBuf, providedBuf)) {
     res.status(401).json({ error: 'unauthorized' });
     return false;
   }

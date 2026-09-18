@@ -185,6 +185,8 @@ async function saveDeck(req, res) {
     const allCards = await db.collection("cardsv2")
       .find({ id: { $in: coll.active }, deleted: { $ne: true } })
       .toArray();
+    if (allCards.length !== coll.active.length)
+      return res.status(400).json({ error: "One or more active cards no longer exist — swap them out before saving" });
     const activeCards = coll.active.map(id => allCards.find(c => c.id === id)).filter(Boolean);
     const legality    = checkActiveLegality(activeCards);
     if (!legality.ok) return res.status(400).json({ error: `Cannot save: ${legality.reason}` });
@@ -380,6 +382,10 @@ async function repairCollection(req, res) {
         break; // No room and nothing to evict — stop
       }
     }
+
+    // Clamp to hard limits before persisting
+    if (active.length > ACTIVE_SIZE)   active   = active.slice(0, ACTIVE_SIZE);
+    if (inactive.length > INACTIVE_MAX) inactive = inactive.slice(0, INACTIVE_MAX);
 
     await collCol.updateOne(
       { ownerId: player.id },

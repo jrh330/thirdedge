@@ -107,6 +107,9 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: "That link doesn't point to an image" });
 
   // ── Stream body with size cap ─────────────────────────────────────────────
+  if (!response.body)
+    return res.status(400).json({ error: "That link returned an empty response" });
+
   const reader = response.body.getReader();
   const chunks = [];
   let total = 0;
