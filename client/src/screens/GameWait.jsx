@@ -8,6 +8,7 @@ export default function GameWait({ code, onOpponentJoined, onBack }) {
   const pollRef = useRef(null);
 
   const shareLink = window.location.origin + '/mint?code=' + code;
+  const canShare  = !!navigator.share;
 
   useEffect(() => {
     async function poll() {
@@ -30,55 +31,77 @@ export default function GameWait({ code, onOpponentJoined, onBack }) {
     poll();
     pollRef.current = setInterval(poll, 1500);
     return () => clearInterval(pollRef.current);
-  }, [code]);
+  }, [code, onOpponentJoined]);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(shareLink).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => showToast('Could not copy', true));
+  function handleShare() {
+    if (canShare) {
+      navigator.share({ title: 'Join my game', url: shareLink }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareLink).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }).catch(() => showToast('Could not copy', true));
+    }
   }
 
   return (
     <div className="game-root">
       {ToastEl}
       <div className="g-screen">
-        <div style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, marginBottom: 6 }}>
-            Waiting for opponent
-          </div>
-          <div style={{ color: 'var(--g-muted)', fontSize: 13, marginBottom: 28 }}>
-            Share this link with your opponent
+        <div style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+
+          {/* Spinner + heading */}
+          <div style={{ textAlign: 'center' }}>
+            <div className="g-spinner" style={{ margin: '0 auto 20px' }} />
+            <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: -.5, marginBottom: 6 }}>
+              Waiting for opponent
+            </div>
+            <div style={{ color: 'var(--g-muted)', fontSize: 13 }}>
+              Send them the code or the link below
+            </div>
           </div>
 
-          <div className="g-surface g-fade" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+          {/* Code hero */}
+          <div style={{
+            background: 'var(--g-surface)',
+            border: '1px solid var(--g-border)',
+            borderRadius: 18,
+            padding: '24px 32px',
+            textAlign: 'center',
+            width: '100%',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--g-muted)', marginBottom: 10 }}>
+              Game code
+            </div>
             <div style={{
-              background: 'var(--g-surface2)',
-              border: '1px solid var(--g-border)',
-              borderRadius: 10,
-              padding: '10px 14px',
-              fontSize: 13,
-              wordBreak: 'break-all',
-              color: 'var(--g-text)',
-              textAlign: 'left',
+              fontSize: 52,
+              fontWeight: 900,
+              letterSpacing: 10,
+              color: 'var(--g-accent)',
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
             }}>
-              {shareLink}
+              {code}
             </div>
-            <button className="g-btn g-btn-primary" onClick={handleCopy} style={{ width: '100%' }}>
-              {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-            <div style={{ fontSize: 13, color: 'var(--g-muted)' }}>
-              Game code: <strong style={{ color: 'var(--g-text)' }}>{code}</strong>
+            <div style={{ fontSize: 11, color: 'var(--g-muted)', marginTop: 10 }}>
+              Opponent goes to <strong style={{ color: 'var(--g-text)' }}>Play →</strong> and enters this code
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div className="g-spinner" />
-            <div style={{ color: 'var(--g-muted)', fontSize: 13 }}>Waiting for opponent…</div>
-            <button className="g-btn g-btn-ghost" onClick={onBack}>
+          {/* Share / Copy */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              className="g-btn g-btn-primary"
+              style={{ width: '100%' }}
+              onClick={handleShare}
+            >
+              {canShare ? 'Share link' : copied ? 'Copied!' : 'Copy link'}
+            </button>
+            <button className="g-btn g-btn-ghost" style={{ width: '100%' }} onClick={onBack}>
               Cancel
             </button>
           </div>
+
         </div>
       </div>
     </div>
