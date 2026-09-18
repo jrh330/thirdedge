@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     const { p1DeckName, p1DeckId } = req.body;
     const p1Name = player.name;
 
-    let p1DeckRef;
+    let p1DeckRef = {};  // empty = use player's active collection (resolved at match start)
     if (p1DeckId) {
       // Custom deck — verify it exists
       const db0 = await getDb();
@@ -37,8 +37,6 @@ module.exports = async function handler(req, res) {
       if (!PRESET_NAMES.has(p1DeckName))
         return res.status(400).json({ error: `p1DeckName must be one of: ${[...PRESET_NAMES].join(", ")}` });
       p1DeckRef = { deckName: p1DeckName };
-    } else {
-      return res.status(400).json({ error: "p1DeckName or p1DeckId required" });
     }
 
     const db = await getDb();

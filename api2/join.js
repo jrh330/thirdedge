@@ -5,13 +5,41 @@ const { PRESETS } = require("./_decks");
 const { BY_ID } = require("../engine2/fixtures");
 const { createMatch } = require("../engine2/match");
 const { RULE_SET } = require("../engine2/constants");
+const { validateDeck } = require("../engine2/validate");
 const { requirePlayer } = require("../auth/player");
 
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 const PRESET_BY_NAME = Object.fromEntries(PRESETS.map(p => [p.name, p]));
 
-// Resolve a deck reference (deckName or deckId) to an array of card objects
-async function resolveDeck(deckName, deckId, db) {
+// Resolve a player's active minted collection into a deck array
+async function resolvePlayerCollection(playerId, db) {
+  const coll = await db.collection("collectionsv2").findOne({ ownerId: playerId });
+  if (!coll || !coll.active?.length) {
+    throw new Error("You don't have an active collection yet. Mint some cards first.");
+  }
+
+  const cards = await db.collection("cardsv2")
+    .find({ id: { $in: coll.active }, deleted: { $ne: true } })
+    .toArray();
+  const byId = Object.fromEntries(cards.map(c => [c.id, c]));
+
+  const resolved = coll.active.map(id => {
+    const card = byId[id];
+    if (!card) throw new Error(`Active card not found: ${id}`);
+    return card;
+  });
+
+  const v = validateDeck(resolved, RULE_SET.FAMILY_WHEEL);
+  if (!v.ok) {
+    throw new Error(`Your collection isn't a legal deck yet: ${v.errors.join("; ")}`);
+  }
+
+  return resolved;
+}
+
+// Resolve a deck reference (deckName or deckId) to an array of card objects.
+// If neither is provided, falls back to the player's active collection.
+async function resolveDeck(deckName, deckId, playerId, db) {
   if (deckName) {
     const preset = PRESET_BY_NAME[deckName];
     if (!preset) throw new Error(`Unknown preset deck: ${deckName}`);
@@ -33,7 +61,8 @@ async function resolveDeck(deckName, deckId, db) {
       return byId[id];
     });
   }
-  throw new Error("deckName or deckId required");
+  // No deck specified — use the player's active minted collection
+  return resolvePlayerCollection(playerId, db);
 }
 
 module.exports = async function handler(req, res) {
@@ -58,9 +87,6 @@ module.exports = async function handler(req, res) {
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "code required" });
     }
-    if (!p2DeckName && !p2DeckId) {
-      return res.status(400).json({ error: "p2DeckName or p2DeckId required" });
-    }
     if (p2DeckName && !PRESET_NAMES.has(p2DeckName)) {
       return res.status(400).json({ error: `p2DeckName must be one of: ${[...PRESET_NAMES].join(", ")}` });
     }
@@ -77,8 +103,8 @@ module.exports = async function handler(req, res) {
     const p2Id = player.id;
 
     const [deckA, deckB] = await Promise.all([
-      resolveDeck(game.p1.deckName, game.p1.deckId, db),
-      resolveDeck(p2DeckName, p2DeckId, db),
+      resolveDeck(game.p1.deckName, game.p1.deckId, p1Id, db),
+      resolveDeck(p2DeckName, p2DeckId, p2Id, db),
     ]);
 
     const matchState = createMatch(game.code, p1Id, deckA, p2Id, deckB, RULE_SET.FAMILY_WHEEL);
@@ -87,7 +113,7 @@ module.exports = async function handler(req, res) {
       { _id: game._id },
       {
         $set: {
-          p2: { id: p2Id, name: p2Name, ...(p2DeckId ? { deckId: p2DeckId } : { deckName: p2DeckName }) },
+          p2: { id: p2Id, name: p2Name, ...(p2DeckId ? { deckId: p2DeckId } : p2DeckName ? { deckName: p2DeckName } : {}) },
           matchState,
           status: "playing",
           updatedAt: new Date(),
