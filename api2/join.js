@@ -132,7 +132,7 @@ module.exports = async function handler(req, res) {
       }
     );
 
-    return res.status(200).json({ code: game.code, playerId: p2Id, p1Id, p2Id });
+    return res.status(200).json({ code: game.code, playerId: p2Id, role: "p2", p1Id, p2Id });
   } catch (err) {
     console.error("api2/join error:", err);
     return res.status(500).json({ error: "Server error" });

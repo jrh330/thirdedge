@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
 
     await games.insertOne(doc);
 
-    return res.status(200).json({ code, playerId: p1Id });
+    return res.status(200).json({ code, playerId: p1Id, role: "p1" });
   } catch (err) {
     console.error("api2/create error:", err);
     return res.status(500).json({ error: "Server error" });

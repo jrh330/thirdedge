@@ -460,7 +460,8 @@ function SetupScreen({ onStart }){
         : { p2DeckId: p2DeckOpt.id };
       const cr = await api("POST", "/api2/create", { p1Name: p1Name.trim(), ...p1Body });
       const jr = await api("POST", "/api2/join",   { code: cr.code, p2Name: p2Name.trim(), ...p2Body });
-      onStart({ code: cr.code, p1Id: cr.playerId, p2Id: jr.p2Id, p1Name: p1Name.trim(), p2Name: p2Name.trim() });
+      // myPlayerId/myRole: in hot-seat the creating browser is always p1
+      onStart({ code: cr.code, p1Id: cr.playerId, p2Id: jr.p2Id, p1Name: p1Name.trim(), p2Name: p2Name.trim(), myPlayerId: cr.playerId, myRole: cr.role });
     } catch(e){
       showToast(e.message, true);
     } finally { setLoading(false); }
@@ -503,7 +504,7 @@ function SetupScreen({ onStart }){
 
 // ── GameScreen ────────────────────────────────────────────────────────────────
 function GameScreen({ gameInfo, onNewGame }){
-  const { code, p1Id, p2Id, p1Name, p2Name } = gameInfo;
+  const { code, p1Id, p2Id, p1Name, p2Name, myPlayerId, myRole } = gameInfo;
   const p1 = { id: p1Id, name: p1Name };
   const p2 = { id: p2Id, name: p2Name };
 
@@ -511,8 +512,8 @@ function GameScreen({ gameInfo, onNewGame }){
   const [status, setStatus] = useState("loading");
   const [loading, setLoading] = useState(false);
 
-  // Hot-seat active player tracking
-  const [activeP, setActiveP] = useState("p1");   // "p1" | "p2"
+  // Active player tracking — hot-seat starts on p1; two-machine starts on own role
+  const [activeP, setActiveP] = useState(myRole || "p1");   // "p1" | "p2"
   const [showCover, setShowCover] = useState(false);
   const [p1Submitted, setP1Submitted] = useState(false);
 
