@@ -398,13 +398,18 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
   const myLastPlayed    = isReveal ? r.lastPlayed?.[myPlayerId]  : null;
   const theirLastPlayed = isReveal ? r.lastPlayed?.[theirPId]    : null;
 
-  // ── Determine what's shown in the "your played" slot ─────────────────────
-  // reveal: the actual played card face-up
-  // playedCard set (submitted): show it face-up
-  // selCard: show it face-up
-  // else: empty slot
+  // ── Determine what's shown in anchor slot and played slot ───────────────
+  // Opening: selCard (or playedCard while waiting for API) previews in the
+  // anchor slot; the played slot is hidden entirely.
+  // Commit:  anchor shows mySlot.anchor; played slot shows selCard/playedCard.
+  // Reveal:  anchor shows mySlot.anchor; played slot shows lastPlayed.
+  const anchorPreviewId  = isOpening ? (selCard || playedCard) : null;
+  const anchorDisplayId  = mySlot?.anchor || anchorPreviewId || null;
+
   const myPlaySlotCardId = isReveal
     ? myLastPlayed
+    : isOpening
+    ? null
     : (playedCard || selCard || null);
 
   // ── Determine what's shown in the "opp played" slot ──────────────────────
@@ -489,8 +494,8 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
               : <CardSlot owner="opp" label="Anchor" />
             }
 
-            {/* Opp played / locked-in */}
-            {oppPlaySlotContent === 'revealed' && theirLastPlayed
+            {/* Opp played / locked-in (hidden during opening) */}
+            {!isOpening && (oppPlaySlotContent === 'revealed' && theirLastPlayed
               ? <Card
                   card={cards[theirLastPlayed]}
                   state="revealed"
@@ -501,7 +506,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
               : oppPlaySlotContent === 'locked'
               ? <LockedInBack />
               : <CardSlot owner="opp" label="Their play" />
-            }
+            )}
           </div>
 
           {/* Pot band */}
@@ -517,28 +522,37 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
 
           {/* Your row */}
           <div className="g-table-row g-you-row">
-            {/* Your anchor */}
-            {mySlot?.anchor
-              ? <Card
-                  card={cards[mySlot.anchor]}
-                  state="revealed"
-                  size="sm"
-                  owner="you"
-                  imageSrc={cards[mySlot.anchor]?.imageUrl || null}
-                />
+            {/* Your anchor — selCard previews here during opening */}
+            {anchorDisplayId
+              ? <div style={{
+                  display: 'inline-block',
+                  borderRadius: 14,
+                  outline: (selCard === anchorDisplayId && !mySubmitted)
+                    ? '3px solid var(--pink)'
+                    : '3px solid transparent',
+                  outlineOffset: 3,
+                }}>
+                  <Card
+                    card={cards[anchorDisplayId]}
+                    state="revealed"
+                    size="sm"
+                    owner="you"
+                    imageSrc={cards[anchorDisplayId]?.imageUrl || null}
+                  />
+                </div>
               : <CardSlot owner="you" label="Anchor" />
             }
 
-            {/* Bond chip — shown between anchor and played slots when families match */}
-            {mySlot?.anchor && activeCard && cardFamily(anchorCard) && cardFamily(anchorCard) === cardFamily(activeCard) && (
+            {/* Bond chip — only during commit/reveal when both anchor and play card are known */}
+            {!isOpening && mySlot?.anchor && activeCard && cardFamily(anchorCard) && cardFamily(anchorCard) === cardFamily(activeCard) && (
               <BondChip
                 family={cardFamily(anchorCard)}
                 confirmed={isReveal || !!playedCard}
               />
             )}
 
-            {/* Your played card / selection */}
-            {myPlaySlotCardId
+            {/* Your played card / selection (hidden during opening) */}
+            {!isOpening && (myPlaySlotCardId
               ? <div style={{
                   display: 'inline-block',
                   borderRadius: 14,
@@ -556,7 +570,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
                   />
                 </div>
               : <CardSlot owner="you" label="Your play" />
-            }
+            )}
           </div>
 
           {/* Your hand fan */}

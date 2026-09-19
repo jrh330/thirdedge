@@ -183,7 +183,11 @@ export default function Card({
         borderRadius: radius,
         border: `${border}px solid ${borderColor}`,
         boxShadow: `0 0 0 ${Math.round(5 * scale)}px var(--key), 0 ${Math.round(40*scale)}px ${Math.round(70*scale)}px -${Math.round(30*scale)}px rgba(0,0,0,.75)`,
-        background: 'var(--stock)',
+        background: `
+          radial-gradient(circle, rgba(246,240,250,.08) 1.26px, transparent 1.76px) 0 0 / 5px 5px,
+          radial-gradient(circle, rgba(246,240,250,.08) 1.26px, transparent 1.76px) 2.5px 2.5px / 5px 5px,
+          var(--stock)
+        `,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -210,10 +214,13 @@ export default function Card({
               }}
             />
           ) : (
-            /* Empty slot — no dots on card face */
             <div style={{
               position: 'absolute', inset: 0,
-              background: 'var(--stock)',
+              background: (state !== 'draft' && family) ? ({
+                Vita:  'linear-gradient(160deg, #FF8050, #FF5A1F, #CC3800)',
+                Arte:  'linear-gradient(160deg, #A880FF, #7B4DFF, #5530CC)',
+                Terra: 'linear-gradient(160deg, #FFE870, #FFD23F, #CCA500)',
+              }[family] || 'var(--stock)') : 'var(--stock)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               {state === 'draft' ? (
