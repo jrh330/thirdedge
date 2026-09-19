@@ -65,9 +65,17 @@ app.put('/api2/player/name', updateName);
 
 // Invite / auth routes
 app.get("/join/:token", require("./api2/join-invite"));
-const { createInvite, revokeInvite } = require("./api2/admin-invites");
-app.post("/admin/invites",        createInvite);
-app.delete("/admin/invites/:token", revokeInvite);
+const { createInvite, revokeInvite, restorePlayer } = require("./api2/admin-invites");
+app.post("/admin/invites",               createInvite);
+app.delete("/admin/invites/:token",      revokeInvite);
+app.post("/admin/players/:id/restore",   restorePlayer);
+
+// Admin dashboard
+const { adminPage, adminLogin, adminLogout, listPlayers } = require("./api2/admin-page");
+app.get( "/admin",          adminPage);
+app.post("/admin/login",    adminLogin);
+app.post("/admin/logout",   adminLogout);
+app.get( "/admin/players",  listPlayers);
 
 // OPTIONS preflight for all API routes
 app.options("/api/*", (req, res) => res.sendStatus(200));

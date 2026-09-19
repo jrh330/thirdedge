@@ -3,8 +3,9 @@
 /**
  * Admin invite management routes.
  *
- * POST   /admin/invites       — create an invite (returns token + joinUrl)
- * DELETE /admin/invites/:token — revoke an invite
+ * POST   /admin/invites          — create an invite (returns token + joinUrl)
+ * DELETE /admin/invites/:token   — revoke an invite
+ * POST   /admin/players/:id/restore — restore a revoked player
  */
 
 const crypto = require('crypto');
@@ -20,7 +21,6 @@ function checkAdminAuth(req, res) {
   const provided    = req.headers['x-admin-secret'] || '';
   const secretBuf   = Buffer.from(secret);
   const providedBuf = Buffer.from(provided);
-  // timingSafeEqual requires equal-length buffers; check length first then compare
   if (secretBuf.length !== providedBuf.length || !crypto.timingSafeEqual(secretBuf, providedBuf)) {
     res.status(401).json({ error: 'unauthorized' });
     return false;
@@ -31,6 +31,7 @@ function checkAdminAuth(req, res) {
 /**
  * POST /admin/invites
  * Body: { name }
+ * Stores the raw token in the player doc so the admin page can show the join URL.
  */
 async function createInvite(req, res) {
   if (!checkAdminAuth(req, res)) return;
@@ -43,11 +44,12 @@ async function createInvite(req, res) {
   try {
     const token = generateToken();
     const tokenHash = hashToken(token);
-    const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.hostname}`;
 
     const player = {
       id:                crypto.randomUUID(),
       name:              name.trim(),
+      token,           // stored so admin page can show join URL
       tokenHash,
       createdAt:         new Date(),
       revokedAt:         null,
@@ -60,7 +62,7 @@ async function createInvite(req, res) {
     await db.collection('players').insertOne(player);
 
     const joinUrl = `${baseUrl}/join/${token}`;
-    return res.status(200).json({ token, joinUrl });
+    return res.status(200).json({ token, joinUrl, id: player.id, name: player.name });
 
   } catch (err) {
     console.error('createInvite error:', err);
@@ -99,4 +101,28 @@ async function revokeInvite(req, res) {
   }
 }
 
-module.exports = { createInvite, revokeInvite };
+/**
+ * POST /admin/players/:id/restore
+ * Clears revokedAt so the player can log in again.
+ */
+async function restorePlayer(req, res) {
+  if (!checkAdminAuth(req, res)) return;
+
+  const { id } = req.params;
+  try {
+    const db = await getDb();
+    const result = await db.collection('players').updateOne(
+      { id },
+      { $set: { revokedAt: null } }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('restorePlayer error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { createInvite, revokeInvite, restorePlayer };
