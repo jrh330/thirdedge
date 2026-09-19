@@ -71,12 +71,33 @@ module.exports = async function handler(req, res) {
         // NOTE: round.pending is intentionally excluded
       };
 
+      // Enrich stored card data with the latest imageUrl from the database.
+      // ms.cards is a snapshot from game creation; images uploaded afterwards
+      // would be missing without this refresh.
+      const cardIds   = Object.keys(ms.cards || {});
+      let enrichedCards = ms.cards || {};
+      if (cardIds.length) {
+        const freshRows = await db.collection("cardsv2")
+          .find({ id: { $in: cardIds } })
+          .project({ id: 1, imageUrl: 1, _id: 0 })
+          .toArray();
+        const freshImageById = Object.fromEntries(freshRows.map(c => [c.id, c.imageUrl]));
+        enrichedCards = Object.fromEntries(
+          Object.entries(ms.cards).map(([id, card]) => [
+            id,
+            freshImageById[id] !== undefined
+              ? { ...card, imageUrl: freshImageById[id] }
+              : card,
+          ])
+        );
+      }
+
       response.matchState = {
         roundsWon:    ms.roundsWon,
         winnerId:     ms.winnerId,
         pendingTrade: ms.pendingTrade ? { winner: ms.pendingTrade.winner, loser: ms.pendingTrade.loser } : null,
         round:        roundView,
-        cards:        ms.cards,
+        cards:        enrichedCards,
       };
     }
 
