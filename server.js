@@ -6,6 +6,7 @@ const path = require("path");
 const app = express();
 app.set("trust proxy", 1);
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/mint', express.static(path.join(__dirname, 'public/mint')));
