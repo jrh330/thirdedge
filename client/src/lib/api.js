@@ -93,6 +93,23 @@ export async function deleteNoImageCards() {
   return res.json();
 }
 
+// ── Player profile ────────────────────────────────────────────────────────────
+
+export async function getMyPlayer() {
+  const res = await fetch('/api2/player', { credentials: 'include' });
+  return res.json();
+}
+
+export async function updateMyName(name) {
+  const res = await fetch('/api2/player/name', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
 // ── Game API ──────────────────────────────────────────────────────────────────
 
 export async function createGame(body = {}) {

@@ -1,25 +1,32 @@
 import { useState, useEffect } from 'react';
 import DeckPicker from '../components/DeckPicker.jsx';
 import { useGameToast } from '../components/GameToast.jsx';
-import { createGame, fetchMyDecks } from '../lib/api.js';
+import { createGame, fetchMyDecks, getMyPlayer, updateMyName } from '../lib/api.js';
 
 const COLLECTION_OPT = { type: 'collection' };
 
 export default function GameCreate({ collection, onCreated, onBack }) {
+  const [name, setName]              = useState('');
   const [deckOpt, setDeckOpt]       = useState(COLLECTION_OPT);
   const [customDecks, setCustomDecks] = useState([]);
   const [loading, setLoading]        = useState(false);
   const [ToastEl, showToast]         = useGameToast();
 
   useEffect(() => {
+    getMyPlayer()
+      .then(data => { if (data?.name) setName(data.name); })
+      .catch(() => {});
     fetchMyDecks()
       .then(data => setCustomDecks(data.decks || []))
       .catch(() => {});
   }, []);
 
   async function handleCreate() {
+    const trimmedName = name.trim();
+    if (!trimmedName) { showToast('Enter your name', true); return; }
     setLoading(true);
     try {
+      await updateMyName(trimmedName);
       let body = {};
       if (deckOpt.type === 'preset')  body = { deckName: deckOpt.name };
       if (deckOpt.type === 'custom')  body = { deckId: deckOpt.id };
@@ -45,6 +52,16 @@ export default function GameCreate({ collection, onCreated, onBack }) {
             </div>
           </div>
           <div className="g-surface g-fade" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              <label>Your name</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={40}
+                autoFocus
+              />
+            </div>
             <DeckPicker deckOpt={deckOpt} onDeckOpt={setDeckOpt} customDecks={customDecks} />
             <button
               className="g-btn g-btn-primary g-btn-lg"

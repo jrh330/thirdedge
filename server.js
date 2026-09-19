@@ -58,6 +58,11 @@ app.get(   "/api/cards",        getCards);
 app.post(  "/api/cards",        createCard);
 app.delete("/api/cards/:cardId", deleteCard);
 
+// Player profile
+const { getPlayer, updateName } = require('./api2/player');
+app.get('/api2/player',      getPlayer);
+app.put('/api2/player/name', updateName);
+
 // Invite / auth routes
 app.get("/join/:token", require("./api2/join-invite"));
 const { createInvite, revokeInvite } = require("./api2/admin-invites");

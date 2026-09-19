@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import DeckPicker from '../components/DeckPicker.jsx';
 import { useGameToast } from '../components/GameToast.jsx';
-import { joinGame, pollGame, fetchMyDecks } from '../lib/api.js';
+import { joinGame, pollGame, fetchMyDecks, getMyPlayer, updateMyName } from '../lib/api.js';
 
 const COLLECTION_OPT = { type: 'collection' };
 
 export default function GameJoin({ initialCode, collection, onJoined, onBack }) {
   const [code, setCode]            = useState(initialCode || '');
+  const [name, setName]            = useState('');
   const [deckOpt, setDeckOpt]      = useState(COLLECTION_OPT);
   const [customDecks, setCustomDecks] = useState([]);
   const [loading, setLoading]      = useState(false);
   const [ToastEl, showToast]       = useGameToast();
 
   useEffect(() => {
+    getMyPlayer()
+      .then(data => { if (data?.name) setName(data.name); })
+      .catch(() => {});
     fetchMyDecks()
       .then(data => setCustomDecks(data.decks || []))
       .catch(() => {});
@@ -20,9 +24,14 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack }) 
 
   async function handleJoin() {
     const trimmedCode = code.trim().toUpperCase();
+    const trimmedName = name.trim();
     if (!trimmedCode) { showToast('Enter a game code', true); return; }
+    if (!trimmedName) { showToast('Enter your name', true); return; }
     setLoading(true);
     try {
+      // Save name first so it's reflected in the game
+      await updateMyName(trimmedName);
+
       let body = { code: trimmedCode };
       if (deckOpt.type === 'preset') body.deckName = deckOpt.name;
       if (deckOpt.type === 'custom') body.deckId   = deckOpt.id;
@@ -60,6 +69,16 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack }) 
             </div>
           </div>
           <div className="g-surface g-fade" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              <label>Your name</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={40}
+                autoFocus={!initialCode}
+              />
+            </div>
             <div>
               <label>Game Code</label>
               {initialCode ? (
