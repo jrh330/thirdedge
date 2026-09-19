@@ -602,12 +602,9 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
 
         {/* ── RIGHT RAIL ── */}
         <aside id="g-right-rail">
-          {/* Round label + scores */}
+          {/* Round label */}
           <div className="g-round-info">
             <div className="g-round-label">Round {(r.index ?? 0) + 1}</div>
-            <div className="g-rounds-won">
-              {myWins} <span>\u2013</span> {theirWins}
-            </div>
           </div>
 
           {/* Category pills */}
