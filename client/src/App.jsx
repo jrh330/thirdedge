@@ -198,7 +198,14 @@ export default function App() {
         // Network error — let user continue, collection strip will be empty
       })
       .finally(() => {
-        dismissSplash();
+        // Notify the loading screen that the app is ready.
+        // The loading screen shows a Play button; the splash only dismisses
+        // when the user clicks it (so audio context can be unlocked on click).
+        if (window.allagarooLoading?.notifyReady) {
+          window.allagarooLoading.notifyReady();
+        } else {
+          dismissSplash(); // fallback for environments without the loading screen
+        }
       });
 
     loadDraft()
