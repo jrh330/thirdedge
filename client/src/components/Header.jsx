@@ -2,7 +2,7 @@
  * Header — desktop + phone header with stepper.
  * Props: step (1|2|3), onBack (fn), backLabel (string)
  *
- * Desktop: logo left, stepper centre, "How families work" right.
+ * Desktop: logo left, stepper centre, "Blocks &amp; Bonds" right.
  * Phone:   back arrow left, screen title centre, "N/3" right.
  */
 
@@ -114,7 +114,7 @@ function FamiliesModal({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <span style={{ fontWeight: 800, fontSize: 18, color: '#F6F0FA' }}>How families work</span>
+          <span style={{ fontWeight: 800, fontSize: 18, color: '#F6F0FA' }}>Blocks &amp; Bonds</span>
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', color: '#B7AAC6', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}
@@ -272,7 +272,7 @@ export default function Header({ step = 1, onBack, backLabel, onPlay }) {
             }}
             onClick={() => setShowFamilies(true)}
           >
-            How families work
+            Blocks &amp; Bonds
           </button>
           {onPlay && (
             <button
