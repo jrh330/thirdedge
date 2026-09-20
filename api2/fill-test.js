@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require('crypto');
 const { getDb } = require("./_db");
 const { requirePlayer } = require("../auth/player");
 const { ACTIVE_SIZE, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
@@ -61,7 +62,6 @@ function pickCards(needed, famCount, sevenCount, alreadyUsedIds) {
 
   const sevenTarget = Math.min(SEVEN_ALLOWANCE - sc, Math.ceil(needed / 4));
 
-  // Fill non-sevens first (leave room for sevens)
   for (const card of nonSevens) {
     if (picked.length >= needed - sevenTarget) break;
     if ((fc[card.family] || 0) < FAMILY_MAX) {
@@ -70,7 +70,6 @@ function pickCards(needed, famCount, sevenCount, alreadyUsedIds) {
     }
   }
 
-  // Fill sevens
   for (const card of sevens) {
     if (picked.length >= needed) break;
     if (sc >= SEVEN_ALLOWANCE) break;
@@ -81,7 +80,6 @@ function pickCards(needed, famCount, sevenCount, alreadyUsedIds) {
     }
   }
 
-  // If still short (edge case: many high-family minted cards), fill from whatever's left
   if (picked.length < needed) {
     for (const card of [...nonSevens, ...sevens]) {
       if (picked.length >= needed) break;
@@ -97,92 +95,126 @@ function pickCards(needed, famCount, sevenCount, alreadyUsedIds) {
   return picked;
 }
 
+// ── giveSampleDeck ────────────────────────────────────────────────────────────
+/**
+ * Give a player 12 sample cards (filling active slots to ACTIVE_SIZE).
+ * Called directly — not via HTTP — so invite creation and admin actions
+ * can reuse this without a network round-trip.
+ *
+ * Cards are marked isTestCard: true AND source: "sample".
+ * source: "sample" lets analytics exclude them from minting statistics;
+ * isTestCard: true is the existing field used by collection queries.
+ *
+ * Returns { added: N, total: N } or throws on DB error.
+ *
+ * @param {string} playerId
+ * @param {import('mongodb').Db} db
+ */
+async function giveSampleDeck(playerId, db) {
+  const cardsCol = db.collection("cardsv2");
+  const collCol  = db.collection("collectionsv2");
+
+  const allCards = await cardsCol.find({ ownerId: playerId, deleted: { $ne: true } }).toArray();
+  let collDoc    = await collCol.findOne({ ownerId: playerId });
+
+  if (!collDoc) {
+    const ids = allCards.map(c => c.id);
+    collDoc   = { ownerId: playerId, active: ids.slice(0, ACTIVE_SIZE), inactive: ids.slice(ACTIVE_SIZE), savedDecks: [], lastDeletedAt: null };
+    await collCol.insertOne(collDoc);
+  }
+
+  const byId        = Object.fromEntries(allCards.map(c => [c.id, c]));
+  const activeCards = collDoc.active.map(id => byId[id]).filter(Boolean);
+  const needed      = ACTIVE_SIZE - activeCards.length;
+
+  if (needed <= 0) return { added: 0, total: collDoc.active.length };
+
+  const alreadyTestIds = allCards.filter(c => c.isTestCard).map(c => c.testPoolId);
+
+  const famCount = {};
+  let sevenCount = 0;
+  for (const c of activeCards) {
+    famCount[c.family] = (famCount[c.family] || 0) + 1;
+    if (c.carriesSeven) sevenCount++;
+  }
+
+  const toAdd = pickCards(needed, famCount, sevenCount, alreadyTestIds);
+  if (toAdd.length === 0) return { added: 0, total: collDoc.active.length };
+
+  const now     = new Date();
+  const newDocs = toAdd.map(card => ({
+    id:           `${playerId}-test-${card.id}`,
+    testPoolId:   card.id,
+    isTestCard:   true,
+    source:       'sample',        // analytics marker — excluded from minting stats
+    ownerId:      playerId,
+    name:         card.name,
+    kind:         card.kind,
+    family:       card.family,
+    power:        card.power,
+    speed:        card.speed,
+    wits:         card.wits,
+    carriesSeven: card.carriesSeven,
+    imageUrl:     null,
+    mintedAt:     now,
+  }));
+
+  await cardsCol.insertMany(newDocs, { ordered: false }).catch(err => {
+    if (err.code !== 11000) throw err; // ignore duplicate key (idempotent)
+  });
+
+  const newIds        = newDocs.map(d => d.id);
+  const updatedActive = [...collDoc.active, ...newIds];
+
+  await collCol.updateOne(
+    { ownerId: playerId },
+    { $set: { active: updatedActive, updatedAt: now } }
+  );
+
+  return { added: newDocs.length, total: updatedActive.length };
+}
+
+// ── Admin auth helper (mirrors admin-invites.js) ──────────────────────────────
+
+function isAdminRequest(req) {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) return false;
+  const provided = req.headers['x-admin-secret'] || '';
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(a, b); } catch { return false; }
+}
+
 // ── POST /api2/collection/fill-test ──────────────────────────────────────────
+// Restricted to admin callers OR players with 0 cards.
+// (Testers with a full sample deck don't need this; admins can override.)
 
 async function fill(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-
   let player;
   try { player = await requirePlayer(req); }
   catch (e) { if (e.status && e.body) return res.status(e.status).json(e.body); throw e; }
 
+  const adminCaller = isAdminRequest(req);
+
   try {
     const db       = await getDb();
     const cardsCol = db.collection("cardsv2");
-    const collCol  = db.collection("collectionsv2");
 
-    // Load collection
-    const allCards = await cardsCol.find({ ownerId: player.id, deleted: { $ne: true } }).toArray();
-    let collDoc    = await collCol.findOne({ ownerId: player.id });
-
-    if (!collDoc) {
-      const ids = allCards.map(c => c.id);
-      collDoc   = { ownerId: player.id, active: ids.slice(0, ACTIVE_SIZE), inactive: ids.slice(ACTIVE_SIZE), savedDecks: [], lastDeletedAt: null };
-      await collCol.insertOne(collDoc);
+    if (!adminCaller) {
+      const cardCount = await cardsCol.countDocuments({ ownerId: player.id, deleted: { $ne: true } });
+      if (cardCount > 0) {
+        return res.status(403).json({ error: "Sample cards can only be added when your collection is empty. Ask your session host to reset your cards." });
+      }
     }
 
-    const byId       = Object.fromEntries(allCards.map(c => [c.id, c]));
-    const activeCards = collDoc.active.map(id => byId[id]).filter(Boolean);
-    const needed      = ACTIVE_SIZE - activeCards.length;
+    const result = await giveSampleDeck(player.id, db);
 
-    if (needed <= 0) {
-      return res.status(400).json({ error: "Active deck is already full (12 cards)." });
+    if (result.added === 0) {
+      return res.status(400).json({ error: "Active deck is already full or no suitable sample cards available." });
     }
 
-    // Which test cards are already in this player's collection?
-    const alreadyTestIds = allCards.filter(c => c.isTestCard).map(c => c.testPoolId);
-
-    // Count family distribution and sevens in current active
-    const famCount = {};
-    let sevenCount = 0;
-    for (const c of activeCards) {
-      famCount[c.family] = (famCount[c.family] || 0) + 1;
-      if (c.carriesSeven) sevenCount++;
-    }
-
-    const toAdd = pickCards(needed, famCount, sevenCount, alreadyTestIds);
-    if (toAdd.length === 0) {
-      return res.status(400).json({ error: "No suitable test cards available." });
-    }
-
-    // Insert into cardsv2
-    const now     = new Date();
-    const newDocs = toAdd.map(card => ({
-      id:          `${player.id}-test-${card.id}`,
-      testPoolId:  card.id,
-      isTestCard:  true,
-      ownerId:     player.id,
-      name:        card.name,
-      kind:        card.kind,
-      family:      card.family,
-      power:       card.power,
-      speed:       card.speed,
-      wits:        card.wits,
-      carriesSeven: card.carriesSeven,
-      imageUrl:    null,
-      mintedAt:    now,
-    }));
-
-    if (newDocs.length > 0) {
-      await cardsCol.insertMany(newDocs, { ordered: false }).catch(err => {
-        // Ignore duplicate key errors (idempotent)
-        if (err.code !== 11000) throw err;
-      });
-    }
-
-    const newIds     = newDocs.map(d => d.id);
-    const updatedActive = [...collDoc.active, ...newIds];
-
-    await collCol.updateOne(
-      { ownerId: player.id },
-      { $set: { active: updatedActive, updatedAt: now } }
-    );
-
-    return res.status(200).json({ added: newDocs.length, total: updatedActive.length });
+    return res.status(200).json({ added: result.added, total: result.total });
   } catch (err) {
     console.error("fill-test error:", err);
     return res.status(500).json({ error: "Server error" });
@@ -192,12 +224,6 @@ async function fill(req, res) {
 // ── DELETE /api2/collection/fill-test ────────────────────────────────────────
 
 async function remove(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "DELETE") return res.status(405).json({ error: "DELETE only" });
-
   let player;
   try { player = await requirePlayer(req); }
   catch (e) { if (e.status && e.body) return res.status(e.status).json(e.body); throw e; }
@@ -207,7 +233,6 @@ async function remove(req, res) {
     const cardsCol = db.collection("cardsv2");
     const collCol  = db.collection("collectionsv2");
 
-    // Hard-delete all test cards (no cooldown — test cards are disposable)
     const testCards = await cardsCol.find({ ownerId: player.id, isTestCard: true }).toArray();
     const testIds   = new Set(testCards.map(c => c.id));
 
@@ -215,7 +240,6 @@ async function remove(req, res) {
       await cardsCol.deleteMany({ ownerId: player.id, isTestCard: true });
     }
 
-    // Rebuild collection without the test card IDs
     const collDoc = await collCol.findOne({ ownerId: player.id });
     if (collDoc) {
       const active   = (collDoc.active   || []).filter(id => !testIds.has(id));
@@ -230,4 +254,45 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { fill, remove };
+// ── POST /api2/collection/clear-samples ──────────────────────────────────────
+// Deletes only sample cards (isTestCard: true), no cooldown.
+// Lets a tester start fresh with their own minted cards.
+
+async function clearSamples(req, res) {
+  let player;
+  try { player = await requirePlayer(req); }
+  catch (e) { if (e.status && e.body) return res.status(e.status).json(e.body); throw e; }
+
+  try {
+    const db       = await getDb();
+    const cardsCol = db.collection("cardsv2");
+    const collCol  = db.collection("collectionsv2");
+
+    const samples = await cardsCol
+      .find({ ownerId: player.id, isTestCard: true })
+      .project({ id: 1, _id: 0 })
+      .toArray();
+    const sampleIds = new Set(samples.map(c => c.id));
+
+    if (sampleIds.size > 0) {
+      await cardsCol.deleteMany({ ownerId: player.id, isTestCard: true });
+    }
+
+    const collDoc = await collCol.findOne({ ownerId: player.id });
+    if (collDoc) {
+      const active   = (collDoc.active   || []).filter(id => !sampleIds.has(id));
+      const inactive = (collDoc.inactive || []).filter(id => !sampleIds.has(id));
+      await collCol.updateOne(
+        { ownerId: player.id },
+        { $set: { active, inactive, updatedAt: new Date() } }
+      );
+    }
+
+    return res.status(200).json({ removed: sampleIds.size });
+  } catch (err) {
+    console.error("clearSamples error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+}
+
+module.exports = { fill, remove, clearSamples, giveSampleDeck };

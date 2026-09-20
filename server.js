@@ -61,9 +61,10 @@ app.delete( "/api2/cards/:cardId",         deleteOwnedCard);
 app.post(   "/api2/collection/repair",     repairCollection);
 app.delete( "/api2/collection/no-image",   deleteNoImageCards);
 
-const { fill: fillTest, remove: removeTest } = require("./api2/fill-test");
-app.post(   "/api2/collection/fill-test",  fillTest);
-app.delete( "/api2/collection/fill-test",  removeTest);
+const { fill: fillTest, remove: removeTest, clearSamples } = require("./api2/fill-test");
+app.post(   "/api2/collection/fill-test",    fillTest);
+app.delete( "/api2/collection/fill-test",    removeTest);
+app.post(   "/api2/collection/clear-samples", clearSamples);
 
 const { getCards, createCard, deleteCard } = require("./api/cards");
 app.get(    "/api/cards",         getCards);

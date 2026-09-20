@@ -11,6 +11,7 @@
 const crypto = require('crypto');
 const { getDb } = require('./_db');
 const { generateToken, hashToken } = require('../auth/player');
+const { giveSampleDeck } = require('./fill-test');
 
 function checkAdminAuth(req, res) {
   const secret = process.env.ADMIN_SECRET;
@@ -36,7 +37,7 @@ function checkAdminAuth(req, res) {
 async function createInvite(req, res) {
   if (!checkAdminAuth(req, res)) return;
 
-  const { name } = req.body || {};
+  const { name, withSampleDeck = true } = req.body || {};
   if (!name?.trim()) {
     return res.status(400).json({ error: 'name required' });
   }
@@ -49,7 +50,7 @@ async function createInvite(req, res) {
     const player = {
       id:                crypto.randomUUID(),
       name:              name.trim(),
-      token,           // stored so admin page can show join URL
+      token,
       tokenHash,
       createdAt:         new Date(),
       revokedAt:         null,
@@ -61,8 +62,20 @@ async function createInvite(req, res) {
     const db = await getDb();
     await db.collection('players').insertOne(player);
 
-    const joinUrl = `${baseUrl}/join/${token}`;
-    return res.status(200).json({ token, joinUrl, id: player.id, name: player.name });
+    // Give 12 sample cards so the tester can play immediately on first visit.
+    // Runs after player creation; failure is logged but doesn't block the invite.
+    let samplesAdded = 0;
+    if (withSampleDeck !== false) {
+      try {
+        const result = await giveSampleDeck(player.id, db);
+        samplesAdded = result.added;
+      } catch (sampleErr) {
+        console.error('createInvite: giveSampleDeck failed for player', player.id, sampleErr.message);
+      }
+    }
+
+    const joinUrl = `${baseUrl}/j/${token}`;
+    return res.status(200).json({ token, joinUrl, id: player.id, name: player.name, samplesAdded });
 
   } catch (err) {
     console.error('createInvite error:', err);
