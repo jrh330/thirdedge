@@ -88,10 +88,13 @@ app.post("/claim", require("./api2/claim"));
 
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
-const { createInvite, revokeInvite, restorePlayer } = require("./api2/admin-invites");
-app.post(   "/admin/invites",             createInvite);
-app.delete( "/admin/invites/:token",      revokeInvite);
-app.post(   "/admin/players/:id/restore", restorePlayer);
+const { createInvite, revokeInvite, restorePlayer, giveSamplesAdmin, clearSamplesAdmin, resetPlayer } = require("./api2/admin-invites");
+app.post(   "/admin/invites",                     createInvite);
+app.delete( "/admin/invites/:token",              revokeInvite);
+app.post(   "/admin/players/:id/restore",         restorePlayer);
+app.post(   "/admin/players/:id/give-samples",    giveSamplesAdmin);
+app.post(   "/admin/players/:id/clear-samples",   clearSamplesAdmin);
+app.post(   "/admin/players/:id/reset",           resetPlayer);
 
 const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState } = require("./api2/admin-page");
 app.get(  "/admin",                   adminPage);
@@ -99,6 +102,11 @@ app.post( "/admin/login",             adminLogin);
 app.post( "/admin/logout",            adminLogout);
 app.get(  "/admin/players",           listPlayers);
 app.get(  "/admin/players/:id/state", getPlayerState);
+
+const { pairPlayers, listMatches, forceEndMatch } = require("./api2/admin-pair");
+app.post( "/admin/pair",                  pairPlayers);
+app.get(  "/admin/matches",               listMatches);
+app.post( "/admin/matches/:code/end",     forceEndMatch);
 
 app.get("/lab", (req, res) => res.sendFile(path.join(__dirname, "public/lab.html")));
 

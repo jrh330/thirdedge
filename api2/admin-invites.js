@@ -138,4 +138,97 @@ async function restorePlayer(req, res) {
   }
 }
 
-module.exports = { createInvite, revokeInvite, restorePlayer };
+/**
+ * POST /admin/players/:id/give-samples
+ * Tops up the player to 12 sample cards.
+ */
+async function giveSamplesAdmin(req, res) {
+  if (!checkAdminAuth(req, res)) return;
+  const { id } = req.params;
+  try {
+    const db = await getDb();
+    const player = await db.collection('players').findOne({ id });
+    if (!player) return res.status(404).json({ error: 'Player not found' });
+    const result = await giveSampleDeck(id, db);
+    return res.json({ ok: true, added: result.added, total: result.total });
+  } catch (err) {
+    console.error('giveSamplesAdmin error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * POST /admin/players/:id/clear-samples
+ * Removes all source:"sample" cards and repairs the collection.
+ * Blocked if player is in a live match.
+ */
+async function clearSamplesAdmin(req, res) {
+  if (!checkAdminAuth(req, res)) return;
+  const { id } = req.params;
+  try {
+    const db = await getDb();
+    const player = await db.collection('players').findOne({ id });
+    if (!player) return res.status(404).json({ error: 'Player not found' });
+
+    const liveGame = await db.collection('gamesv2').findOne({
+      $or: [{ 'p1.id': id }, { 'p2.id': id }],
+      status: { $in: ['waiting', 'playing'] },
+    });
+    if (liveGame) return res.status(409).json({ error: 'Player is in a live match — cannot clear samples' });
+
+    const sampleCards = await db.collection('cardsv2')
+      .find({ ownerId: id, source: 'sample', deleted: { $ne: true } })
+      .project({ id: 1 })
+      .toArray();
+    const sampleIds = sampleCards.map(c => c.id);
+    if (sampleIds.length === 0) return res.json({ ok: true, removed: 0 });
+
+    await db.collection('cardsv2').deleteMany({ ownerId: id, source: 'sample' });
+
+    const coll = await db.collection('collectionsv2').findOne({ ownerId: id });
+    if (coll) {
+      const sampleSet = new Set(sampleIds);
+      await db.collection('collectionsv2').updateOne(
+        { ownerId: id },
+        { $set: {
+          active:   (coll.active   || []).filter(x => !sampleSet.has(x)),
+          inactive: (coll.inactive || []).filter(x => !sampleSet.has(x)),
+          updatedAt: new Date(),
+        }}
+      );
+    }
+
+    return res.json({ ok: true, removed: sampleIds.length });
+  } catch (err) {
+    console.error('clearSamplesAdmin error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * POST /admin/players/:id/reset
+ * Bumps sessionVersion (forces logout), wipes all cards and collection.
+ */
+async function resetPlayer(req, res) {
+  if (!checkAdminAuth(req, res)) return;
+  const { id } = req.params;
+  try {
+    const db = await getDb();
+    const player = await db.collection('players').findOne({ id });
+    if (!player) return res.status(404).json({ error: 'Player not found' });
+
+    await db.collection('players').updateOne({ id }, { $inc: { sessionVersion: 1 } });
+    await db.collection('cardsv2').deleteMany({ ownerId: id });
+    await db.collection('collectionsv2').updateOne(
+      { ownerId: id },
+      { $set: { active: [], inactive: [], savedDecks: [], lastDeletedAt: null, updatedAt: new Date() } }
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('resetPlayer error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { createInvite, revokeInvite, restorePlayer, giveSamplesAdmin, clearSamplesAdmin, resetPlayer };
