@@ -184,4 +184,19 @@ async function forceEndMatch(req, res) {
   }
 }
 
-module.exports = { pairPlayers, listMatches, forceEndMatch };
+async function forceEndAllMatches(req, res) {
+  if (!checkAdminAuth(req, res)) return;
+  try {
+    const db = await getDb();
+    const result = await db.collection('gamesv2').updateMany(
+      { status: { $in: ['waiting', 'playing'] } },
+      { $set: { status: 'complete', updatedAt: new Date(), forceEndedAt: new Date() } }
+    );
+    return res.json({ ok: true, ended: result.modifiedCount });
+  } catch (err) {
+    console.error('forceEndAllMatches error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { pairPlayers, listMatches, forceEndMatch, forceEndAllMatches };

@@ -588,7 +588,10 @@ function dashboardHtml() {
   <div class="table-wrap">
     <div class="table-header">
       <span style="font-size:14px;font-weight:700">Live matches</span>
-      <button class="ab" onclick="loadMatches()" style="font-size:12px">Refresh</button>
+      <div style="display:flex;gap:8px">
+        <button class="ab" onclick="loadMatches()" style="font-size:12px">Refresh</button>
+        <button class="ab ab-revoke" id="end-all-btn" onclick="endAllMatches()" style="font-size:12px">End all</button>
+      </div>
     </div>
     <div id="matches-body"><div class="loading-msg">Loading…</div></div>
   </div>
@@ -923,6 +926,27 @@ function copyLink(url, btn) {
 }
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+async function endAllMatches() {
+  const secret = getSecret();
+  if (!secret) return;
+  const count = document.getElementById('stat-matches').textContent;
+  if (!confirm(\`End all \${count} live matches? This cannot be undone.\`)) return;
+
+  const btn = document.getElementById('end-all-btn');
+  btn.disabled = true; btn.textContent = 'Ending…';
+  try {
+    const r = await fetch('/admin/matches/end-all', {
+      method: 'POST',
+      headers: { 'x-admin-secret': secret },
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || 'Failed'); return; }
+    alert(\`Ended \${d.ended} match\${d.ended === 1 ? '' : 'es'}.\`);
+    await loadMatches();
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'End all'; }
 }
 
 async function loadFunnel() {

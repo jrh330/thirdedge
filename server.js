@@ -105,10 +105,11 @@ app.get(  "/admin/players",           listPlayers);
 app.get(  "/admin/players/:id/state", getPlayerState);
 app.get(  "/admin/events",            getEventsFunnel);
 
-const { pairPlayers, listMatches, forceEndMatch } = require("./api2/admin-pair");
+const { pairPlayers, listMatches, forceEndMatch, forceEndAllMatches } = require("./api2/admin-pair");
 app.post( "/admin/pair",                  pairPlayers);
 app.get(  "/admin/matches",               listMatches);
 app.post( "/admin/matches/:code/end",     forceEndMatch);
+app.post( "/admin/matches/end-all",       forceEndAllMatches);
 
 app.get("/lab", (req, res) => res.sendFile(path.join(__dirname, "public/lab.html")));
 
