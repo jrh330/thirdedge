@@ -115,6 +115,133 @@ const CAT_ICONS = {
   ),
 };
 
+// ── RevealResult — side-by-side round result panel ───────────────────────────
+
+function RevealResult({ r, p1, p2, cards }) {
+  if (!r?.lastResult) return null;
+  const res = r.lastResult;
+
+  const sideOf     = (pid) => r.players[0].playerId === pid ? 'a' : 'b';
+  const winnerPid  = res.winner
+    ? r.players[res.winner === 'a' ? 0 : 1].playerId
+    : null;
+
+  function PlayerCol({ pid, name }) {
+    const key      = sideOf(pid);
+    const side     = res[key] || {};
+    const cat      = r.lastCategories?.[pid];
+    const playedId = r.lastPlayed?.[pid];
+    const card     = cards?.[playedId];
+    const won      = winnerPid === pid;
+    const tied     = !res.winner;
+    const total    = cat ? (side.totals?.[cat] ?? '?') : '?';
+
+    const resultColor = won  ? 'var(--g-green)'
+                      : tied ? 'var(--g-muted)'
+                      :        'var(--g-red)';
+    const resultIcon  = won ? '✓' : tied ? '–' : '✗';
+
+    return (
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Card image */}
+        {card?.imageUrl && (
+          <img
+            src={card.imageUrl}
+            alt={card.name}
+            style={{
+              width: '100%', height: 72, objectFit: 'cover',
+              borderRadius: 8, marginBottom: 6, display: 'block',
+              border: `2.5px solid ${resultColor}`,
+            }}
+          />
+        )}
+
+        {/* Player name + win/loss/tie */}
+        <div style={{ fontWeight: 800, fontSize: 11, marginBottom: 3, color: resultColor, letterSpacing: '.03em' }}>
+          {name} {resultIcon}
+        </div>
+
+        {/* Card name */}
+        <div style={{
+          fontWeight: 700, fontSize: 13, marginBottom: 3,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {card?.name || '—'}
+        </div>
+
+        {/* Category chosen */}
+        {cat && (
+          <div style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '.1em',
+            textTransform: 'uppercase', color: 'var(--pink)', marginBottom: 3,
+          }}>
+            {cat}
+          </div>
+        )}
+
+        {/* Bond / blocked modifiers */}
+        {side.bonded && (
+          <div style={{ fontSize: 11, color: 'var(--g-green)', marginBottom: 2 }}>
+            ⬡ Bond +1
+          </div>
+        )}
+        {side.blocked && (
+          <div style={{ fontSize: 11, color: 'var(--g-red)', marginBottom: 2 }}>
+            Blocked
+          </div>
+        )}
+
+        {/* Total for chosen category */}
+        {cat && (
+          <div style={{ fontSize: 11, color: 'var(--g-muted)', marginTop: 2 }}>
+            {cat.toUpperCase()} total:{' '}
+            <span style={{ color: 'var(--key)', fontWeight: 700 }}>{total}</span>
+          </div>
+        )}
+
+        {/* Points scored this round */}
+        <div style={{
+          fontSize: 16, fontWeight: 900, marginTop: 5,
+          color: side.hit > 0 ? resultColor : 'var(--g-muted)',
+          fontFamily: "'Rubik', sans-serif",
+        }}>
+          {side.hit > 0 ? `+${side.hit}` : side.hit ?? 0}
+          <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 3, color: 'var(--g-muted)' }}>pts</span>
+        </div>
+      </div>
+    );
+  }
+
+  const awardMsg = winnerPid
+    ? `+${res.stakeAwarded ?? 1} pts → ${winnerPid === p1.id ? p1.name : p2.name}`
+    : `Tie — stake grows to ${res.newStake ?? 2}`;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
+        letterSpacing: '.1em', color: 'var(--g-muted)', marginBottom: 2 }}>
+        Round Result
+      </div>
+
+      {/* Two-column player breakdown */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <PlayerCol pid={p1.id} name={p1.name} />
+        <div style={{ width: 1, background: 'var(--line)', alignSelf: 'stretch', flexShrink: 0 }} />
+        <PlayerCol pid={p2.id} name={p2.name} />
+      </div>
+
+      {/* Award banner */}
+      <div style={{
+        borderTop: '1px solid var(--line)', paddingTop: 8,
+        fontSize: 13, fontWeight: 800, textAlign: 'center',
+        color: winnerPid ? 'var(--pink)' : 'var(--g-muted)',
+      }}>
+        {awardMsg}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Game component ───────────────────────────────────────────────────────
 
 export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBackToCards, onMakeCard }) {
@@ -612,56 +739,9 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
             <div className="g-round-label">Round {(r.index ?? 0) + 1}</div>
           </div>
 
-          {/* Category pills */}
+          {/* Category pills / reveal result */}
           {isReveal
-            ? (
-              /* On reveal, show a simplified result summary in place of pills */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {r.lastResult && (
-                  <>
-                    {['power', 'speed', 'wits'].map(cat => {
-                      const mySide   = r.lastResult?.[r.players[0].playerId === myPlayerId ? 'a' : 'b'];
-                      const total    = mySide?.totals?.[cat];
-                      const myBetter = mySide?.category === cat;
-                      return (
-                        <div key={cat} style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          padding: '6px 10px',
-                          borderRadius: 8,
-                          background: (r.lastCategories?.[myPlayerId] === cat)
-                            ? 'rgba(255,46,147,.15)'
-                            : 'rgba(246,240,250,.04)',
-                          border: '1px solid var(--line)',
-                        }}>
-                          <span style={{ flex: 1, textTransform: 'capitalize', fontSize: '.85rem', fontWeight: 600, color: 'var(--muted)' }}>{cat}</span>
-                          <span style={{ fontFamily: 'Rubik, sans-serif', fontSize: '1.1rem', fontWeight: 700 }}>
-                            {total ?? '\u2014'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    <div style={{
-                      padding: '8px 10px',
-                      borderRadius: 8,
-                      background: 'rgba(246,240,250,.04)',
-                      border: '1px solid var(--line)',
-                      fontSize: '.75rem',
-                      color: 'var(--muted)',
-                      textAlign: 'center',
-                    }}>
-                      {r.lastResult.winner
-                        ? (() => {
-                            const wPid = r.players[r.lastResult.winner === 'a' ? 0 : 1].playerId;
-                            const wName = wPid === p1.id ? p1.name : p2.name;
-                            return `${wName} wins +${r.lastResult.stakeAwarded ?? 1} pts`;
-                          })()
-                        : `Tie \u2014 stake grows to ${r.lastResult.newStake ?? 2}`
-                      }
-                    </div>
-                  </>
-                )}
-              </div>
-            )
+            ? <RevealResult r={r} p1={p1} p2={p2} cards={cards} />
             : (
               <div className="g-cat-pills">
                 {['power', 'speed', 'wits'].map(cat => {
