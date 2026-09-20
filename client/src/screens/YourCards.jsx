@@ -376,7 +376,7 @@ export default function YourCards({ collection, onMakeAnother, onRefresh, onPlay
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <PrimaryButton onClick={onMakeAnother} style={{ flexShrink: 0 }}>
-              Make another
+              {total === 0 ? 'Make a card' : 'Make another'}
             </PrimaryButton>
             {onPlay && (
               <PrimaryButton onClick={onPlay} style={{ flexShrink: 0 }}>

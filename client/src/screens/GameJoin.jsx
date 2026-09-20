@@ -5,7 +5,7 @@ import { joinGame, pollGame, fetchMyDecks, getMyPlayer, updateMyName } from '../
 
 const COLLECTION_OPT = { type: 'collection' };
 
-export default function GameJoin({ initialCode, collection, onJoined, onBack }) {
+export default function GameJoin({ initialCode, collection, onJoined, onBack, onMakeCards }) {
   const [code, setCode]            = useState(initialCode || '');
   const [name, setName]            = useState('');
   const [deckOpt, setDeckOpt]      = useState(COLLECTION_OPT);
@@ -55,6 +55,38 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack }) 
     } finally {
       setLoading(false);
     }
+  }
+
+  // No cards yet — block with a helpful message
+  const hasCards = collection && (collection.active?.length ?? 0) > 0;
+  if (collection && !hasCards) {
+    return (
+      <div className="game-root">
+        <div className="g-screen">
+          <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🃏</div>
+            <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 10 }}>
+              You need cards to play
+            </div>
+            <div style={{ color: 'var(--g-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+              Make at least one card before joining a game.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                className="g-btn g-btn-primary g-btn-lg"
+                onClick={onMakeCards || onBack}
+                style={{ width: '100%' }}
+              >
+                Make a card →
+              </button>
+              <button className="g-btn g-btn-ghost" onClick={onBack} style={{ width: '100%' }}>
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

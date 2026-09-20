@@ -285,6 +285,7 @@ export default function App() {
         collection={state.collection}
         onCreated={payload => dispatch({ type: 'GAME_CREATED', payload })}
         onBack={() => dispatch({ type: 'YOUR_CARDS' })}
+        onMakeCards={() => dispatch({ type: 'MAKE_ANOTHER' })}
       />
     );
   }
@@ -306,6 +307,7 @@ export default function App() {
         collection={state.collection}
         onJoined={payload => dispatch({ type: 'GAME_JOINED', payload })}
         onBack={() => dispatch({ type: 'YOUR_CARDS' })}
+        onMakeCards={() => dispatch({ type: 'MAKE_ANOTHER' })}
       />
     );
   }
