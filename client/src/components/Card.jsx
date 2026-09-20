@@ -154,7 +154,7 @@ export default function Card({
 
   const famStyle     = family ? (FAMILY_COLORS[family] || {}) : {};
   const showFamily   = state !== 'draft' && family;
-  const showKind     = state !== 'draft' && kind;
+  const showKind     = false; // kind/subheading hidden — non-functional in current game
   const showStats    = state === 'revealed';
   const statsSealed  = !showStats;  // show "?" when not revealed
 
@@ -442,6 +442,28 @@ export default function Card({
             </svg>
           </span>
           Checking…
+        </div>
+      )}
+
+      {/* TEST badge — shown on sample/test cards so testers can distinguish them */}
+      {(card?.isTestCard || card?.source === 'sample') && (
+        <div style={{
+          position: 'absolute',
+          top: Math.round(12 * scale),
+          right: Math.round(12 * scale),
+          background: 'rgba(251,191,36,.92)',
+          color: '#1b1026',
+          fontFamily: "'Instrument Sans', sans-serif",
+          fontSize: Math.round(11 * scale),
+          fontWeight: 800,
+          letterSpacing: '.12em',
+          textTransform: 'uppercase',
+          padding: `${Math.round(3 * scale)}px ${Math.round(7 * scale)}px`,
+          borderRadius: Math.round(5 * scale),
+          pointerEvents: 'none',
+          lineHeight: 1.3,
+        }}>
+          TEST
         </div>
       )}
 
