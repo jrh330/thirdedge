@@ -633,11 +633,9 @@ async function loadPlayers() {
 }
 
 async function loadMatches() {
-  const secret = getSecret();
-  if (!secret) return;
   document.getElementById('matches-body').innerHTML = '<div class="loading-msg">Loading…</div>';
   try {
-    const r = await fetch('/admin/matches', { headers: { 'x-admin-secret': secret } });
+    const r = await fetch('/admin/matches');
     if (!r.ok) { document.getElementById('matches-body').innerHTML = '<div class="empty-state">Failed to load.</div>'; return; }
     const matches = await r.json();
     renderMatches(matches);

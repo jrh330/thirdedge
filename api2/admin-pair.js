@@ -16,6 +16,7 @@ const { RULE_SET } = require('../engine2/constants');
 const { validateDeck } = require('../engine2/validate');
 const { logEvent } = require('./_events');
 
+// Secret-based auth — for destructive/sensitive actions (pair, force-end)
 function checkAdminAuth(req, res) {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) { res.status(401).json({ error: 'unauthorized' }); return false; }
@@ -28,6 +29,24 @@ function checkAdminAuth(req, res) {
   }
   return true;
 }
+
+// Cookie-based auth — for read-only listing (same as admin-page.js isAdminAuthed)
+const { isAdminAuthed: _isAdminAuthed } = (() => {
+  // Inline the same logic so we don't create a circular dependency
+  const ADMIN_COOKIE = 'alg_admin';
+  function isAdminAuthed(req) {
+    const secret = process.env.ADMIN_SECRET;
+    if (!secret) return false;
+    const cookie = req.cookies?.[ADMIN_COOKIE];
+    if (!cookie) return false;
+    const expected = crypto.createHmac('sha256', secret).update('admin-session').digest('base64url');
+    const a = Buffer.from(cookie);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    try { return crypto.timingSafeEqual(a, b); } catch { return false; }
+  }
+  return { isAdminAuthed };
+})();
 
 async function resolvePlayerCollection(playerId, db) {
   const coll = await db.collection('collectionsv2').findOne({ ownerId: playerId });
@@ -116,7 +135,7 @@ async function pairPlayers(req, res) {
 }
 
 async function listMatches(req, res) {
-  if (!checkAdminAuth(req, res)) return;
+  if (!_isAdminAuthed(req)) return res.status(401).json({ error: 'unauthorized' });
   try {
     const db = await getDb();
     const games = await db.collection('gamesv2')
