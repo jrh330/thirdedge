@@ -146,7 +146,8 @@ export default function CheckResult({ checkResult, draft, croppedBlob, onMint, o
           <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5 }}>
             Someone will take a look — we'll let you know.
           </p>
-          <SecondaryButton onClick={onEdit}>Make another</SecondaryButton>
+          <PrimaryButton onClick={onEdit}>Make another</PrimaryButton>
+          <SecondaryButton onClick={onYourCards}>Your cards</SecondaryButton>
         </div>
         <style>{MOBILE_HIDE_CARD_CSS}</style>
       </div>

@@ -11,6 +11,7 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack, on
   const [deckOpt, setDeckOpt]      = useState(COLLECTION_OPT);
   const [customDecks, setCustomDecks] = useState([]);
   const [loading, setLoading]      = useState(false);
+  const [matchGone, setMatchGone]  = useState(false);
   const [ToastEl, showToast]       = useGameToast();
 
   useEffect(() => {
@@ -51,10 +52,41 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack, on
         p2Name:     data.p2Name ?? pollData.p2?.name,
       });
     } catch (e) {
-      showToast(e.message || 'Failed to join game', true);
+      const msg = e.message || '';
+      if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('already full')) {
+        setMatchGone(true);
+      } else {
+        showToast(msg || 'Failed to join game', true);
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  // Match gone — room not found or already full
+  if (matchGone) {
+    return (
+      <div className="game-root">
+        <div className="g-screen">
+          <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🃏</div>
+            <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 10 }}>
+              That match has gone.
+            </div>
+            <div style={{ color: 'var(--g-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+              The room wasn't found or is already full. Ask for a new invite.
+            </div>
+            <button
+              className="g-btn g-btn-primary g-btn-lg"
+              onClick={onBack}
+              style={{ width: '100%' }}
+            >
+              Back to your cards
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // No cards yet — block with a helpful message

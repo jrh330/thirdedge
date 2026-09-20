@@ -9,7 +9,89 @@
  * identityPage({ heading, message, next, hint, error })
  */
 
-module.exports = function identityPage({ heading, message, next = '/play', hint = '', error = '' } = {}) {
+/**
+ * confirmPage({ playerName, token, next })
+ *
+ * "Continue as Maya?" — shown when a valid invite token is visited but the
+ * device has no session cookie for that player. Lets the visitor confirm
+ * they are who the link says they are before the session is set.
+ *
+ * "Continue" POSTs to /claim with the token.
+ * "I'm someone else" goes to /play which will show the identity/claim page.
+ */
+function confirmPage({ playerName, token, next = '/play' } = {}) {
+  const safeName = escHtml(playerName || 'this account');
+  const safeNext = escHtml(next);
+  const safeToken = escHtml(token || '');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allagaroo</title>
+  <link rel="icon" href="/mint/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #110915;
+      color: #F6F0FA;
+      font-family: 'Instrument Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1E1228;
+      border: 1px solid rgba(246,240,250,.1);
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .logo { font-size: 13px; font-weight: 700; color: #C84B8F; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 24px; }
+    h1 { font-size: 22px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+    .name { color: #C84B8F; }
+    .msg { color: #9B8AAE; font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+    .btn-primary {
+      display: block; width: 100%;
+      background: #C84B8F; border: none; border-radius: 10px;
+      color: #fff; font-size: 15px; font-weight: 700; font-family: inherit;
+      padding: 12px; cursor: pointer; letter-spacing: .3px; text-align: center;
+      margin-bottom: 10px;
+    }
+    .btn-primary:hover { background: #D9569E; }
+    .btn-ghost {
+      display: block; width: 100%;
+      background: none; border: 1px solid rgba(246,240,250,.14); border-radius: 10px;
+      color: #9B8AAE; font-size: 14px; font-weight: 600; font-family: inherit;
+      padding: 11px; cursor: pointer; text-align: center; text-decoration: none;
+    }
+    .btn-ghost:hover { border-color: rgba(246,240,250,.3); color: #F6F0FA; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Allagaroo</div>
+    <h1>Continue as <span class="name">${safeName}</span>?</h1>
+    <p class="msg">This link belongs to <strong>${safeName}</strong>. If that's you, tap Continue to sign in.</p>
+    <form method="POST" action="/claim">
+      <input type="hidden" name="code" value="${safeToken}">
+      <input type="hidden" name="next" value="${safeNext}">
+      <button class="btn-primary" type="submit">Continue as ${safeName}</button>
+    </form>
+    <a class="btn-ghost" href="/play">I'm someone else</a>
+  </div>
+</body>
+</html>`;
+};
+
+function identityPage({ heading, message, next = '/play', hint = '', error = '' } = {}) {
   const safeNext    = escHtml(next);
   const safeHint    = hint   ? escHtml(hint)    : '';
   const safeError   = error  ? escHtml(error)   : '';
@@ -173,6 +255,9 @@ module.exports = function identityPage({ heading, message, next = '/play', hint 
 </body>
 </html>`;
 };
+
+module.exports = identityPage;
+module.exports.confirmPage = confirmPage;
 
 function escHtml(str) {
   return String(str)

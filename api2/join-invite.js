@@ -14,8 +14,9 @@
  */
 
 const { getDb } = require('./_db');
-const { hashToken, signCookie, COOKIE_NAME, cookieOptions } = require('../auth/player');
+const { hashToken, signCookie, verifyCookie, COOKIE_NAME, cookieOptions } = require('../auth/player');
 const identityPage  = require('./identity-page');
+const { confirmPage } = require('./identity-page');
 const { validateNext } = require('./route-utils');
 
 module.exports = async function joinInvite(req, res) {
@@ -56,6 +57,22 @@ module.exports = async function joinInvite(req, res) {
         message: 'Your access has been revoked. Ask Jonathan if you think this is a mistake.',
         next,
         error: 'This invite has been revoked.',
+      }));
+    }
+
+    // Check whether this device already has a valid session for this player.
+    // If yes → re-issue the cookie silently and redirect (handles bookmark/repeat visits).
+    // If no  → show "Continue as [name]?" so the visitor can confirm they are who
+    //           the link says they are (prevents group-chat links signing in the wrong person).
+    const existingSession = verifyCookie(req.cookies?.[COOKIE_NAME]);
+    const alreadySignedIn = existingSession?.playerId === player.id;
+
+    if (!alreadySignedIn) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).send(confirmPage({
+        playerName: player.name,
+        token,
+        next,
       }));
     }
 
