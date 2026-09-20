@@ -82,6 +82,25 @@ async function getCollectionState(req, res) {
       if (c.family) families[c.family] = (families[c.family] || 0) + 1;
     }
 
+    // Live match — included so the client can show the resume banner without
+    // a separate round-trip.
+    const liveGame = await db.collection('gamesv2').findOne({
+      status: { $ne: 'complete' },
+      $or: [{ 'p1.id': ownerId }, { 'p2.id': ownerId }],
+    });
+    let liveMatch = null;
+    if (liveGame) {
+      liveMatch = {
+        code:    liveGame.code,
+        status:  liveGame.status,
+        role:    liveGame.p1?.id === ownerId ? 'creator' : 'joiner',
+        p1Id:    liveGame.p1?.id   || null,
+        p1Name:  liveGame.p1?.name || null,
+        p2Id:    liveGame.p2?.id   || null,
+        p2Name:  liveGame.p2?.name || null,
+      };
+    }
+
     return res.status(200).json({
       active:       activeCards,
       inactive:     inactiveCards,
@@ -96,6 +115,7 @@ async function getCollectionState(req, res) {
       collectionMax: COLLECTION_MAX,
       activeSize:   ACTIVE_SIZE,
       inactiveMax:  INACTIVE_MAX,
+      liveMatch,
     });
   } catch (err) {
     console.error("getCollectionState error:", err);

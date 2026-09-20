@@ -117,7 +117,7 @@ const CAT_ICONS = {
 
 // ── Main Game component ───────────────────────────────────────────────────────
 
-export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBackToCards }) {
+export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBackToCards, onMakeCard }) {
   const [ms, setMs]         = useState(null);
   const [status, setStatus] = useState('loading');
   const [loading, setLoading] = useState(false);
@@ -207,10 +207,15 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
             <div style={{ color: 'var(--g-muted)', fontSize: 14, marginBottom: 28 }}>
               {ms.roundsWon[p1.id]}-{ms.roundsWon[p2.id]} in rounds
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="g-btn g-btn-primary g-btn-lg" onClick={onNewGame}>New Game</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', width: '100%', maxWidth: 320, margin: '0 auto' }}>
+              {onMakeCard && (
+                <button className="g-btn g-btn-primary g-btn-lg" onClick={onMakeCard} style={{ width: '100%' }}>
+                  Make your own card →
+                </button>
+              )}
+              <button className="g-btn g-btn-ghost" onClick={onNewGame} style={{ width: '100%' }}>Play again</button>
               {onBackToCards && (
-                <button className="g-btn g-btn-ghost" onClick={onBackToCards}>Your Cards</button>
+                <button className="g-btn g-btn-ghost" onClick={onBackToCards} style={{ width: '100%' }}>Your cards</button>
               )}
             </div>
           </div>

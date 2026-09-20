@@ -3,6 +3,7 @@ import './tokens.css';
 import './game.css';
 
 import Header         from './components/Header.jsx';
+import ResumeBanner   from './components/ResumeBanner.jsx';
 import NoSession      from './screens/NoSession.jsx';
 import CollectionFull from './screens/CollectionFull.jsx';
 import Make           from './screens/Make.jsx';
@@ -30,6 +31,7 @@ const initialState = {
   checkResult: null,            // server response from /api2/check
   mintResult:  null,            // { card, placement }
   collection:  null,            // from /api2/collection-state
+  liveMatch:   null,            // { code, status, role, p1Id, p1Name, p2Id, p2Name }
   error:       null,
   // Game state
   gameCode:    null,
@@ -42,7 +44,7 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_COLLECTION':
-      return { ...state, collection: action.payload };
+      return { ...state, collection: action.payload, liveMatch: action.payload?.liveMatch ?? state.liveMatch };
     case 'RESTORE_DRAFT':
       return { ...state, draft: action.payload, screen: 'make' };
     case 'DRAFT_CHANGE':
@@ -120,13 +122,36 @@ function reducer(state, action) {
     case 'GAME_END':
       return {
         ...state,
-        screen: 'your_cards',
+        screen: 'game_over',
         gameCode: null,
         gameRole: null,
         myPlayerId: null,
         gameP1: null,
         gameP2: null,
+        liveMatch: null,
       };
+    case 'RESUME_GAME': {
+      const lm = action.payload;
+      if (lm.status === 'waiting') {
+        return {
+          ...state,
+          screen:     'game_wait',
+          gameCode:   lm.code,
+          myPlayerId: lm.p1Id,
+          gameRole:   'p1',
+        };
+      }
+      const myId = lm.role === 'creator' ? lm.p1Id : lm.p2Id;
+      return {
+        ...state,
+        screen:     'game',
+        gameCode:   lm.code,
+        myPlayerId: myId,
+        gameRole:   lm.role === 'creator' ? 'p1' : 'p2',
+        gameP1:     { id: lm.p1Id, name: lm.p1Name },
+        gameP2:     { id: lm.p2Id, name: lm.p2Name },
+      };
+    }
     default:
       return state;
   }
@@ -173,7 +198,9 @@ export default function App() {
   // On mount: fetch collection state + load draft + check for join code
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const joinCode = params.get('code');
+    // Support both /g/:code URL path and legacy ?code= query param
+    const pathMatch = window.location.pathname.match(/^\/g\/([A-Za-z0-9]{4,8})$/i);
+    const joinCode = (pathMatch ? pathMatch[1] : null) || params.get('code');
 
     getCollectionState()
       .then(data => {
@@ -322,7 +349,48 @@ export default function App() {
         p2={state.gameP2}
         onNewGame={() => dispatch({ type: 'GAME_END' })}
         onBackToCards={() => dispatch({ type: 'GAME_END' })}
+        onMakeCard={() => dispatch({ type: 'MAKE_ANOTHER' })}
       />
+    );
+  }
+
+  if (screen === 'game_over') {
+    return (
+      <div className="game-root">
+        <div className="g-screen">
+          <div style={{ textAlign: 'center', maxWidth: 400 }}>
+            <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -0.5, marginBottom: 12 }}>
+              Game over
+            </div>
+            <p style={{ color: 'var(--g-muted)', fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>
+              Make your own card and swap it in — the numbers come from your words and picture.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                className="g-btn g-btn-primary g-btn-lg"
+                onClick={() => dispatch({ type: 'MAKE_ANOTHER' })}
+                style={{ width: '100%' }}
+              >
+                Make a card →
+              </button>
+              <button
+                className="g-btn g-btn-ghost"
+                onClick={() => dispatch({ type: 'YOUR_CARDS' })}
+                style={{ width: '100%' }}
+              >
+                Your cards
+              </button>
+              <button
+                className="g-btn g-btn-ghost"
+                onClick={() => dispatch({ type: 'PLAY' })}
+                style={{ width: '100%' }}
+              >
+                Play again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -336,6 +404,11 @@ export default function App() {
         onBack={canGoBack ? handleEdit : null}
         backLabel="Edit"
         onPlay={() => dispatch({ type: 'PLAY' })}
+      />
+
+      <ResumeBanner
+        liveMatch={state.liveMatch}
+        onResume={() => dispatch({ type: 'RESUME_GAME', payload: state.liveMatch })}
       />
 
       <main style={{ flex: 1 }}>
