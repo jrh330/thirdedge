@@ -351,108 +351,12 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
     );
   }
 
-  // ── Trade phase ───────────────────────────────────────────────────────────
-  if (ms.pendingTrade) {
-    const trade    = ms.pendingTrade;
-    const winId    = trade.winner;
-    const winName  = winId === p1.id ? p1.name : p2.name;
-    const isWinner = myPlayerId === winId;
-
-    if (!isWinner) {
-      return (
-        <div className="game-root">
-          <div className="g-game-wrap g-fade">
-            {ToastEl}
-            <GameHud ms={ms} p1={p1} p2={p2} />
-            <div className="g-surface" style={{ textAlign: 'center', padding: 32 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Trade Phase</div>
-              <div style={{ color: 'var(--g-muted)', fontSize: 13 }}>
-                Waiting for {winName} to decide…
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="game-root">
-        <div className="g-game-wrap g-fade">
-          {ToastEl}
-          <GameHud ms={ms} p1={p1} p2={p2} />
-          <div className="g-surface">
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Trade Phase</div>
-            <div style={{ color: 'var(--g-muted)', fontSize: 12, marginBottom: 14 }}>
-              You won the round! Choose to Trade, Reclaim, or Decline.
-            </div>
-
-            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: 'var(--g-muted)' }}>
-              Your hand — pick a card to give away:
-            </div>
-            {mySlot?.hand.map(cid => (
-              <div
-                key={cid}
-                className={'g-trade-card-opt' + (selGiveCard === cid ? ' selected' : '')}
-                onClick={() => setSelGiveCard(cid === selGiveCard ? null : cid)}
-              >
-                <span style={{ fontWeight: 600 }}>{cards[cid]?.name || cid}</span>
-                <span style={{ fontSize: 11, color: 'var(--g-muted)' }}>{cardFamily(cards[cid])}</span>
-              </div>
-            ))}
-
-            {ms.swaps?.filter(s => s.by === winId && !s.undone).length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--g-muted)' }}>
-                  Reclaim a previous trade:
-                </div>
-                {ms.swaps.map((s, i) => s.by === winId && !s.undone ? (
-                  <div
-                    key={i}
-                    className={'g-trade-card-opt' + (selGiveCard === 'reclaim:' + i ? ' selected' : '')}
-                    onClick={() => setSelGiveCard('reclaim:' + i)}
-                  >
-                    <span style={{ fontSize: 12 }}>
-                      Reclaim: gave {cards[s.gaveCardId]?.name}, took {cards[s.tookCardId]?.name}
-                    </span>
-                  </div>
-                ) : null)}
-              </div>
-            )}
-          </div>
-
-          <div className="g-action-bar">
-            {selGiveCard?.startsWith('reclaim:') ? (
-              <button
-                className="g-btn g-btn-gold"
-                disabled={loading}
-                onClick={() => {
-                  const idx = parseInt(selGiveCard.split(':')[1]);
-                  act('executeReclaim', { swapIndex: idx });
-                }}
-              >
-                Reclaim Trade
-              </button>
-            ) : (
-              <button
-                className="g-btn g-btn-primary"
-                disabled={!selGiveCard || loading}
-                onClick={() => act('executeTrade', { giveCardId: selGiveCard })}
-              >
-                Execute Trade
-              </button>
-            )}
-            <button
-              className="g-btn g-btn-ghost"
-              disabled={loading}
-              onClick={() => act('declineTrade')}
-            >
-              Decline
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ── Trade phase (disabled) ───────────────────────────────────────────────
+   * To re-enable: remove this comment block and restore the pendingTrade UI.
+   * The engine also needs the trade block un-commented in engine2/match.js.
+   *
+   * if (ms.pendingTrade) { ... Trade / Reclaim / Decline UI ... }
+   * ── end trade phase ─────────────────────────────────────────────────── */
 
   // ── Phase flags ───────────────────────────────────────────────────────────
   const isOpening    = phase === 'opening';

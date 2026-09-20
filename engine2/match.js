@@ -154,13 +154,18 @@ function handleRoundOver(match) {
     return updatedMatch;
   }
 
-  // Otherwise move to trade phase
+  // TRADE PHASE DISABLED — skip straight to next round.
+  // Re-enable by uncommenting the block below and removing the startNextRound call.
+  return startNextRound(updatedMatch);
+
+  /* ── Trade phase (disabled) ────────────────────────────────────────────────
   const loser = match.playerIds.find(id => id !== winner);
   updatedMatch = {
     ...updatedMatch,
     pendingTrade: { winner, loser, roundIndex: round.index },
   };
   return updatedMatch;
+  ── end trade phase ─────────────────────────────────────────────────────── */
 }
 
 // ── Trade ─────────────────────────────────────────────────────────────────────
