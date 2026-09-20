@@ -1,18 +1,36 @@
 'use strict';
 
 /**
- * GET /join/:token
- * Validates an invite token and sets a session cookie, then redirects to /mint.
+ * GET /j/:token  (and legacy alias GET /join/:token)
+ *
+ * Validates an invite token, sets the session cookie, and redirects.
+ *
+ * Rules:
+ *  - 302 only — never 301 (would be cached in browsers forever).
+ *  - Cache-Control: no-store on every response.
+ *  - Referrer-Policy: no-referrer so the token doesn't leak.
+ *  - Never log the full token — log only the first 8 characters.
+ *  - ?next= is validated against the strict allowlist in route-utils.
  */
 
 const { getDb } = require('./_db');
 const { hashToken, signCookie, COOKIE_NAME, cookieOptions } = require('../auth/player');
+const identityPage  = require('./identity-page');
+const { validateNext } = require('./route-utils');
 
 module.exports = async function joinInvite(req, res) {
+  // Always set these — even on error responses
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+
   const { token } = req.params;
+  const next = validateNext(req.query.next);
 
   if (!token) {
-    return res.status(400).send(noInviteHtml());
+    return res.status(400).send(identityPage({
+      heading: 'This device isn\'t signed in.',
+      next,
+    }));
   }
 
   try {
@@ -20,27 +38,37 @@ module.exports = async function joinInvite(req, res) {
     const db = await getDb();
     const player = await db.collection('players').findOne({ tokenHash });
 
-    if (!player || player.revokedAt) {
-      return res.status(403).send(noInviteHtml());
+    if (!player) {
+      // Log only the first 8 chars — enough to correlate with admin logs
+      console.warn('join-invite: token not found [%s…]', token.slice(0, 8));
+      return res.status(403).send(identityPage({
+        heading: 'This invite isn\'t valid any more.',
+        message: 'The link may have expired or already been used on another account.',
+        next,
+        error: 'Invite not recognised. Ask Jonathan for a new link.',
+      }));
+    }
+
+    if (player.revokedAt) {
+      console.warn('join-invite: revoked token [%s…] player=%s', token.slice(0, 8), player.id);
+      return res.status(403).send(identityPage({
+        heading: 'This invite isn\'t valid any more.',
+        message: 'Your access has been revoked. Ask Jonathan if you think this is a mistake.',
+        next,
+        error: 'This invite has been revoked.',
+      }));
     }
 
     const cookieValue = signCookie(player.id, player.sessionVersion);
     res.cookie(COOKIE_NAME, cookieValue, cookieOptions());
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    return res.redirect(302, '/mint');
+    return res.redirect(302, next);
 
   } catch (err) {
-    console.error('join-invite error:', err);
-    return res.status(500).send(noInviteHtml());
+    console.error('join-invite error:', err.message);
+    return res.status(500).send(identityPage({
+      heading: 'Something went wrong.',
+      message: 'Please try again, or ask Jonathan for help.',
+      next,
+    }));
   }
 };
-
-function noInviteHtml() {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><title>Allagaroo</title></head>
-<body>
-<p>You need an invite link to play Allagaroo.</p>
-</body>
-</html>`;
-}
