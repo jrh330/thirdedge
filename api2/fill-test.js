@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { getDb } = require("./_db");
 const { requirePlayer } = require("../auth/player");
 const { ACTIVE_SIZE, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
+const { logEvent } = require('./_events');
 
 // The 30-card test pool (from card-game/design/test-pool.json)
 const TEST_POOL = [
@@ -170,6 +171,10 @@ async function giveSampleDeck(playerId, db) {
     { ownerId: playerId },
     { $set: { active: updatedActive, updatedAt: now } }
   );
+
+  if (newDocs.length > 0) {
+    logEvent(playerId, 'samples_given', { count: newDocs.length });
+  }
 
   return { added: newDocs.length, total: updatedActive.length };
 }

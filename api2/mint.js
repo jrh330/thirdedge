@@ -15,6 +15,7 @@ const { consumeSeal } = require("./check");
 const { cloudinary } = require("./_cloudinary");
 const { COLLECTION_MAX, ACTIVE_SIZE, INACTIVE_MAX, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
+const { logEvent } = require("./_events");
 
 // ── Collection placement helpers (inline from src/collection.js logic) ────────
 
@@ -176,6 +177,7 @@ module.exports = async function handler(req, res) {
       );
     }
 
+    logEvent(ownerId, 'card_minted');
     return res.status(200).json({ ok: true, card, placement });
   } catch (err) {
     console.error("api2/mint error:", err);

@@ -18,6 +18,7 @@ const { hashToken, signCookie, verifyCookie, COOKIE_NAME, cookieOptions } = requ
 const identityPage  = require('./identity-page');
 const { confirmPage } = require('./identity-page');
 const { validateNext } = require('./route-utils');
+const { logEvent } = require('./_events');
 
 module.exports = async function joinInvite(req, res) {
   // Always set these — even on error responses
@@ -66,6 +67,8 @@ module.exports = async function joinInvite(req, res) {
     //           the link says they are (prevents group-chat links signing in the wrong person).
     const existingSession = verifyCookie(req.cookies?.[COOKIE_NAME]);
     const alreadySignedIn = existingSession?.playerId === player.id;
+
+    logEvent(player.id, 'invite_opened');
 
     if (!alreadySignedIn) {
       res.setHeader('Cache-Control', 'no-store');

@@ -4,6 +4,7 @@ const { getDb } = require("./_db");
 const { genRoomCode } = require("./_utils");
 const { PRESETS } = require("./_decks");
 const { requirePlayer } = require("../auth/player");
+const { logEvent } = require("./_events");
 
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 
@@ -70,6 +71,7 @@ module.exports = async function handler(req, res) {
 
     await games.insertOne(doc);
 
+    logEvent(p1Id, 'match_created', { matchCode: code });
     return res.status(200).json({ code, playerId: p1Id, role: "p1" });
   } catch (err) {
     console.error("api2/create error:", err);

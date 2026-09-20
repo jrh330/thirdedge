@@ -170,3 +170,7 @@ export async function fetchImagePreview(url) {
   }
   return res.blob();
 }
+
+export function logClientEvent(event, extras = {}) {
+  post('/api2/events', { event, ...extras }).catch(() => {});
+}

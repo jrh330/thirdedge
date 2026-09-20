@@ -158,7 +158,49 @@ async function getPlayerState(req, res) {
   }
 }
 
-module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState };
+// ── GET /admin/events ─────────────────────────────────────────────────────────
+// Returns per-event counts and unique-player counts for the funnel view.
+
+const FUNNEL_STEPS = [
+  'invite_opened', 'session_created', 'name_set', 'samples_given',
+  'make_started', 'check_passed', 'check_declined', 'card_minted',
+  'match_created', 'match_joined', 'match_finished', 'rejoined',
+];
+
+async function getEventsFunnel(req, res) {
+  if (!isAdminAuthed(req)) return res.status(401).json({ error: 'unauthorized' });
+  try {
+    const db = await getDb();
+    const rows = await db.collection('eventsv1').aggregate([
+      { $group: {
+        _id:     '$event',
+        total:   { $sum: 1 },
+        players: { $addToSet: '$playerId' },
+      }},
+    ]).toArray();
+
+    const byEvent = Object.fromEntries(rows.map(r => [r._id, { total: r.total, players: r.players.length }]));
+    const funnel = FUNNEL_STEPS.map(e => ({
+      event:   e,
+      total:   byEvent[e]?.total   ?? 0,
+      players: byEvent[e]?.players ?? 0,
+    }));
+
+    // Recent events (last 50)
+    const recent = await db.collection('eventsv1')
+      .find({})
+      .sort({ at: -1 })
+      .limit(50)
+      .toArray();
+
+    res.json({ funnel, recent });
+  } catch (err) {
+    console.error('getEventsFunnel error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel };
 
 // ── HTML templates ────────────────────────────────────────────────────────────
 
@@ -551,6 +593,15 @@ function dashboardHtml() {
     <div id="matches-body"><div class="loading-msg">Loading…</div></div>
   </div>
 
+  <!-- Funnel -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <span style="font-size:14px;font-weight:700">Funnel</span>
+      <button class="ab" onclick="loadFunnel()" style="font-size:12px">Refresh</button>
+    </div>
+    <div id="funnel-body"><div class="loading-msg">Loading…</div></div>
+  </div>
+
 </div>
 
 <script>
@@ -876,10 +927,46 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+async function loadFunnel() {
+  document.getElementById('funnel-body').innerHTML = '<div class="loading-msg">Loading…</div>';
+  try {
+    const r = await fetch('/admin/events');
+    if (!r.ok) { document.getElementById('funnel-body').innerHTML = '<div class="empty-state">Failed to load.</div>'; return; }
+    const { funnel } = await r.json();
+    renderFunnel(funnel);
+  } catch(e) {
+    document.getElementById('funnel-body').innerHTML = '<div class="empty-state">Error.</div>';
+  }
+}
+
+function renderFunnel(funnel) {
+  const max = Math.max(...funnel.map(f => f.total), 1);
+  let html = \`<table>
+    <thead><tr>
+      <th>Step</th>
+      <th style="text-align:right">Events</th>
+      <th style="text-align:right">Players</th>
+      <th style="min-width:120px">Bar</th>
+    </tr></thead>
+    <tbody>\`;
+  for (const f of funnel) {
+    const pct = Math.round((f.total / max) * 100);
+    html += \`<tr>
+      <td style="font-family:monospace;font-size:12px">\${escHtml(f.event)}</td>
+      <td style="text-align:right;font-weight:700">\${f.total}</td>
+      <td style="text-align:right;color:#9B8AAE">\${f.players}</td>
+      <td><div style="background:rgba(200,75,143,.25);border-radius:3px;height:8px;width:\${pct}%;min-width:\${f.total > 0 ? 4 : 0}px"></div></td>
+    </tr>\`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('funnel-body').innerHTML = html;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('new-name').addEventListener('keydown', e => { if (e.key === 'Enter') createTester(); });
   loadPlayers();
   loadMatches();
+  loadFunnel();
 });
 </script>
 </body>

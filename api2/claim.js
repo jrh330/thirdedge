@@ -14,6 +14,7 @@ const { getDb }    = require('./_db');
 const { hashToken, signCookie, COOKIE_NAME, cookieOptions } = require('../auth/player');
 const identityPage = require('./identity-page');
 const { validateNext } = require('./route-utils');
+const { logEvent } = require('./_events');
 
 // ── In-memory rate limiter ────────────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ module.exports = async function claim(req, res) {
     res.cookie(COOKIE_NAME, cookieValue, cookieOptions());
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Cache-Control', 'no-store');
+    logEvent(player.id, 'session_created');
     return res.redirect(302, next || '/play');
 
   } catch (err) {

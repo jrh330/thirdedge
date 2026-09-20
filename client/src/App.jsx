@@ -18,7 +18,7 @@ import GameWait       from './screens/GameWait.jsx';
 import GameJoin       from './screens/GameJoin.jsx';
 import Game           from './screens/Game.jsx';
 
-import { getCollectionState, checkSubmission, mintCard } from './lib/api.js';
+import { getCollectionState, checkSubmission, mintCard, logClientEvent } from './lib/api.js';
 import { loadDraft, saveDraft, clearDraft } from './lib/draft.js';
 
 // ── State machine ─────────────────────────────────────────────────────────────
@@ -408,7 +408,10 @@ export default function App() {
 
       <ResumeBanner
         liveMatch={state.liveMatch}
-        onResume={() => dispatch({ type: 'RESUME_GAME', payload: state.liveMatch })}
+        onResume={() => {
+          logClientEvent('rejoined', state.liveMatch?.code ? { matchCode: state.liveMatch.code } : {});
+          dispatch({ type: 'RESUME_GAME', payload: state.liveMatch });
+        }}
       />
 
       <main style={{ flex: 1 }}>

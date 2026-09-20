@@ -9,6 +9,7 @@ const {
   executeReclaim,
   declineTrade,
 } = require("../engine2/match");
+const { logEvent } = require("./_events");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -88,10 +89,20 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ ok: false, error: err.message });
     }
 
+    const wasFinished = !game.matchState?.winnerId && match.winnerId;
     await games.updateOne(
       { _id: game._id },
-      { $set: { matchState: match, updatedAt: new Date() } }
+      { $set: {
+        matchState: match,
+        updatedAt:  new Date(),
+        ...(wasFinished ? { status: 'complete' } : {}),
+      }},
     );
+
+    if (wasFinished) {
+      logEvent(game.p1?.id, 'match_finished', { matchCode: code, winnerId: match.winnerId });
+      logEvent(game.p2?.id, 'match_finished', { matchCode: code, winnerId: match.winnerId });
+    }
 
     return res.status(200).json({ ok: true });
   } catch (err) {

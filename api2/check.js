@@ -18,6 +18,7 @@ const sharp       = require("sharp");
 const { uploadBuffer } = require("./_cloudinary");
 const { LEGAL_SHAPES, FAMILIES, COLLECTION_MAX, STAT_BUDGET, STAT_MIN, STAT_MAX } = require("../engine2/constants");
 const { requirePlayer } = require("../auth/player");
+const { logEvent } = require("./_events");
 
 // ── MongoDB-backed sealed-result store ────────────────────────────────────────
 // Survives restarts and multi-process deploys. TTL index expires docs after
@@ -165,6 +166,8 @@ module.exports.handler = async function handler(req, res) {
     if (flavorText.trim().length > FLAVOR_MAX)
       return res.status(400).json({ status: "error", error: `flavorText must be ${FLAVOR_MAX} characters or fewer` });
 
+    logEvent(ownerId, 'make_started');
+
     console.log("check: connecting to db");
     const db = await getDb();
     console.log("check: db connected");
@@ -213,6 +216,7 @@ module.exports.handler = async function handler(req, res) {
         update.$set.declineCount = 0;
       }
       await db.collection("players").updateOne({ id: player.id }, update);
+      logEvent(ownerId, 'check_declined', { category: gateResult.category });
       return res.status(200).json({ status: "declined", category: gateResult.category, message: gateResult.message });
     }
     if (gateResult.verdict === "review")
@@ -318,6 +322,8 @@ module.exports.handler = async function handler(req, res) {
       },
     };
     await storeSeal(submissionId, sealedResult);
+
+    logEvent(ownerId, 'check_passed');
 
     // Return only the safe check-screen fields — never the numbers
     return res.status(200).json({

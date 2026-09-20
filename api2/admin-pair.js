@@ -14,6 +14,7 @@ const { genRoomCode } = require('./_utils');
 const { createMatch } = require('../engine2/match');
 const { RULE_SET } = require('../engine2/constants');
 const { validateDeck } = require('../engine2/validate');
+const { logEvent } = require('./_events');
 
 function checkAdminAuth(req, res) {
   const secret = process.env.ADMIN_SECRET;
@@ -96,6 +97,9 @@ async function pairPlayers(req, res) {
       createdAt:  new Date(),
       updatedAt:  new Date(),
     });
+
+    logEvent(p1Id, 'match_created', { matchCode: code, pairedByAdmin: true });
+    logEvent(p2Id, 'match_joined',  { matchCode: code, pairedByAdmin: true });
 
     const baseUrl  = process.env.PUBLIC_BASE_URL || `https://${req.hostname}`;
     const gamePath = `/g/${code}`;

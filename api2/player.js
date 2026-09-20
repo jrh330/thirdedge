@@ -2,6 +2,7 @@
 
 const { getDb }         = require('./_db');
 const { requirePlayer } = require('../auth/player');
+const { logEvent }      = require('./_events');
 
 // ── GET /api2/player ──────────────────────────────────────────────────────────
 // Returns the current player's public profile (id + name).
@@ -34,6 +35,7 @@ async function updateName(req, res) {
       { id: player.id },
       { $set: { name: trimmed } }
     );
+    logEvent(player.id, 'name_set');
     return res.json({ ok: true, name: trimmed });
   } catch (err) {
     console.error('updateName error:', err);

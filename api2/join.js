@@ -7,6 +7,7 @@ const { createMatch } = require("../engine2/match");
 const { RULE_SET } = require("../engine2/constants");
 const { validateDeck } = require("../engine2/validate");
 const { requirePlayer } = require("../auth/player");
+const { logEvent } = require("./_events");
 
 const PRESET_NAMES = new Set(PRESETS.map(p => p.name));
 const PRESET_BY_NAME = Object.fromEntries(PRESETS.map(p => [p.name, p]));
@@ -132,6 +133,7 @@ module.exports = async function handler(req, res) {
       }
     );
 
+    logEvent(p2Id, 'match_joined', { matchCode: game.code });
     return res.status(200).json({ code: game.code, playerId: p2Id, role: "p2", p1Id, p2Id });
   } catch (err) {
     console.error("api2/join error:", err);
