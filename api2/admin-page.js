@@ -11,6 +11,7 @@
 
 const crypto = require('crypto');
 const { getDb } = require('./_db');
+const { buildMe } = require('./me');
 
 const ADMIN_COOKIE = 'alg_admin';
 
@@ -108,7 +109,28 @@ async function listPlayers(req, res) {
   }
 }
 
-module.exports = { adminPage, adminLogin, adminLogout, listPlayers };
+// ── GET /admin/players/:id/state ──────────────────────────────────────────────
+// Returns the same /api2/me shape for any player, so the admin dashboard and
+// the client can never disagree about a player's state.
+
+async function getPlayerState(req, res) {
+  if (!isAdminAuthed(req)) return res.status(401).json({ error: 'unauthorized' });
+
+  const { id } = req.params;
+  try {
+    const db = await getDb();
+    const player = await db.collection('players').findOne({ id });
+    if (!player) return res.status(404).json({ error: 'Player not found' });
+
+    const state = await buildMe(player);
+    res.json(state);
+  } catch (err) {
+    console.error('getPlayerState error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState };
 
 // ── HTML templates ────────────────────────────────────────────────────────────
 

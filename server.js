@@ -70,9 +70,11 @@ app.get(    "/api/cards",         getCards);
 app.post(   "/api/cards",         createCard);
 app.delete( "/api/cards/:cardId", deleteCard);
 
-// Player profile — /api2/player kept as alias until client migrates to /api2/me
+// Player profile
+const { getMe }         = require('./api2/me');
 const { getPlayer, updateName } = require('./api2/player');
-app.get('/api2/player',      getPlayer);
+app.get('/api2/me',          getMe);       // canonical
+app.get('/api2/player',      getPlayer);   // alias — kept until client migrates
 app.put('/api2/player/name', updateName);
 
 // ── Identity / invite routes ──────────────────────────────────────────────────
@@ -90,11 +92,12 @@ app.post(   "/admin/invites",             createInvite);
 app.delete( "/admin/invites/:token",      revokeInvite);
 app.post(   "/admin/players/:id/restore", restorePlayer);
 
-const { adminPage, adminLogin, adminLogout, listPlayers } = require("./api2/admin-page");
-app.get(  "/admin",          adminPage);
-app.post( "/admin/login",    adminLogin);
-app.post( "/admin/logout",   adminLogout);
-app.get(  "/admin/players",  listPlayers);
+const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState } = require("./api2/admin-page");
+app.get(  "/admin",                   adminPage);
+app.post( "/admin/login",             adminLogin);
+app.post( "/admin/logout",            adminLogout);
+app.get(  "/admin/players",           listPlayers);
+app.get(  "/admin/players/:id/state", getPlayerState);
 
 app.get("/lab", (req, res) => res.sendFile(path.join(__dirname, "public/lab.html")));
 
