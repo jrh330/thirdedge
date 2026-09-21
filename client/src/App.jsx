@@ -283,6 +283,15 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.screen]);
 
+  // Refresh collection whenever the user enters the your_cards screen so they
+  // always see current data (admin actions or other tabs could have changed it).
+  useEffect(() => {
+    if (state.screen !== 'your_cards') return;
+    getCollectionState()
+      .then(col => dispatch({ type: 'SET_COLLECTION', payload: col }))
+      .catch(() => {});
+  }, [state.screen]);
+
   const handleEdit = () => {
     checkAbortRef.current = true;
     dispatch({ type: 'CHECK_ABANDONED' });

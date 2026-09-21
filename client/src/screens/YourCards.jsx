@@ -38,7 +38,16 @@ function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwa
       setSwapTarget(null);
       onSwapped?.();
     } else {
-      setError(result?.error || 'Swap failed');
+      const msg = result?.error || 'Swap failed';
+      // "not in active/inactive" means stale state — refresh and let user retry
+      if (msg.includes('is not in')) {
+        setSwapping(false);
+        setSwapTarget(null);
+        setError('Card list was out of date — refreshed. Try again.');
+        onSwapped?.(); // triggers collection refresh
+      } else {
+        setError(msg);
+      }
     }
   };
 
@@ -78,12 +87,16 @@ function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwa
         )}
       </div>
 
+      {error && !swapping && !confirming && (
+        <span style={{ fontSize: 12, color: '#ff4444', textAlign: 'center' }}>{error}</span>
+      )}
+
       {!confirming && !swapping ? (
         <div style={{ display: 'flex', gap: 6 }}>
           {/* Swap button */}
           {!isActive && activeCards?.length > 0 && (
             <button
-              onClick={() => setSwapping(true)}
+              onClick={() => { setSwapping(true); setError(null); }}
               style={{
                 background: 'none',
                 border: '1px solid rgba(246,240,250,.3)',
@@ -101,7 +114,7 @@ function CardTile({ card, isActive, inactiveCards, activeCards, onDeleted, onSwa
           )}
           {isActive && inactiveCards?.length > 0 && (
             <button
-              onClick={() => setSwapping(true)}
+              onClick={() => { setSwapping(true); setError(null); }}
               style={{
                 background: 'none',
                 border: '1px solid rgba(246,240,250,.15)',
