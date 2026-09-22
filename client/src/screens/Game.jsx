@@ -255,22 +255,39 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
   const [playedCard, setPlayedCard]   = useState(null);
 
   const [ToastEl, showToast] = useGameToast();
-  const pollRef = useRef(null);
+  const pollRef        = useRef(null);
+  const pollFailsRef   = useRef(0);
+  const POLL_NORMAL_MS = 1500;
+  const POLL_BACKOFF_MS = 5000;
+  const POLL_FAIL_THRESHOLD = 5; // consecutive failures before toast + backoff
 
   // ── Poll ──────────────────────────────────────────────────────────────────
   const poll = useCallback(async () => {
     try {
       const data = await pollGame(code);
+      if (pollFailsRef.current >= POLL_FAIL_THRESHOLD) {
+        // Recovered — restore normal cadence
+        clearInterval(pollRef.current);
+        pollRef.current = setInterval(poll, POLL_NORMAL_MS);
+      }
+      pollFailsRef.current = 0;
       setStatus(data.status);
       if (data.matchState) setMs(data.matchState);
     } catch {
-      // ignore poll errors
+      pollFailsRef.current += 1;
+      if (pollFailsRef.current === POLL_FAIL_THRESHOLD) {
+        showToast('Connection lost — retrying…', true);
+        // Back off to avoid hammering a struggling server
+        clearInterval(pollRef.current);
+        pollRef.current = setInterval(poll, POLL_BACKOFF_MS);
+      }
     }
-  }, [code]);
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    pollFailsRef.current = 0;
     poll();
-    pollRef.current = setInterval(poll, 1500);
+    pollRef.current = setInterval(poll, POLL_NORMAL_MS);
     return () => clearInterval(pollRef.current);
   }, [poll]);
 

@@ -141,26 +141,22 @@ module.exports.handler = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  console.log("check: request received");
-
   try {
     // ── Auth ──────────────────────────────────────────────────────────────────
     let player;
     try {
       player = await requirePlayer(req);
     } catch (e) {
-      console.log("check: auth failed", e?.body);
       if (e.status && e.body) return res.status(e.status).json(e.body);
       throw e;
     }
 
     const { name, flavorText, imageUrl } = req.body || {};
     const ownerId = player.id;
-    console.log("check: player", ownerId, "name:", name?.slice(0, 20));
 
     // ── Basic input validation ────────────────────────────────────────────────
-    if (!name?.trim())       { console.log("check: missing name"); return res.status(400).json({ status: "error", error: "name required" }); }
-    if (!flavorText?.trim()) { console.log("check: missing flavorText"); return res.status(400).json({ status: "error", error: "flavorText required" }); }
+    if (!name?.trim())       return res.status(400).json({ status: "error", error: "name required" });
+    if (!flavorText?.trim()) return res.status(400).json({ status: "error", error: "flavorText required" });
     if (name.trim().length > NAME_MAX)
       return res.status(400).json({ status: "error", error: `name must be ${NAME_MAX} characters or fewer` });
     if (flavorText.trim().length > FLAVOR_MAX)
@@ -168,13 +164,10 @@ module.exports.handler = async function handler(req, res) {
 
     logEvent(ownerId, 'make_started');
 
-    console.log("check: connecting to db");
     const db = await getDb();
-    console.log("check: db connected");
 
     // ── Step 0: collection full? ──────────────────────────────────────────────
     const total = await db.collection("cardsv2").countDocuments({ ownerId, deleted: { $ne: true } });
-    console.log("check: total cards:", total);
     if (total >= COLLECTION_MAX)
       return res.status(200).json({ status: "collection_full" });
 
@@ -182,7 +175,6 @@ module.exports.handler = async function handler(req, res) {
     const fp = makeFingerprint(name.trim(), flavorText.trim());
     const existing = await db.collection("cardsv2").findOne({ ownerId, fingerprint: fp });
     if (existing) {
-      console.log("check: duplicate found");
       return res.status(200).json({
         status: "already_made",
         matchedName: existing.name,
@@ -193,7 +185,6 @@ module.exports.handler = async function handler(req, res) {
     // ── Decline block check ───────────────────────────────────────────────────
     const now = new Date();
     if (player.checkBlockedUntil && player.checkBlockedUntil > now) {
-      console.log("check: rate limited");
       return res.status(200).json({ status: "rate_limited" });
     }
     // Reset stale counter
@@ -238,8 +229,6 @@ module.exports.handler = async function handler(req, res) {
       { $set: { llmAttempts: [...recentAttempts, nowMs] } }
     );
 
-    console.log("check: passed duplicate/gate checks, calling LLM");
-
     // ── Image pipeline: strip EXIF, convert, resize, upload to Cloudinary ────
     let pendingImagePublicId = null;
     let pendingImageUrl      = null;
@@ -257,7 +246,6 @@ module.exports.handler = async function handler(req, res) {
         });
         pendingImagePublicId = upload.public_id;
         pendingImageUrl      = upload.secure_url;
-        console.log("check: image uploaded to Cloudinary:", pendingImagePublicId);
       } catch (imgErr) {
         console.error("check: image upload failed (non-fatal):", imgErr.message);
       }
@@ -285,18 +273,18 @@ module.exports.handler = async function handler(req, res) {
           messages: [{ role: "user", content: userContent }],
         });
         const text = msg.content[0].text.trim();
-        console.log("check: raw LLM text:", text.slice(0, 300));
         // Strip markdown code fences if present, then extract JSON object
         const stripped = text.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/im, '').trim();
         try { raw = JSON.parse(stripped); }
         catch { const m = stripped.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
       } catch (err) {
-        console.log("check: LLM call error:", err.message);
+        console.error("check: LLM call error:", err.message);
         return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
       }
       const v = validateLLMResponse(raw);
-      if (!v.ok) console.log("check: attempt", attempt, "failed:", v.reason, "| raw:", JSON.stringify(raw)?.slice(0, 200));
-      else console.log("check: attempt", attempt, "ok");
+      if (!v.ok && attempt === MAX_TRIES - 1) {
+        console.error("check: LLM validation failed after", MAX_TRIES, "attempts:", v.reason);
+      }
       if (v.ok) { llmResponse = raw; break; }
       lastError = v.reason;
     }
