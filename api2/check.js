@@ -229,37 +229,47 @@ module.exports.handler = async function handler(req, res) {
       { $set: { llmAttempts: [...recentAttempts, nowMs] } }
     );
 
-    // ── Image pipeline: strip EXIF, convert, resize, upload to Cloudinary ────
+    // ── Image pipeline + LLM call — run in parallel ───────────────────────────
+    // sharp processing is synchronous CPU work so it must finish before either
+    // branch starts, but the Cloudinary upload and the LLM call are both I/O
+    // and have no dependency on each other — run them simultaneously.
     let pendingImagePublicId = null;
     let pendingImageUrl      = null;
+    let processedImageBuffer = null;
+
     if (req.file?.buffer) {
       try {
-        const processed = await sharp(req.file.buffer)
+        processedImageBuffer = await sharp(req.file.buffer)
           .rotate()                                            // auto-orient, strips EXIF orientation
           .jpeg({ quality: 88 })                             // convert to JPEG (handles HEIC via libvips)
           .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
           .toBuffer();
-        const upload = await uploadBuffer(processed, {
-          folder:        "allagaroo/pending",
-          resource_type: "image",
-          format:        "jpg",
-        });
-        pendingImagePublicId = upload.public_id;
-        pendingImageUrl      = upload.secure_url;
       } catch (imgErr) {
-        console.error("check: image upload failed (non-fatal):", imgErr.message);
+        console.error("check: image processing failed (non-fatal):", imgErr.message);
       }
     }
 
     // ── Steps 4 + 5: LLM scoring with validation retry ───────────────────────
+    // Build user content with base64 image (no URL dependency on Cloudinary).
     const userContent = [];
-    if (pendingImageUrl) {
-      userContent.push({ type: "image", source: { type: "url", url: pendingImageUrl } });
+    if (processedImageBuffer) {
+      userContent.push({
+        type: "image",
+        source: { type: "base64", media_type: "image/jpeg", data: processedImageBuffer.toString("base64") },
+      });
     }
     userContent.push({
       type: "text",
       text: `Card name: ${name.trim()}\nAbout it: ${flavorText.trim()}`,
     });
+
+    // Kick off Cloudinary upload in parallel with the LLM call.
+    const uploadPromise = processedImageBuffer
+      ? uploadBuffer(processedImageBuffer, {
+          folder: "allagaroo/pending", resource_type: "image", format: "jpg",
+        }).then(u => { pendingImagePublicId = u.public_id; pendingImageUrl = u.secure_url; })
+          .catch(err => { console.error("check: image upload failed (non-fatal):", err.message); })
+      : Promise.resolve();
 
     let llmResponse = null;
     let lastError = null;
@@ -268,11 +278,21 @@ module.exports.handler = async function handler(req, res) {
       try {
         const msg = await getClient().messages.create({
           model: "claude-sonnet-4-6",
-          max_tokens: 1500,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: userContent }],
+          // Output is a compact JSON object — ~150 tokens. 400 gives ample headroom
+          // for longer reasoning lines without burning time on unused token budget.
+          max_tokens: 400,
+          // Cache the 25 KB rubric across calls — saves re-processing on every request.
+          // The cache is warm for 5 minutes after first use; cold starts pay full price.
+          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          messages: [
+            { role: "user",      content: userContent },
+            // Prefill the assistant turn so the model starts directly with the JSON
+            // object rather than generating any preamble text first.
+            { role: "assistant", content: "{" },
+          ],
         });
-        const text = msg.content[0].text.trim();
+        // Restore the prefilled "{" that the API strips from the response
+        const text = ("{" + msg.content[0].text).trim();
         // Strip markdown code fences if present, then extract JSON object
         const stripped = text.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/im, '').trim();
         try { raw = JSON.parse(stripped); }
@@ -288,6 +308,9 @@ module.exports.handler = async function handler(req, res) {
       if (v.ok) { llmResponse = raw; break; }
       lastError = v.reason;
     }
+
+    // Wait for Cloudinary to finish (it's been running in parallel)
+    await uploadPromise;
     if (!llmResponse)
       return res.status(500).json({ status: "error", error: `Scoring failed after ${MAX_TRIES} attempts: ${lastError}` });
 
