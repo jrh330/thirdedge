@@ -5,7 +5,7 @@ import { joinGame, pollGame, fetchMyDecks, getMyPlayer, updateMyName } from '../
 
 const COLLECTION_OPT = { type: 'collection' };
 
-export default function GameJoin({ initialCode, collection, onJoined, onBack, onMakeCards }) {
+export default function GameJoin({ initialCode, collection, onJoined, onWaiting, onBack, onMakeCards }) {
   const [code, setCode]            = useState(initialCode || '');
   const [name, setName]            = useState('');
   const [deckOpt, setDeckOpt]      = useState(COLLECTION_OPT);
@@ -38,6 +38,12 @@ export default function GameJoin({ initialCode, collection, onJoined, onBack, on
       if (deckOpt.type === 'custom') body.deckId   = deckOpt.id;
       const data = await joinGame(body);
       if (data.error) throw new Error(data.error);
+
+      // Rejoining your own game that is still waiting for an opponent
+      if (data.rejoined && data.waiting) {
+        onWaiting?.({ code: data.code, myPlayerId: data.playerId, myRole: data.role });
+        return;
+      }
 
       // Fetch poll to get player names
       const pollData = await pollGame(trimmedCode);

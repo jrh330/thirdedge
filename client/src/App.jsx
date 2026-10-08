@@ -212,7 +212,11 @@ export default function App() {
 
         // Check for ?code= join param only after successful auth
         if (joinCode) {
-          window.history.replaceState({}, '', window.location.pathname);
+          // Refreshing during your own game: go straight back in
+          if (data?.liveMatch?.code && data.liveMatch.code.toUpperCase() === joinCode.toUpperCase()) {
+            dispatch({ type: 'RESUME_GAME', payload: data.liveMatch });
+            return;
+          }
           dispatch({ type: 'JOIN_VIA_URL', payload: { code: joinCode.toUpperCase() } });
           return;
         }
@@ -292,6 +296,16 @@ export default function App() {
       .catch(() => {});
   }, [state.screen]);
 
+  // Keep the game code in the address while in a game, so a refresh (or a
+  // phone reopening the tab) lands back in the same match.
+  useEffect(() => {
+    const inGame = ['game', 'game_wait', 'game_join'].includes(state.screen) && state.gameCode;
+    const want = inGame ? `/g/${state.gameCode}` : '/play';
+    if (window.location.pathname !== want && (inGame || /^\/g\//i.test(window.location.pathname))) {
+      window.history.replaceState({}, '', want);
+    }
+  }, [state.screen, state.gameCode]);
+
   const handleEdit = () => {
     checkAbortRef.current = true;
     dispatch({ type: 'CHECK_ABANDONED' });
@@ -343,6 +357,7 @@ export default function App() {
         initialCode={state.gameCode}
         collection={state.collection}
         onJoined={payload => dispatch({ type: 'GAME_JOINED', payload })}
+        onWaiting={payload => dispatch({ type: 'GAME_CREATED', payload })}
         onBack={() => dispatch({ type: 'YOUR_CARDS' })}
         onMakeCards={() => dispatch({ type: 'MAKE_ANOTHER' })}
       />

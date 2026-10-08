@@ -100,7 +100,30 @@ module.exports = async function handler(req, res) {
 
     const db = await getDb();
     const games = db.collection("gamesv2");
-    const game = await games.findOne({ code: code.toUpperCase(), status: "waiting" });
+    // Rejoin: a player already in this game (after a refresh, or on another
+    // device) gets their seat back instead of "room not found".
+    const existing = await games.findOne({ code: code.toUpperCase(), status: { $ne: "complete" } });
+    if (existing) {
+      const seat = existing.p1?.id === player.id ? "p1"
+                 : existing.p2?.id === player.id ? "p2" : null;
+      if (seat) {
+        logEvent(player.id, 'match_rejoined', { matchCode: existing.code });
+        return res.status(200).json({
+          code: existing.code, playerId: player.id, role: seat,
+          p1Id: existing.p1?.id || null, p2Id: existing.p2?.id || null,
+          p1Name: existing.p1?.name || null, p2Name: existing.p2?.name || null,
+          rejoined: true, waiting: existing.status === "waiting",
+        });
+      }
+      if (existing.status === "playing") {
+        return res.status(409).json({
+          error: `Game ${existing.code} is already under way between two other players. You're signed in as ${player.name || "a different player"} on this device.`,
+          code: "not_your_match",
+        });
+      }
+    }
+
+    const game = existing && existing.status === "waiting" ? existing : null;
 
     if (!game) {
       return res.status(404).json({ error: "Room not found or already full" });
