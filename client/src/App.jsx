@@ -322,6 +322,7 @@ export default function App() {
         onCreated={payload => dispatch({ type: 'GAME_CREATED', payload })}
         onBack={() => dispatch({ type: 'YOUR_CARDS' })}
         onMakeCards={() => dispatch({ type: 'MAKE_ANOTHER' })}
+        onJoinCode={code => dispatch({ type: 'JOIN_VIA_URL', payload: { code } })}
       />
     );
   }

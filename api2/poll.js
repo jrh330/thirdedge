@@ -2,6 +2,7 @@
 
 const { getDb }        = require("./_db");
 const { requirePlayer } = require("../auth/player");
+const { ROUND_POINTS } = require("../engine2/constants");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -59,6 +60,7 @@ module.exports = async function handler(req, res) {
         lastResult:     round.phase === "reveal" ? (round.lastResult     || null) : null,
         lastPlayed:     round.phase === "reveal" ? (round.lastPlayed     || null) : null,
         lastCategories: round.phase === "reveal" ? (round.lastCategories || null) : null,
+        upNext:         round.phase === "reveal" ? (round.upNext         || null) : null,
         players: round.players.map(p => ({
           playerId:  p.playerId,
           handCount: p.hand.length,
@@ -94,6 +96,8 @@ module.exports = async function handler(req, res) {
 
       response.matchState = {
         roundsWon:    ms.roundsWon,
+        roundsToWin:  2,
+        roundPoints:  ROUND_POINTS,
         winnerId:     ms.winnerId,
         pendingTrade: ms.pendingTrade ? { winner: ms.pendingTrade.winner, loser: ms.pendingTrade.loser } : null,
         round:        roundView,

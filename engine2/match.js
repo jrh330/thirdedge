@@ -14,6 +14,9 @@ const {
 const { validateDeck } = require("./validate");
 const { setupRound, submitMove, revealAndAdvance, resolveToReveal, advanceTurn, roundWinner } = require("./round");
 
+/** Rounds a player must win to take the match. */
+const ROUNDS_TO_WIN = 2;
+
 // ── Match creation ────────────────────────────────────────────────────────────
 
 /**
@@ -107,7 +110,23 @@ function resolveCurrentTurn(match) {
 
   // Normal turn: stop at "reveal" phase
   const { round: revealRound } = resolveToReveal(round, cardLookup(match), match.ruleSet);
-  return replaceCurrentRound(match, revealRound);
+  return replaceCurrentRound(match, { ...revealRound, upNext: peekUpNext(match, revealRound) });
+}
+
+/**
+ * What pressing "continue" after this reveal will lead to, so the client can
+ * label the button and announce a round or match win before it happens.
+ * advanceTurn is pure, so this is a dry run with no side effects.
+ * @returns {{ kind: "turn"|"round"|"match"|"replay", winnerId: string|null }}
+ */
+function peekUpNext(match, revealRound) {
+  const next = advanceTurn(revealRound);
+  if (next.phase === "exhausted-tied") return { kind: "replay", winnerId: null };
+  if (next.phase !== "over") return { kind: "turn", winnerId: null };
+  const winner = roundWinner(next);
+  if (!winner) return { kind: "turn", winnerId: null };
+  const wins = (match.roundsWon[winner] || 0) + 1;
+  return { kind: wins >= ROUNDS_TO_WIN ? "match" : "round", winnerId: winner };
 }
 
 /**
@@ -146,8 +165,8 @@ function handleRoundOver(match) {
 
   let updatedMatch = { ...match, roundsWon: updatedWon };
 
-  // Check match winner (first to 2)
-  if (updatedWon[winner] >= 2) {
+  // Check match winner (first to ROUNDS_TO_WIN)
+  if (updatedWon[winner] >= ROUNDS_TO_WIN) {
     updatedMatch = { ...updatedMatch, winnerId: winner };
     // Undo all trades on match end
     updatedMatch = undoAllTrades(updatedMatch);

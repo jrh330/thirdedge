@@ -739,6 +739,93 @@
 /* ══════════════════════════════════════════
    MOBILE ≤ 480px
 ══════════════════════════════════════════ */
+
+/* ── Scoreboard (match + round score, all screen sizes) ─────────────── */
+.g-scoreboard {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin: 12px 0 8px;
+}
+.g-sb-block {
+  flex: 1;
+  min-width: 0;
+  background: rgba(246,240,250,.05);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.g-sb-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.g-sb-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: .9rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.g-sb-line b {
+  font-family: 'Rubik', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--key);
+}
+.g-sb-dash { color: var(--muted); }
+.g-sb-you  { color: var(--pink); font-weight: 700; }
+.g-sb-opp  { color: var(--teal); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+
+.g-id-rounds {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--key);
+}
+
+/* Round / match outcome, shown on the reveal that decides it */
+.g-outcome-banner {
+  width: 100%;
+  text-align: center;
+  font-family: 'Bagel Fat One', sans-serif;
+  font-size: 1.25rem;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: rgba(246,240,250,.08);
+  color: var(--key);
+}
+.g-outcome-banner.g-win  { background: var(--pink); color: var(--ink); }
+.g-outcome-banner.g-loss { background: var(--teal); color: var(--ink); }
+
+/* Mobile action bar contents */
+.g-mab-cats { display: flex; gap: 6px; width: 100%; }
+.g-mab-cat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(246,240,250,.06);
+  box-shadow: inset 0 0 0 1.5px rgba(246,240,250,.45);
+  color: var(--key);
+  font-family: inherit;
+  cursor: pointer;
+}
+.g-mab-cat.g-cat-chosen { background: var(--pink); box-shadow: none; color: var(--ink); }
+.g-mab-cat-icon { line-height: 0; }
+.g-mab-cat-icon svg { width: 16px; height: 16px; }
+.g-mab-cat-name { font-family: 'Bagel Fat One', sans-serif; font-size: .85rem; text-transform: capitalize; }
+.g-mab-cat-total { font-family: 'Rubik', sans-serif; font-size: 1.15rem; font-weight: 700; }
+.g-mab-act { width: 100%; }
+
 /* Mobile action bar — hidden on desktop, shown on mobile */
 .g-mobile-action-bar {
   display: none;
@@ -764,7 +851,7 @@
   #g-right-rail {
     border-left: none;
     border-top: 1px solid var(--line);
-    padding-bottom: 80px;
+    padding-bottom: 190px;
   }
 
   .g-your-fan { flex-wrap: wrap; height: auto; }
@@ -784,7 +871,16 @@
     z-index: 50;
     gap: 8px;
     justify-content: center;
+    flex-direction: column;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
+
+  /* Category picker lives in the bottom bar on phones */
+  .g-cat-pills { display: none; }
+  .g-scoreboard { padding: 0 12px; }
+  .g-sb-block { padding: 6px 10px; }
+  .g-sb-line b { font-size: 1.25rem; }
+  .g-outcome-banner { width: auto; margin: 0 12px 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

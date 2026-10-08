@@ -242,6 +242,31 @@ function RevealResult({ r, p1, p2, cards }) {
   );
 }
 
+// ── Scoreboard: match and round score in words and numbers ───────────────────
+
+function Scoreboard({ myName, theirName, myWins, theirWins, roundsToWin, myPts, theirPts, roundPoints, roundNo }) {
+  return (
+    <div className="g-scoreboard" role="status" aria-label="Score">
+      <div className="g-sb-block">
+        <div className="g-sb-label">Match &middot; best of {roundsToWin * 2 - 1}</div>
+        <div className="g-sb-line">
+          <span className="g-sb-you">You</span>
+          <b>{myWins}</b><span className="g-sb-dash">&ndash;</span><b>{theirWins}</b>
+          <span className="g-sb-opp">{theirName}</span>
+        </div>
+      </div>
+      <div className="g-sb-block">
+        <div className="g-sb-label">Round {roundNo} &middot; first to {roundPoints}</div>
+        <div className="g-sb-line">
+          <span className="g-sb-you">You</span>
+          <b>{myPts}</b><span className="g-sb-dash">&ndash;</span><b>{theirPts}</b>
+          <span className="g-sb-opp">{theirName}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Game component ───────────────────────────────────────────────────────
 
 export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBackToCards, onMakeCard }) {
@@ -347,9 +372,14 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
           {ToastEl}
           <div style={{ textAlign: 'center', maxWidth: 400 }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
-            <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 4 }}>{winName} wins!</div>
-            <div style={{ color: 'var(--g-muted)', fontSize: 14, marginBottom: 28 }}>
-              {ms.roundsWon[p1.id]}-{ms.roundsWon[p2.id]} in rounds
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--g-muted)', marginBottom: 6 }}>
+              Match over
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 4 }}>
+              {ms.winnerId === myPlayerId ? 'You win the match!' : `${winName} wins the match`}
+            </div>
+            <div style={{ fontSize: 16, marginBottom: 28 }}>
+              Rounds won: You <b>{myWins}</b> &ndash; <b>{theirWins}</b> {theirName}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', width: '100%', maxWidth: 320, margin: '0 auto' }}>
               {onMakeCard && (
@@ -427,13 +457,34 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
     return anchorVal + playVal + bond;
   }
 
+  // ── What continuing after this reveal leads to (from the server) ─────────
+  const upNext   = isReveal ? (r.upNext || { kind: 'turn' }) : null;
+  const roundNo  = (r.index ?? 0) + 1;
+  const iWinNext = upNext?.winnerId === myPlayerId;
+  let outcomeMsg = null;
+  if (upNext?.kind === 'match') {
+    outcomeMsg = iWinNext ? 'You win the match!' : `${theirName} wins the match.`;
+  } else if (upNext?.kind === 'round') {
+    outcomeMsg = iWinNext ? `You win round ${roundNo}!` : `${theirName} wins round ${roundNo}.`;
+  } else if (upNext?.kind === 'replay') {
+    outcomeMsg = 'Cards ran out with the score level — this round is replayed.';
+  }
+  if (outcomeMsg) noteLine = outcomeMsg;
+
+  const NEXT_LABELS = {
+    turn:   'Next turn →',
+    round:  'Next round →',
+    replay: 'Replay round →',
+    match:  'Final result →',
+  };
+
   // ── Action button label / state ───────────────────────────────────────────
   let actLabel    = 'Flip!';
   let actDisabled = true;
   let actIsNext   = false;
 
   if (isReveal) {
-    actLabel    = 'Next turn \u2192';
+    actLabel    = NEXT_LABELS[upNext.kind] || NEXT_LABELS.turn;
     actDisabled = loading;
     actIsNext   = true;
   } else if (mySubmitted) {
@@ -470,24 +521,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
     ? (theirLastPlayed ? 'revealed' : 'empty')
     : (theirSlot?.submitted ? 'locked' : 'empty');
 
-  // ── Pip rows ──────────────────────────────────────────────────────────────
   const roundsToWin = ms.roundsToWin ?? 2;
-
-  function PipRow({ wins, total, variant }) {
-    return (
-      <div className="g-pip-row">
-        {Array.from({ length: total }).map((_, i) => {
-          const filled = i < wins;
-          return (
-            <div
-              key={i}
-              className={`g-pip ${filled ? 'filled' : ''} ${variant}`}
-            />
-          );
-        })}
-      </div>
-    );
-  }
 
   // ── 3-column table layout ─────────────────────────────────────────────────
   return (
@@ -509,7 +543,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
           <div className="g-identity">
             <div className="g-id-label g-opp-label">Opponent</div>
             <div className="g-id-name">{theirName}</div>
-            <PipRow wins={theirWins} total={roundsToWin} variant="g-opp-pip" />
+            <div className="g-id-rounds">{theirWins} of {roundsToWin} rounds won</div>
           </div>
 
           {/* Family wheel */}
@@ -522,7 +556,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
 
           {/* Your identity */}
           <div className="g-identity">
-            <PipRow wins={myWins} total={roundsToWin} variant="g-you-pip" />
+            <div className="g-id-rounds">{myWins} of {roundsToWin} rounds won</div>
             <div className="g-id-name">{myName}</div>
             <div className="g-id-label g-you-label">Your deck</div>
           </div>
@@ -530,6 +564,23 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
 
         {/* ── CENTRE ── */}
         <main id="g-centre">
+          <Scoreboard
+            myName={myName}
+            theirName={theirName}
+            myWins={myWins}
+            theirWins={theirWins}
+            roundsToWin={roundsToWin}
+            myPts={mySlot?.points ?? 0}
+            theirPts={theirSlot?.points ?? 0}
+            roundPoints={ms.roundPoints ?? 3}
+            roundNo={roundNo}
+          />
+          {outcomeMsg && (
+            <div className={'g-outcome-banner' + (upNext.kind === 'replay' ? '' : iWinNext ? ' g-win' : ' g-loss')}>
+              {outcomeMsg}
+            </div>
+          )}
+
           {/* Opponent fan */}
           <OppFan count={theirSlot?.handCount ?? 0} />
 
@@ -716,28 +767,35 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
         </aside>
       </div>
 
-      {/* Mobile action bar fallback (hidden on desktop via CSS) */}
+      {/* Mobile action bar (hidden on desktop via CSS): category picker + action
+          button stay pinned to the bottom so nothing needs scrolling each turn */}
       <div className="g-mobile-action-bar">
-        {isReveal
-          ? (
-            <button
-              className="g-btn g-btn-primary"
-              disabled={loading}
-              onClick={() => act('advanceTurn')}
-            >
-              Next Turn →
-            </button>
-          )
-          : (
-            <button
-              className="g-btn g-btn-primary"
-              disabled={actDisabled}
-              onClick={submitMove}
-            >
-              {isOpening ? 'Lock in' : 'Flip!'}
-            </button>
-          )
-        }
+        {!isReveal && !isOpening && !mySubmitted && (
+          <div className="g-mab-cats" role="group" aria-label="Choose a category">
+            {['power', 'speed', 'wits'].map(cat => {
+              const chosen = selCat === cat;
+              return (
+                <button
+                  key={cat}
+                  className={'g-mab-cat' + (chosen ? ' g-cat-chosen' : '')}
+                  aria-pressed={chosen}
+                  onClick={() => setSelCat(cat === selCat ? null : cat)}
+                >
+                  <span className="g-mab-cat-icon">{CAT_ICONS[cat]}</span>
+                  <span className="g-mab-cat-name">{cat}</span>
+                  <span className="g-mab-cat-total">{catTotal(cat)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <button
+          className="g-btn g-btn-primary g-mab-act"
+          disabled={actDisabled}
+          onClick={() => { if (isReveal) act('advanceTurn'); else submitMove(); }}
+        >
+          {actLabel}
+        </button>
       </div>
     </div>
   );

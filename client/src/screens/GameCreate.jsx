@@ -5,8 +5,9 @@ import { createGame, fetchMyDecks, getMyPlayer, updateMyName } from '../lib/api.
 
 const COLLECTION_OPT = { type: 'collection' };
 
-export default function GameCreate({ collection, onCreated, onBack, onMakeCards }) {
+export default function GameCreate({ collection, onCreated, onBack, onMakeCards, onJoinCode }) {
   const [name, setName]              = useState('');
+  const [joinCode, setJoinCode]      = useState('');
   const [deckOpt, setDeckOpt]       = useState(COLLECTION_OPT);
   const [customDecks, setCustomDecks] = useState([]);
   const [loading, setLoading]        = useState(false);
@@ -38,6 +39,13 @@ export default function GameCreate({ collection, onCreated, onBack, onMakeCards 
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleJoinCode(e) {
+    e.preventDefault();
+    const code = joinCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length < 4) { showToast('Enter the game code from your opponent', true); return; }
+    onJoinCode(code);
   }
 
   // No cards yet — block with a helpful message
@@ -107,6 +115,34 @@ export default function GameCreate({ collection, onCreated, onBack, onMakeCards 
               Back
             </button>
           </div>
+
+          {onJoinCode && (
+            <form
+              className="g-surface g-fade"
+              onSubmit={handleJoinCode}
+              style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 900 }}>Joining someone else&rsquo;s game?</div>
+              <div>
+                <label htmlFor="join-code">Game code</label>
+                <input
+                  id="join-code"
+                  value={joinCode}
+                  onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. K7QP"
+                  maxLength={8}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                  style={{ textTransform: 'uppercase', letterSpacing: 4, fontWeight: 700 }}
+                />
+              </div>
+              <button type="submit" className="g-btn g-btn-ghost" style={{ width: '100%' }}>
+                Join game &rarr;
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

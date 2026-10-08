@@ -7,7 +7,7 @@ export default function GameWait({ code, onOpponentJoined, onBack }) {
   const [ToastEl, showToast] = useGameToast();
   const pollRef = useRef(null);
 
-  const shareLink = window.location.origin + '/mint?code=' + code;
+  const shareLink = window.location.origin + '/g/' + code;
   const canShare  = !!navigator.share;
 
   useEffect(() => {

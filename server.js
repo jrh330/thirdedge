@@ -155,7 +155,7 @@ app.get('/g/:code', (req, res) => {
     heading: 'This device isn\'t signed in.',
     message: 'Paste your invite link or code to join this match.',
     next: `/g/${code}`,
-    hint: `Match code: <strong>${code}</strong>`,
+    hint: `Match code: ${code}`,  // plain text: identityPage escapes the hint
   }));
 });
 
