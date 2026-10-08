@@ -21,6 +21,10 @@ app.get('/mint',  (req, res) => {
 });
 app.get('/mint/', (_req, res) => res.redirect(302, '/play'));
 
+// The bare address goes to the game. (It used to serve the v1 prototype,
+// now in archive/.)
+app.get('/', (_req, res) => res.redirect(302, '/play'));
+
 // ── Static assets ─────────────────────────────────────────────────────────────
 // Keep /mint/assets/… alive — the Vite build references them at this path.
 app.use(express.static(path.join(__dirname, "public")));
@@ -29,11 +33,6 @@ app.use('/mint', express.static(path.join(__dirname, 'public/mint')));
 // ── API routes ────────────────────────────────────────────────────────────────
 // All API, auth, and admin routes must come before SPA routes so they are
 // never shadowed by the HTML catch-alls below.
-
-app.post("/api/create", require("./api/create"));
-app.post("/api/join",   require("./api/join"));
-app.get( "/api/poll",   require("./api/poll"));
-app.post("/api/action", require("./api/action"));
 
 app.post("/api2/create",       require("./api2/create"));
 app.post("/api2/join",         require("./api2/join"));
@@ -65,11 +64,6 @@ const { fill: fillTest, remove: removeTest, clearSamples } = require("./api2/fil
 app.post(   "/api2/collection/fill-test",    fillTest);
 app.delete( "/api2/collection/fill-test",    removeTest);
 app.post(   "/api2/collection/clear-samples", clearSamples);
-
-const { getCards, createCard, deleteCard } = require("./api/cards");
-app.get(    "/api/cards",         getCards);
-app.post(   "/api/cards",         createCard);
-app.delete( "/api/cards/:cardId", deleteCard);
 
 // Player profile
 const { getMe }         = require('./api2/me');
@@ -110,10 +104,6 @@ app.post( "/admin/pair",                  pairPlayers);
 app.get(  "/admin/matches",               listMatches);
 app.post( "/admin/matches/:code/end",     forceEndMatch);
 app.post( "/admin/matches/end-all",       forceEndAllMatches);
-
-app.get("/lab", (req, res) => res.sendFile(path.join(__dirname, "public/lab.html")));
-
-app.options("/api/*", (req, res) => res.sendStatus(200));
 
 if (process.env.NODE_ENV !== "production") {
   app.get("/_env", (req, res) => {
