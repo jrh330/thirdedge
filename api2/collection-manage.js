@@ -84,10 +84,17 @@ async function getCollectionState(req, res) {
 
     // Live match — included so the client can show the resume banner without
     // a separate round-trip.
-    const liveGame = await db.collection('gamesv2').findOne({
-      status: { $ne: 'complete' },
-      $or: [{ 'p1.id': ownerId }, { 'p2.id': ownerId }],
-    });
+    // A player can have more than one unfinished game (an old "waiting" game
+    // they never closed). Prefer the game in play, then the most recent.
+    const liveGame = (await db.collection('gamesv2')
+      .find({
+        status: { $ne: 'complete' },
+        $or: [{ 'p1.id': ownerId }, { 'p2.id': ownerId }],
+      })
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .toArray())
+      .sort((x, y) => (y.status === 'playing') - (x.status === 'playing'))[0] || null;
     let liveMatch = null;
     if (liveGame) {
       liveMatch = {

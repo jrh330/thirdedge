@@ -61,10 +61,17 @@ async function buildMe(player) {
 
   // ── 3. Live match ─────────────────────────────────────────────────────────
   // A match is "live" if it isn't complete and the player is one of the two seats.
-  const liveGame = await db.collection('gamesv2').findOne({
-    status: { $ne: 'complete' },
-    $or: [{ 'p1.id': playerId }, { 'p2.id': playerId }],
-  });
+  // A player can have more than one unfinished game (an old "waiting" game
+    // they never closed). Prefer the game in play, then the most recent.
+    const liveGame = (await db.collection('gamesv2')
+      .find({
+        status: { $ne: 'complete' },
+        $or: [{ 'p1.id': playerId }, { 'p2.id': playerId }],
+      })
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .toArray())
+      .sort((x, y) => (y.status === 'playing') - (x.status === 'playing'))[0] || null;
 
   let liveMatch = null;
   if (liveGame) {
