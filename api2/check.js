@@ -260,7 +260,8 @@ module.exports.handler = async function handler(req, res) {
     }
     userContent.push({
       type: "text",
-      text: `Card name: ${name.trim()}\nAbout it: ${flavorText.trim()}`,
+      text: `Card name: ${name.trim()}\nAbout it: ${flavorText.trim()}\n\n` +
+            `Reply with only the JSON object described in §8 — no other text before or after it.`,
     });
 
     // Kick off Cloudinary upload in parallel with the LLM call.
@@ -278,9 +279,9 @@ module.exports.handler = async function handler(req, res) {
       try {
         const msg = await getClient().messages.create({
           model: "claude-sonnet-4-6",
-          // Output is a compact JSON object — ~150 tokens. 400 gives ample headroom
-          // for longer reasoning lines without burning time on unused token budget.
-          max_tokens: 400,
+          // Output is a compact JSON object (~150–300 tokens). 1200 leaves room so a
+          // reply is never cut off mid-JSON; max_tokens is a ceiling, not a cost.
+          max_tokens: 1200,
           // Cache the 25 KB rubric across calls — saves re-processing on every request.
           // The cache is warm for 5 minutes after first use; cold starts pay full price.
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
@@ -295,7 +296,12 @@ module.exports.handler = async function handler(req, res) {
         // Strip markdown code fences if present, then extract JSON object
         const stripped = text.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/im, '').trim();
         try { raw = JSON.parse(stripped); }
-        catch { const m = stripped.match(/\{[\s\S]*\}/); raw = m ? JSON.parse(m[0]) : null; }
+        catch {
+          const m = stripped.match(/\{[\s\S]*\}/);
+          try { raw = m ? JSON.parse(m[0]) : null; } catch { raw = null; }
+        }
+        if (!raw) console.error("check: unparseable reply (stop_reason=%s): %s",
+          msg.stop_reason, text.slice(0, 200).replace(/\s+/g, " "));
       } catch (err) {
         console.error("check: LLM call error:", err.message);
         return res.status(500).json({ status: "error", error: `Scoring error: ${err.message}` });
