@@ -285,14 +285,13 @@ module.exports.handler = async function handler(req, res) {
           // The cache is warm for 5 minutes after first use; cold starts pay full price.
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [
-            { role: "user",      content: userContent },
-            // Prefill the assistant turn so the model starts directly with the JSON
-            // object rather than generating any preamble text first.
-            { role: "assistant", content: "{" },
+            // No assistant prefill: newer models reject a conversation that ends
+            // with an assistant turn. The parser below already strips fences and
+            // extracts the JSON object.
+            { role: "user", content: userContent },
           ],
         });
-        // Restore the prefilled "{" that the API strips from the response
-        const text = ("{" + msg.content[0].text).trim();
+        const text = (msg.content.find(b => b.type === "text")?.text || "").trim();
         // Strip markdown code fences if present, then extract JSON object
         const stripped = text.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/im, '').trim();
         try { raw = JSON.parse(stripped); }
