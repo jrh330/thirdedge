@@ -742,44 +742,80 @@
 
 /* ── Scoreboard (match + round score, all screen sizes) ─────────────── */
 .g-scoreboard {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   margin: 12px 0 8px;
-}
-.g-sb-block {
-  flex: 1;
-  min-width: 0;
+  padding: 10px 18px;
   background: rgba(246,240,250,.05);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 8px 12px;
+  border-radius: 14px;
 }
+.g-sb-side { min-width: 0; }
+.g-sb-them { text-align: right; }
+.g-sb-name {
+  font-family: 'Bagel Fat One', sans-serif;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.g-sb-rounds { font-size: .75rem; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.g-sb-rounds b { color: var(--key); font-family: 'Rubik', sans-serif; font-size: .95rem; }
+.g-sb-centre { text-align: center; }
 .g-sb-label {
-  font-size: .68rem;
+  font-size: .64rem;
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 2px;
 }
-.g-sb-line {
+.g-sb-score {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: .9rem;
-  white-space: nowrap;
-  overflow: hidden;
+  justify-content: center;
+  gap: 10px;
+  line-height: 1.05;
 }
-.g-sb-line b {
+.g-sb-score b {
   font-family: 'Rubik', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--key);
+  font-size: 2.2rem;
+  font-weight: 800;
 }
-.g-sb-dash { color: var(--muted); }
-.g-sb-you  { color: var(--pink); font-weight: 700; }
-.g-sb-opp  { color: var(--teal); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.g-sb-dash { color: var(--muted); font-size: 1.4rem; }
+.g-sb-you  { color: var(--pink); }
+.g-sb-opp  { color: var(--teal); }
+
+/* Turn result (right rail on reveal) */
+.g-rr { display: flex; flex-direction: column; gap: 4px; }
+.g-rr-headline {
+  font-family: 'Bagel Fat One', sans-serif;
+  font-size: 2rem;
+  line-height: 1.05;
+}
+.g-rr-win  { color: var(--pink); }
+.g-rr-loss { color: var(--teal); }
+.g-rr-tie  { color: var(--key); }
+.g-rr-sub { font-size: .95rem; font-weight: 700; color: var(--key); }
+.g-rr-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: .78rem;
+  color: var(--muted);
+}
+.g-rr-who b, .g-rr-line b { color: var(--key); }
+.g-rr-cat { color: var(--pink); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.g-rr-line { margin-top: 2px; }
+.g-rr-mod { font-size: .72rem; margin-top: 2px; }
+.g-rr-bond  { color: var(--g-green); }
+.g-rr-block { color: var(--g-red); }
+.g-rr-why { color: var(--key); font-size: .78rem; }
 
 .g-id-rounds {
   font-size: .8rem;
@@ -877,9 +913,10 @@
 
   /* Category picker lives in the bottom bar on phones */
   .g-cat-pills { display: none; }
-  .g-scoreboard { padding: 0 12px; }
-  .g-sb-block { padding: 6px 10px; }
-  .g-sb-line b { font-size: 1.25rem; }
+  .g-scoreboard { width: auto; margin: 10px 12px 8px; padding: 8px 12px; gap: 8px; }
+  .g-sb-name { font-size: .95rem; }
+  .g-sb-score b { font-size: 1.7rem; }
+  .g-rr-headline { font-size: 1.6rem; }
   .g-outcome-banner { width: auto; margin: 0 12px 8px; }
 }
 

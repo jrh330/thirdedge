@@ -115,153 +115,101 @@ const CAT_ICONS = {
   ),
 };
 
-// ── RevealResult — side-by-side round result panel ───────────────────────────
+// ── RevealResult — turn result: headline first, details underneath ───────────
 
-function RevealResult({ r, p1, p2, cards }) {
+function RevealResult({ r, myPlayerId, theirName, cards }) {
   if (!r?.lastResult) return null;
   const res = r.lastResult;
 
-  const sideOf     = (pid) => r.players[0].playerId === pid ? 'a' : 'b';
-  const winnerPid  = res.winner
-    ? r.players[res.winner === 'a' ? 0 : 1].playerId
-    : null;
+  const myKey    = r.players[0].playerId === myPlayerId ? 'a' : 'b';
+  const theirKey = myKey === 'a' ? 'b' : 'a';
+  const me       = res[myKey] || {};
+  const them     = res[theirKey] || {};
+  const theirPid = r.players[theirKey === 'a' ? 0 : 1].playerId;
 
-  function PlayerCol({ pid, name }) {
-    const key      = sideOf(pid);
-    const side     = res[key] || {};
-    const cat      = r.lastCategories?.[pid];
-    const playedId = r.lastPlayed?.[pid];
-    const card     = cards?.[playedId];
-    const won      = winnerPid === pid;
-    const tied     = !res.winner;
-    const total    = cat ? (side.totals?.[cat] ?? '?') : '?';
+  const iWon   = res.winner === myKey;
+  const tied   = !res.winner;
+  const stake  = res.stakeAwarded ?? 1;
+  const ptsTxt = `${stake} point${stake === 1 ? '' : 's'}`;
 
-    const resultColor = won  ? 'var(--g-green)'
-                      : tied ? 'var(--g-muted)'
-                      :        'var(--g-red)';
-    const resultIcon  = won ? '✓' : tied ? '–' : '✗';
+  const headline = tied ? 'Tie' : iWon ? 'You win!' : 'You lost';
+  const subline  = tied
+    ? `No points. Next turn is worth ${res.newStake ?? 2}.`
+    : iWon ? `+${ptsTxt} to you` : `+${ptsTxt} to ${theirName}`;
+  const tone = tied ? 'tie' : iWon ? 'win' : 'loss';
 
+  const myCat    = me.category    || r.lastCategories?.[myPlayerId];
+  const theirCat = them.category  || r.lastCategories?.[theirPid];
+  const myCard   = cards?.[me.cardId   || r.lastPlayed?.[myPlayerId]];
+  const theirCard= cards?.[them.cardId || r.lastPlayed?.[theirPid]];
+
+  const margin = (hit) => hit > 0 ? `ahead by ${hit}` : hit < 0 ? `behind by ${-hit}` : 'level';
+
+  function Detail({ who, card, cat, attacker, defender, side }) {
+    if (!cat) return null;
+    const a = attacker.totals?.[cat] ?? '?';
+    const d = defender.totals?.[cat] ?? '?';
+    const your = who === 'You' ? 'Your' : 'Their';
+    const oppr = who === 'You' ? 'their' : 'your';
     return (
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Card image */}
-        {card?.imageUrl && (
-          <img
-            src={card.imageUrl}
-            alt={card.name}
-            style={{
-              width: '100%', height: 72, objectFit: 'cover',
-              borderRadius: 8, marginBottom: 6, display: 'block',
-              border: `2.5px solid ${resultColor}`,
-            }}
-          />
-        )}
-
-        {/* Player name + win/loss/tie */}
-        <div style={{ fontWeight: 800, fontSize: 11, marginBottom: 3, color: resultColor, letterSpacing: '.03em' }}>
-          {name} {resultIcon}
+      <div className="g-rr-detail">
+        <div className="g-rr-who">
+          {who} played <b>{card?.name || '—'}</b> on <span className="g-rr-cat">{cat}</span>
         </div>
-
-        {/* Card name */}
-        <div style={{
-          fontWeight: 700, fontSize: 13, marginBottom: 3,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {card?.name || '—'}
+        <div className="g-rr-line">
+          {your} {cat} <b>{a}</b> vs {oppr} <b>{d}</b> &rarr; <b>{margin(side.hit ?? 0)}</b>
         </div>
-
-        {/* Category chosen */}
-        {cat && (
-          <div style={{
-            fontSize: 10, fontWeight: 800, letterSpacing: '.1em',
-            textTransform: 'uppercase', color: 'var(--pink)', marginBottom: 3,
-          }}>
-            {cat}
-          </div>
-        )}
-
-        {/* Bond / blocked modifiers */}
-        {side.bonded && (
-          <div style={{ fontSize: 11, color: 'var(--g-green)', marginBottom: 2 }}>
-            ⬡ Bond +1
-          </div>
-        )}
-        {side.blocked && (
-          <div style={{ fontSize: 11, color: 'var(--g-red)', marginBottom: 2 }}>
-            Blocked
-          </div>
-        )}
-
-        {/* Total for chosen category */}
-        {cat && (
-          <div style={{ fontSize: 11, color: 'var(--g-muted)', marginTop: 2 }}>
-            {cat.toUpperCase()} total:{' '}
-            <span style={{ color: 'var(--key)', fontWeight: 700 }}>{total}</span>
-          </div>
-        )}
-
-        {/* Points scored this round */}
-        <div style={{
-          fontSize: 16, fontWeight: 900, marginTop: 5,
-          color: side.hit > 0 ? resultColor : 'var(--g-muted)',
-          fontFamily: "'Rubik', sans-serif",
-        }}>
-          {side.hit > 0 ? `+${side.hit}` : side.hit ?? 0}
-          <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 3, color: 'var(--g-muted)' }}>pts</span>
-        </div>
+        {side.bonded  && <div className="g-rr-mod g-rr-bond">Bond +1 included</div>}
+        {side.blocked && <div className="g-rr-mod g-rr-block">Bond blocked</div>}
       </div>
     );
   }
 
-  const awardMsg = winnerPid
-    ? `+${res.stakeAwarded ?? 1} pts → ${winnerPid === p1.id ? p1.name : p2.name}`
-    : `Tie — stake grows to ${res.newStake ?? 2}`;
+  let why = '';
+  if (res.decidedBy === 'hit') {
+    why = iWon
+      ? `You were ahead by more (${me.hit} vs ${them.hit}).`
+      : `${theirName} was ahead by more (${them.hit} vs ${me.hit}).`;
+  } else if (res.decidedBy === 'attackSize') {
+    why = `Same margin, so the bigger total wins (${me.totals?.[myCat]} vs ${them.totals?.[theirCat]}).`;
+  } else if (tied) {
+    why = 'Same margin and same total.';
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
-        letterSpacing: '.1em', color: 'var(--g-muted)', marginBottom: 2 }}>
-        Round Result
-      </div>
+    <div className="g-rr">
+      <div className={`g-rr-headline g-rr-${tone}`}>{headline}</div>
+      <div className="g-rr-sub">{subline}</div>
 
-      {/* Two-column player breakdown */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <PlayerCol pid={p1.id} name={p1.name} />
-        <div style={{ width: 1, background: 'var(--line)', alignSelf: 'stretch', flexShrink: 0 }} />
-        <PlayerCol pid={p2.id} name={p2.name} />
-      </div>
-
-      {/* Award banner */}
-      <div style={{
-        borderTop: '1px solid var(--line)', paddingTop: 8,
-        fontSize: 13, fontWeight: 800, textAlign: 'center',
-        color: winnerPid ? 'var(--pink)' : 'var(--g-muted)',
-      }}>
-        {awardMsg}
+      <div className="g-rr-details">
+        <Detail who="You"     card={myCard}    cat={myCat}    attacker={me}   defender={them} side={me} />
+        <Detail who={theirName} card={theirCard} cat={theirCat} attacker={them} defender={me}   side={them} />
+        {why && <div className="g-rr-why">{why}</div>}
       </div>
     </div>
   );
 }
 
-// ── Scoreboard: match and round score in words and numbers ───────────────────
+// ── Scoreboard: one panel — you | round score | them ─────────────────────────
 
 function Scoreboard({ myName, theirName, myWins, theirWins, roundsToWin, myPts, theirPts, roundPoints, roundNo }) {
   return (
-    <div className="g-scoreboard" role="status" aria-label="Score">
-      <div className="g-sb-block">
-        <div className="g-sb-label">Match &middot; best of {roundsToWin * 2 - 1}</div>
-        <div className="g-sb-line">
-          <span className="g-sb-you">You</span>
-          <b>{myWins}</b><span className="g-sb-dash">&ndash;</span><b>{theirWins}</b>
-          <span className="g-sb-opp">{theirName}</span>
-        </div>
+    <div className="g-scoreboard" role="status"
+      aria-label={`Round ${roundNo}: you ${myPts}, ${theirName} ${theirPts}. Rounds won: you ${myWins}, ${theirName} ${theirWins}.`}>
+      <div className="g-sb-side g-sb-me">
+        <div className="g-sb-name g-sb-you">You</div>
+        <div className="g-sb-rounds">Rounds won <b>{myWins}</b></div>
       </div>
-      <div className="g-sb-block">
+      <div className="g-sb-centre">
         <div className="g-sb-label">Round {roundNo} &middot; first to {roundPoints}</div>
-        <div className="g-sb-line">
-          <span className="g-sb-you">You</span>
-          <b>{myPts}</b><span className="g-sb-dash">&ndash;</span><b>{theirPts}</b>
-          <span className="g-sb-opp">{theirName}</span>
+        <div className="g-sb-score">
+          <b className="g-sb-you">{myPts}</b><span className="g-sb-dash">&ndash;</span><b className="g-sb-opp">{theirPts}</b>
         </div>
+        <div className="g-sb-label">Best of {roundsToWin * 2 - 1} rounds</div>
+      </div>
+      <div className="g-sb-side g-sb-them">
+        <div className="g-sb-name g-sb-opp">{theirName}</div>
+        <div className="g-sb-rounds">Rounds won <b>{theirWins}</b></div>
       </div>
     </div>
   );
@@ -423,7 +371,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
   // ── Note line text ────────────────────────────────────────────────────────
   let noteLine = '';
   if (isReveal) {
-    noteLine = 'Check the result, then continue.';
+    noteLine = '';
   } else if (mySubmitted) {
     noteLine = 'Waiting for opponent\u2026';
   } else if (isOpening) {
@@ -713,7 +661,7 @@ export default function Game({ code, myPlayerId, myRole, p1, p2, onNewGame, onBa
 
           {/* Category pills / reveal result */}
           {isReveal
-            ? <RevealResult r={r} p1={p1} p2={p2} cards={cards} />
+            ? <RevealResult r={r} myPlayerId={myPlayerId} theirName={theirName} cards={cards} />
             : (
               <div className="g-cat-pills">
                 {['power', 'speed', 'wits'].map(cat => {
