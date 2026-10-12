@@ -91,13 +91,14 @@ app.post(   "/admin/players/:id/give-samples",    giveSamplesAdmin);
 app.post(   "/admin/players/:id/clear-samples",   clearSamplesAdmin);
 app.post(   "/admin/players/:id/reset",           resetPlayer);
 
-const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel } = require("./api2/admin-page");
+const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards } = require("./api2/admin-page");
 app.get(  "/admin",                   adminPage);
 app.post( "/admin/login",             adminLogin);
 app.post( "/admin/logout",            adminLogout);
 app.get(  "/admin/players",           listPlayers);
 app.get(  "/admin/players/:id/state", getPlayerState);
 app.get(  "/admin/events",            getEventsFunnel);
+app.get(  "/admin/cards",             listCards);
 
 const { pairPlayers, listMatches, forceEndMatch, forceEndAllMatches } = require("./api2/admin-pair");
 app.post( "/admin/pair",                  pairPlayers);

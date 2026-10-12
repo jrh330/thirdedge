@@ -200,7 +200,32 @@ async function getEventsFunnel(req, res) {
   }
 }
 
-module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel };
+// ── GET /admin/cards ──────────────────────────────────────────────────────────
+// Every card players made themselves (samples left out), newest first, with the
+// owner's name. Read-only; used to choose cards for the starter pool.
+
+async function listCards(req, res) {
+  if (!isAdminAuthed(req)) return res.status(401).json({ error: 'unauthorized' });
+  try {
+    const db = await getDb();
+    const cards = await db.collection('cardsv2')
+      .find({ deleted: { $ne: true }, source: { $ne: 'sample' } })
+      .project({ _id: 0, fingerprint: 0, aiAnchors: 0 })
+      .sort({ mintedAt: -1 })
+      .toArray();
+    const ownerIds = [...new Set(cards.map(c => c.ownerId))];
+    const players = await db.collection('players')
+      .find({ id: { $in: ownerIds } }, { projection: { _id: 0, id: 1, name: 1 } })
+      .toArray();
+    const nameById = Object.fromEntries(players.map(p => [p.id, p.name]));
+    res.json(cards.map(c => ({ ...c, ownerName: nameById[c.ownerId] || null })));
+  } catch (err) {
+    console.error('listCards error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards };
 
 // ── HTML templates ────────────────────────────────────────────────────────────
 
