@@ -209,7 +209,7 @@ async function listCards(req, res) {
   try {
     const db = await getDb();
     const cards = await db.collection('cardsv2')
-      .find({ deleted: { $ne: true }, source: { $ne: 'sample' } })
+      .find({ deleted: { $ne: true }, source: { $ne: 'sample' }, isTestCard: { $ne: true } })
       .project({ _id: 0, fingerprint: 0, aiAnchors: 0 })
       .sort({ mintedAt: -1 })
       .toArray();
@@ -225,7 +225,28 @@ async function listCards(req, res) {
   }
 }
 
-module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards };
+// ── POST /admin/pool ──────────────────────────────────────────────────────────
+// Body { ids: [cardId…], inPool: true|false }. Ticks player-made cards in or
+// out of the starter pool (see api2/_pool.js). Sample copies can't be pooled.
+
+async function setPool(req, res) {
+  if (!isAdminAuthed(req)) return res.status(401).json({ error: 'unauthorized' });
+  const { ids, inPool } = req.body || {};
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids required' });
+  try {
+    const db = await getDb();
+    const r = await db.collection('cardsv2').updateMany(
+      { id: { $in: ids.map(String) }, source: { $ne: 'sample' }, isTestCard: { $ne: true } },
+      { $set: { inStarterPool: !!inPool } }
+    );
+    res.json({ updated: r.modifiedCount });
+  } catch (err) {
+    console.error('setPool error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards, setPool };
 
 // ── HTML templates ────────────────────────────────────────────────────────────
 
@@ -537,6 +558,33 @@ function dashboardHtml() {
   .loading-msg { text-align: center; padding: 40px 20px; color: #9B8AAE; font-size: 14px; }
 
   .age { font-size: 12px; color: #9B8AAE; }
+
+  /* Test games + starter pool */
+  .tg-list { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+  .tg-row { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 10px; align-items: center;
+            background: rgba(246,240,250,.04); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+  .tg-code { font-family: monospace; font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+  .pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .pill-empty { background: rgba(246,240,250,.1); color: #9B8AAE; }
+  .pill-waiting { background: #FFD23F; color: #1B1026; }
+  .pill-playing { background: #00C2C7; color: #1B1026; }
+  .pill-finished { background: rgba(246,240,250,.1); color: #F6F0FA; }
+  .pool-bal { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 13px; }
+  .pool-bal span { background: rgba(246,240,250,.06); border-radius: 8px; padding: 5px 10px; }
+  .pool-bal b { font-weight: 800; }
+  .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .pc { position: relative; border-radius: 10px; overflow: hidden; cursor: pointer; background: #140B1C;
+        border: 2px solid transparent; opacity: .45; transition: opacity .15s; user-select: none; }
+  .pc.on { opacity: 1; border-color: #FF2E93; }
+  .pc img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; }
+  .pc .pc-meta { padding: 6px 8px 8px; font-size: 11px; line-height: 1.3; }
+  .pc .pc-name { font-weight: 700; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pc .pc-tick { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%;
+        background: rgba(0,0,0,.55); border: 2px solid #F6F0FA; font-size: 13px; line-height: 18px; text-align: center; }
+  .pc.on .pc-tick { background: #FF2E93; border-color: #FF2E93; }
+  .fam-Vita { color: #FF5A1F; } .fam-Terra { color: #FFD23F; } .fam-Arte { color: #A98BFF; }
+  details.older { margin-bottom: 24px; }
+  details.older summary { cursor: pointer; color: #9B8AAE; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -557,6 +605,33 @@ function dashboardHtml() {
     <div class="stat"><div class="stat-val" id="stat-matches" style="color:#C84B8F">—</div><div class="stat-label">Live matches</div></div>
     <div class="stat"><div class="stat-val" id="stat-cards" style="color:#9B8AAE">—</div><div class="stat-label">Own cards made</div></div>
   </div>
+
+  <!-- New test game -->
+  <div class="panel">
+    <div class="panel-title">New test game</div>
+    <button class="btn-pink" id="tg-btn" onclick="newTestGame()">+ New test game</button>
+    <div class="result-box" id="tg-result">
+      <div class="link-row">
+        <div class="link-text" id="tg-url"></div>
+        <button class="btn-copy" onclick="copyLink(document.getElementById('tg-url').textContent, this)">Copy</button>
+      </div>
+      <p style="font-size:12px;color:#9B8AAE;margin-top:6px">Send this same link to both players. First to open it is player 1, second is player 2. They just type a name.</p>
+    </div>
+    <div class="tg-list" id="tg-list"></div>
+  </div>
+
+  <!-- Starter pool -->
+  <div class="panel">
+    <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Starter pool <span style="color:#9B8AAE;font-weight:500">· the cards new players are dealt. Tap a card to add or remove it.</span></span>
+      <button class="ab" onclick="loadPool()" style="font-size:12px">Refresh</button>
+    </div>
+    <div class="pool-bal" id="pool-bal"></div>
+    <div class="pool-grid" id="pool-grid"><div class="loading-msg">Loading…</div></div>
+  </div>
+
+  <details class="older">
+  <summary>Older tools: invite one tester, pair two testers</summary>
 
   <!-- Add tester -->
   <div class="panel">
@@ -599,6 +674,8 @@ function dashboardHtml() {
       <p style="font-size:12px;color:#9B8AAE;margin-top:6px">Each link lands that person straight in the match.</p>
     </div>
   </div>
+
+  </details>
 
   <!-- Tester table -->
   <div class="table-wrap">
@@ -1009,11 +1086,114 @@ function renderFunnel(funnel) {
   document.getElementById('funnel-body').innerHTML = html;
 }
 
+// ── Test games ────────────────────────────────────────────────────────────────
+
+async function newTestGame() {
+  const btn = document.getElementById('tg-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/admin/test-games', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || 'Failed'); return; }
+    document.getElementById('tg-url').textContent = d.url;
+    document.getElementById('tg-result').style.display = 'block';
+    loadTestGames();
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { btn.disabled = false; }
+}
+
+const TG_LABEL = { empty: 'Nobody yet', waiting: 'Waiting for 2nd', playing: 'Playing', finished: 'Finished' };
+
+async function loadTestGames() {
+  try {
+    const r = await fetch('/admin/test-games');
+    if (!r.ok) return;
+    const list = await r.json();
+    document.getElementById('tg-list').innerHTML = list.map(function (g) {
+      const who = g.p1Name ? escHtml(g.p1Name) + (g.p2Name ? ' vs ' + escHtml(g.p2Name) : '') : '';
+      return '<div class="tg-row"><span class="tg-code">' + escHtml(g.code) + '</span><span>' + who + '</span>' +
+        '<span class="pill pill-' + g.status + '">' + TG_LABEL[g.status] + '</span>' +
+        '<button class="btn-copy" onclick="copyLink(\\'' + escHtml(g.url) + '\\', this)">Copy link</button></div>';
+    }).join('');
+  } catch (e) {}
+}
+
+// ── Starter pool ──────────────────────────────────────────────────────────────
+
+let poolCards = [];
+
+async function loadPool() {
+  try {
+    const r = await fetch('/admin/cards');
+    if (!r.ok) { document.getElementById('pool-grid').innerHTML = '<div class="empty-state">Failed to load.</div>'; return; }
+    poolCards = (await r.json()).filter(function (c) { return c.imageUrl && c.family; });
+    poolCards.sort(function (a, b) {
+      return (b.inStarterPool ? 1 : 0) - (a.inStarterPool ? 1 : 0) ||
+             String(a.family).localeCompare(String(b.family)) || String(a.name).localeCompare(String(b.name));
+    });
+    renderPool();
+  } catch (e) {
+    document.getElementById('pool-grid').innerHTML = '<div class="empty-state">Error loading cards.</div>';
+  }
+}
+
+function isSeven(c) { return c.power === 7 || c.speed === 7 || c.wits === 7; }
+
+function thumb(url) {
+  // Cloudinary: ask for a small version for the grid
+  return url.indexOf('/upload/') > -1 ? url.replace('/upload/', '/upload/w_240,c_fill,ar_5:7/') : url;
+}
+
+function renderPool() {
+  const on = poolCards.filter(function (c) { return c.inStarterPool; });
+  const fam = { Vita: 0, Terra: 0, Arte: 0 };
+  on.forEach(function (c) { fam[c.family] = (fam[c.family] || 0) + 1; });
+  const sevens = on.filter(isSeven).length;
+  const live = on.length >= 24;
+  document.getElementById('pool-bal').innerHTML =
+    '<span><b>' + on.length + '</b> in pool</span>' +
+    '<span class="fam-Vita">Vita <b>' + fam.Vita + '</b></span>' +
+    '<span class="fam-Terra">Terra <b>' + fam.Terra + '</b></span>' +
+    '<span class="fam-Arte">Arte <b>' + fam.Arte + '</b></span>' +
+    '<span>With a 7 <b>' + sevens + '</b></span>' +
+    '<span style="color:' + (live ? '#34C759' : '#FFB08F') + '">' +
+      (live ? 'New players are dealt from this pool' : 'Needs 24 to switch on, until then new players get the old test cards') + '</span>';
+  document.getElementById('pool-grid').innerHTML = poolCards.map(function (c, i) {
+    return '<div class="pc' + (c.inStarterPool ? ' on' : '') + '" onclick="togglePool(' + i + ')" title="' + escHtml(c.flavorText || '') + '">' +
+      '<img loading="lazy" src="' + escHtml(thumb(c.imageUrl)) + '" alt="">' +
+      '<div class="pc-tick">' + (c.inStarterPool ? '&#10003;' : '') + '</div>' +
+      '<div class="pc-meta"><div class="pc-name">' + escHtml(c.name) + '</div>' +
+      '<span class="fam-' + escHtml(c.family) + '">' + escHtml(c.family) + '</span> · ' +
+      c.power + '/' + c.speed + '/' + c.wits + (isSeven(c) ? ' ★' : '') +
+      '<div style="color:#9B8AAE">by ' + escHtml(c.ownerName || '?') + '</div></div></div>';
+  }).join('') || '<div class="empty-state">No cards with pictures yet.</div>';
+}
+
+async function togglePool(i) {
+  const c = poolCards[i];
+  const next = !c.inStarterPool;
+  c.inStarterPool = next;
+  renderPool();
+  try {
+    const r = await fetch('/admin/pool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [c.id], inPool: next }),
+    });
+    if (!r.ok) throw new Error('save failed');
+  } catch (e) {
+    c.inStarterPool = !next;
+    renderPool();
+    alert('Could not save that change. Try again.');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('new-name').addEventListener('keydown', e => { if (e.key === 'Enter') createTester(); });
   loadPlayers();
   loadMatches();
   loadFunnel();
+  loadTestGames();
+  loadPool();
 });
 </script>
 </body>

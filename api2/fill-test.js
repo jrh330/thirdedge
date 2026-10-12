@@ -5,6 +5,7 @@ const { getDb } = require("./_db");
 const { requirePlayer } = require("../auth/player");
 const { ACTIVE_SIZE, FAMILY_MAX, SEVEN_ALLOWANCE } = require("../engine2/constants");
 const { logEvent } = require('./_events');
+const { loadStarterPool, POOL_MIN } = require('./_pool');
 
 // The 30-card test pool (from card-game/design/test-pool.json)
 const TEST_POOL = [
@@ -51,9 +52,9 @@ function shuffle(arr) {
 }
 
 // Pick test cards to fill `needed` more active slots, respecting current counts.
-function pickCards(needed, famCount, sevenCount, alreadyUsedIds) {
+function pickCards(pool, needed, famCount, sevenCount, alreadyUsedIds) {
   const usedSet   = new Set(alreadyUsedIds);
-  const available = TEST_POOL.filter(c => !usedSet.has(c.id));
+  const available = pool.filter(c => !usedSet.has(c.id));
   const nonSevens = shuffle(available.filter(c => !c.carriesSeven));
   const sevens    = shuffle(available.filter(c =>  c.carriesSeven));
 
@@ -139,7 +140,12 @@ async function giveSampleDeck(playerId, db) {
     if (c.carriesSeven) sevenCount++;
   }
 
-  const toAdd = pickCards(needed, famCount, sevenCount, alreadyTestIds);
+  // Deal from the starter pool (real pictures) when it is big enough,
+  // otherwise from the 30-card picture-less test pool.
+  const starter = await loadStarterPool(db);
+  const pool    = starter.length >= POOL_MIN ? starter : TEST_POOL;
+
+  const toAdd = pickCards(pool, needed, famCount, sevenCount, alreadyTestIds);
   if (toAdd.length === 0) return { added: 0, total: collDoc.active.length };
 
   const now     = new Date();
@@ -156,7 +162,8 @@ async function giveSampleDeck(playerId, db) {
     speed:        card.speed,
     wits:         card.wits,
     carriesSeven: card.carriesSeven,
-    imageUrl:     null,
+    imageUrl:     card.imageUrl || null,
+    flavorText:   card.flavorText || null,
     mintedAt:     now,
   }));
 

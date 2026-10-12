@@ -81,6 +81,13 @@ app.get("/join/:token", joinInvite);   // legacy alias — permanent
 
 app.post("/claim", require("./api2/claim"));
 
+// One link per test game (see api2/test-games.js)
+const { createTestGame, listTestGames, testGamePage, claimSeat } = require("./api2/test-games");
+app.get(  "/t/:code",           testGamePage);
+app.post( "/t/:code",           claimSeat);
+app.post( "/admin/test-games",  createTestGame);
+app.get(  "/admin/test-games",  listTestGames);
+
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
 const { createInvite, revokeInvite, restorePlayer, giveSamplesAdmin, clearSamplesAdmin, resetPlayer } = require("./api2/admin-invites");
@@ -91,7 +98,7 @@ app.post(   "/admin/players/:id/give-samples",    giveSamplesAdmin);
 app.post(   "/admin/players/:id/clear-samples",   clearSamplesAdmin);
 app.post(   "/admin/players/:id/reset",           resetPlayer);
 
-const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards } = require("./api2/admin-page");
+const { adminPage, adminLogin, adminLogout, listPlayers, getPlayerState, getEventsFunnel, listCards, setPool } = require("./api2/admin-page");
 app.get(  "/admin",                   adminPage);
 app.post( "/admin/login",             adminLogin);
 app.post( "/admin/logout",            adminLogout);
@@ -99,6 +106,7 @@ app.get(  "/admin/players",           listPlayers);
 app.get(  "/admin/players/:id/state", getPlayerState);
 app.get(  "/admin/events",            getEventsFunnel);
 app.get(  "/admin/cards",             listCards);
+app.post( "/admin/pool",              setPool);
 
 const { pairPlayers, listMatches, forceEndMatch, forceEndAllMatches } = require("./api2/admin-pair");
 app.post( "/admin/pair",                  pairPlayers);
